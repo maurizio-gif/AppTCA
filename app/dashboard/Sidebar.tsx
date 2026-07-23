@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
@@ -15,12 +16,29 @@ const NAV_ITEMS = [
 
 export function Sidebar({ email }: { email: string }) {
   const pathname = usePathname()
+  const [open, setOpen] = useState(false)
+
+  // Chiude il menu mobile ad ogni cambio pagina, altrimenti resterebbe
+  // aperto sopra il contenuto della sezione appena raggiunta.
+  useEffect(() => {
+    setOpen(false)
+  }, [pathname])
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${open ? ' is-open' : ''}`}>
       <div className="sidebar-brand">
         TCA <span>Segreteria</span>
       </div>
+
+      <button
+        type="button"
+        className="sidebar-toggle"
+        aria-label={open ? 'Chiudi il menu' : 'Apri il menu'}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {open ? '✕' : '☰'}
+      </button>
 
       <nav className="sidebar-nav">
         {NAV_ITEMS.map((item) => (

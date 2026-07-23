@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/serverClient'
 import { isSegreteriaEmail } from '@/lib/auth/allowlist'
 
 export async function login(formData: FormData) {
-  const email = String(formData.get('email') ?? '')
+  const email = String(formData.get('email') ?? '').trim()
   const password = String(formData.get('password') ?? '')
 
   if (!(await isSegreteriaEmail(email))) {

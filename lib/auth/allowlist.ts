@@ -10,7 +10,7 @@ export async function isSegreteriaEmail(email: string | null | undefined): Promi
   const { data } = await supabase
     .from('staff_users')
     .select('email')
-    .eq('email', email.toLowerCase())
+    .eq('email', email.trim().toLowerCase())
     .maybeSingle()
 
   return !!data
