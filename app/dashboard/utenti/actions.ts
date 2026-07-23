@@ -22,7 +22,14 @@ export async function invitaStaff(formData: FormData) {
   // allowlist in passato), l'invito fallisce con "gia' registrato": va bene
   // cosi', e' comunque ora nella tabella staff_users e puo' accedere con la
   // password che ha gia'.
-  const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email)
+  // redirectTo esplicito: senza, Supabase usa il "Site URL" configurato sul
+  // progetto (di default localhost:3000) e il link nell'email non arriva
+  // mai al pannello vero. Richiede che NEXT_PUBLIC_SITE_URL sia anche nella
+  // allowlist "Redirect URLs" di Supabase Auth (Authentication -> URL
+  // Configuration), altrimenti Supabase lo ignora comunque.
+  const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+  })
   if (inviteError && !/already been registered|already exists/i.test(inviteError.message)) {
     redirect(`/dashboard/utenti?error=${encodeURIComponent(inviteError.message)}`)
   }

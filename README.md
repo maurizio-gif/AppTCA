@@ -130,3 +130,28 @@ inutilizzata — puoi rimuoverla da Vercel quando vuoi) ma la tabella
 Migrazione richiesta (una tantum, ha bisogno di conferma manuale perché è
 una DDL sul DB): vedi `staff_users.sql` — crea la tabella con RLS e inserisce
 il primo utente.
+
+## Aggiornamento — fix link email di invito (puntava a localhost)
+
+Il link nell'email di invito puntava a `localhost:3000` perché mancavano
+due cose, ora sistemate:
+
+1. **Codice**: `invitaStaff` ora passa `redirectTo` esplicito verso
+   `${NEXT_PUBLIC_SITE_URL}/auth/callback`. Nuove pagine:
+   - `app/auth/callback/page.tsx` — riceve il link dall'email (gestisce sia
+     il formato con token nell'hash sia quello con `?code=`), stabilisce la
+     sessione e manda a `/imposta-password`.
+   - `app/imposta-password/page.tsx` — form per scegliere la password
+     (richiede una sessione attiva, altrimenti torna a `/login`).
+2. **Da fare a mano su Supabase** (nessun tool disponibile per farlo da qui):
+   Supabase Studio → **Authentication → URL Configuration**:
+   - **Site URL**: `https://app-tca-alpha.vercel.app` (o il dominio reale)
+   - **Redirect URLs**: aggiungi `https://app-tca-alpha.vercel.app/auth/callback`
+     (o un wildcard `https://app-tca-alpha.vercel.app/**`)
+
+   Su Vercel serve anche la nuova env var `NEXT_PUBLIC_SITE_URL` (stesso
+   valore del Site URL, senza slash finale) — vedi `.env.local.example`.
+
+Chi era stato invitato prima di questo fix va invitato di nuovo da
+"Gestione utenti" (l'upsert su `staff_users` e il reinvio dell'invito sono
+entrambi idempotenti, non creano duplicati).
