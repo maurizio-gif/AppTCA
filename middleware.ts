@@ -3,10 +3,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 // Gira su ogni richiesta a /dashboard/*: rinfresca il cookie di sessione
 // Supabase e, se manca una sessione valida, rimanda a /login.
-// Il controllo "email in allowlist" resta nel layout del dashboard,
-// perche' qui non vogliamo interrogare il DB ad ogni singola richiesta.
+// L'email gia' validata qui viene propagata al layout via header di
+// richiesta (x-tca-user-email): cosi' il layout non deve richiamare
+// getUser() (un'altra chiamata di rete a Supabase Auth) ad ogni singola
+// pagina del dashboard, solo per sapere chi e' loggato. L'header viene
+// sempre sovrascritto qui sotto con il valore validato, quindi non e'
+// falsificabile da un client che provasse a impostarlo da solo.
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request })
+  const requestHeaders = new Headers(request.headers)
+  const pendingCookies: { name: string; value: string; options: CookieOptions }[] = []
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,10 +23,7 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
+          pendingCookies.push(...cookiesToSet)
         },
       },
     }
@@ -32,9 +34,15 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+    return NextResponse.redirect(new URL('/login', request.url))
   }
+
+  if (user?.email) {
+    requestHeaders.set('x-tca-user-email', user.email)
+  }
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
+  pendingCookies.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
 
   return response
 }
