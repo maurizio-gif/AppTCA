@@ -11,27 +11,25 @@ export default async function DashboardHome() {
   ])
 
   return (
-    <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-      <StatCard label="Richieste contatto" value={contatti.count ?? 0} />
-      <StatCard label="Preiscrizioni scuola tennis" value={scuolaTennis.count ?? 0} />
-      <StatCard label="Inviti amico" value={invitaAmico.count ?? 0} />
-      <StatCard label="Iscrizioni eventi" value={iscrizioniEventi.count ?? 0} />
+    <div>
+      <div className="page-header">
+        <h1>Riepilogo</h1>
+      </div>
+      <div className="stat-row">
+        <StatCard label="Richieste contatto" value={contatti.count ?? 0} />
+        <StatCard label="Preiscrizioni scuola tennis" value={scuolaTennis.count ?? 0} />
+        <StatCard label="Inviti amico" value={invitaAmico.count ?? 0} />
+        <StatCard label="Iscrizioni eventi" value={iscrizioniEventi.count ?? 0} />
+      </div>
     </div>
   )
 }
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div
-      style={{
-        border: '1px solid #EBEBEB',
-        borderRadius: 8,
-        padding: 16,
-        minWidth: 180,
-      }}
-    >
-      <div style={{ fontSize: 32, fontWeight: 700 }}>{value}</div>
-      <div style={{ color: '#555' }}>{label}</div>
+    <div className="stat-card">
+      <div className="value">{value}</div>
+      <div className="label">{label}</div>
     </div>
   )
 }

@@ -6,27 +6,37 @@ export default function LoginPage({
   searchParams: { error?: string }
 }) {
   return (
-    <main style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif' }}>
-      <h1>Segreteria TCA</h1>
+    <main className="login-shell">
+      <div className="login-card">
+        <h1>Segreteria TCA</h1>
 
-      {searchParams.error === 'credenziali' && (
-        <p style={{ color: '#8B1A1A' }}>Email o password errate.</p>
-      )}
-      {searchParams.error === 'non-autorizzato' && (
-        <p style={{ color: '#8B1A1A' }}>Questo account non è abilitato al pannello.</p>
-      )}
+        {searchParams.error === 'credenziali' && (
+          <p className="error-banner">Email o password errate.</p>
+        )}
+        {searchParams.error === 'non-autorizzato' && (
+          <p className="error-banner">Questo account non è abilitato al pannello.</p>
+        )}
 
-      <form action={login} style={{ display: 'grid', gap: 12 }}>
-        <label>
-          Email
-          <input name="email" type="email" required style={{ width: '100%' }} />
-        </label>
-        <label>
-          Password
-          <input name="password" type="password" required style={{ width: '100%' }} />
-        </label>
-        <button type="submit">Accedi</button>
-      </form>
+        <form action={login}>
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input id="email" name="email" type="email" required autoComplete="email" />
+          </div>
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+          <button type="submit" className="btn btn-block">
+            Accedi
+          </button>
+        </form>
+      </div>
     </main>
   )
 }

@@ -101,3 +101,13 @@ dallo schema reale (`Database`), usati da `serviceClient.ts`.
    d'ambiente `SEGRETERIA_ALLOWLIST` (separate da virgola) sia su Vercel
    sia in `.env.local` per lo sviluppo locale.
 5. Deploy. Da lì Vercel builda e aggiorna automaticamente ad ogni push.
+
+## Aggiornamento — grafica e usabilità
+
+- `app/globals.css` con la palette e i font del sito principale (Barlow
+  Condensed per i titoli, Barlow per il corpo), caricati con `next/font/google`.
+- Sidebar fissa (`app/dashboard/Sidebar.tsx`, client component per evidenziare
+  la voce attiva) al posto della barra di navigazione orizzontale, con
+  pulsante di logout (`logout` in `app/login/actions.ts`).
+- Stat card, tabelle e filtri per stato ristilizzati con classi CSS invece di
+  stili inline.

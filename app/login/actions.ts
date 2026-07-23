@@ -21,3 +21,9 @@ export async function login(formData: FormData) {
 
   redirect('/dashboard')
 }
+
+export async function logout() {
+  const supabase = createSupabaseServerClient()
+  await supabase.auth.signOut()
+  redirect('/login')
+}

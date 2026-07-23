@@ -22,53 +22,55 @@ export default async function ContattiPage({
   const { data: righe, error } = await query
 
   if (error) {
-    return <p style={{ color: '#8B1A1A' }}>Errore nel caricamento: {error.message}</p>
+    return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
   return (
     <div>
-      <h1>Form contatti ("Parliamone")</h1>
-
-      <div style={{ marginBottom: 16 }}>
-        <FiltroStato attivo={searchParams.stato} />
+      <div className="page-header">
+        <h1>Form contatti ("Parliamone")</h1>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ textAlign: 'left', borderBottom: '2px solid #1A1A1A' }}>
-            <th>Data</th>
-            <th>Nome</th>
-            <th>Contatti</th>
-            <th>Richiesta</th>
-            <th>Pagina</th>
-            <th>Stato</th>
-          </tr>
-        </thead>
-        <tbody>
-          {righe?.map((riga) => (
-            <tr key={riga.id} style={{ borderBottom: '1px solid #EBEBEB' }}>
-              <td>{new Date(riga.created_at).toLocaleString('it-IT')}</td>
-              <td>{riga.nome} {riga.cognome}</td>
-              <td>
-                {riga.email}
-                <br />
-                {riga.cellulare}
-              </td>
-              <td>
-                {riga.tipo_richiesta}
-                <br />
-                <span style={{ color: '#555' }}>{riga.motivo}</span>
-              </td>
-              <td>{riga.pagina}</td>
-              <td>
-                <StatoSelect id={riga.id} statoIniziale={riga.stato ?? 'nuovo'} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <FiltroStato attivo={searchParams.stato} />
 
-      {righe?.length === 0 && <p>Nessuna richiesta trovata.</p>}
+      <div className="data-table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Nome</th>
+              <th>Contatti</th>
+              <th>Richiesta</th>
+              <th>Pagina</th>
+              <th>Stato</th>
+            </tr>
+          </thead>
+          <tbody>
+            {righe?.map((riga) => (
+              <tr key={riga.id}>
+                <td>{new Date(riga.created_at).toLocaleString('it-IT')}</td>
+                <td>{riga.nome} {riga.cognome}</td>
+                <td>
+                  {riga.email}
+                  <br />
+                  <span className="muted">{riga.cellulare}</span>
+                </td>
+                <td>
+                  {riga.tipo_richiesta}
+                  <br />
+                  <span className="muted">{riga.motivo}</span>
+                </td>
+                <td>{riga.pagina}</td>
+                <td>
+                  <StatoSelect id={riga.id} statoIniziale={riga.stato ?? 'nuovo'} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {righe?.length === 0 && <p className="empty-state">Nessuna richiesta trovata.</p>}
+      </div>
     </div>
   )
 }
@@ -76,19 +78,12 @@ export default async function ContattiPage({
 function FiltroStato({ attivo }: { attivo?: string }) {
   const opzioni = ['tutti', ...STATI_VALIDI]
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
+    <div className="filter-row">
       {opzioni.map((stato) => (
         <a
           key={stato}
           href={stato === 'tutti' ? '/dashboard/contatti' : `/dashboard/contatti?stato=${stato}`}
-          style={{
-            padding: '4px 10px',
-            border: '1px solid #EBEBEB',
-            borderRadius: 999,
-            textDecoration: 'none',
-            color: (attivo ?? 'tutti') === stato ? '#fff' : '#1A1A1A',
-            background: (attivo ?? 'tutti') === stato ? '#8B1A1A' : 'transparent',
-          }}
+          className={`filter-pill ${(attivo ?? 'tutti') === stato ? 'active' : ''}`}
         >
           {stato}
         </a>
