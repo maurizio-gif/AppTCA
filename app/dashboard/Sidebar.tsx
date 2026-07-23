@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/scuola-tennis', label: 'Scuola tennis' },
   { href: '/dashboard/invita-amico', label: 'Invita un amico' },
   { href: '/dashboard/iscrizioni-eventi', label: 'Iscrizioni eventi' },
+  { href: '/dashboard/utenti', label: 'Gestione utenti' },
 ]
 
 export function Sidebar({ email }: { email: string }) {

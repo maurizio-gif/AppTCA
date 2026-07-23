@@ -120,6 +120,15 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["iscrizioni_eventi"]["Row"]>
         Relationships: []
       }
+      staff_users: {
+        Row: {
+          email: string
+          created_at: string
+        }
+        Insert: Partial<Database["public"]["Tables"]["staff_users"]["Row"]>
+        Update: Partial<Database["public"]["Tables"]["staff_users"]["Row"]>
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }

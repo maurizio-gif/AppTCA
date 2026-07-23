@@ -111,3 +111,22 @@ dallo schema reale (`Database`), usati da `serviceClient.ts`.
   pulsante di logout (`logout` in `app/login/actions.ts`).
 - Stat card, tabelle e filtri per stato ristilizzati con classi CSS invece di
   stili inline.
+
+## Aggiornamento — gestione utenti senza Vercel/Supabase Studio
+
+L'allowlist non è più una variabile d'ambiente (`SEGRETERIA_ALLOWLIST`, ora
+inutilizzata — puoi rimuoverla da Vercel quando vuoi) ma la tabella
+`staff_users` su Supabase. Da `/dashboard/utenti` chi è già dentro può:
+
+- **Invitare** un nuovo utente inserendo solo l'email: la Server Action
+  chiama `supabase.auth.admin.inviteUserByEmail()` (Admin API, service role
+  key) che crea l'account Supabase Auth e manda l'email di invito, e in
+  parallelo aggiunge l'email a `staff_users`. Nessun passaggio manuale su
+  Supabase Studio o Vercel.
+- **Rimuovere** un utente (tranne se stesso) — toglie la riga da
+  `staff_users`; l'account Supabase Auth resta ma non passa più il check
+  di autorizzazione in `lib/auth/allowlist.ts`.
+
+Migrazione richiesta (una tantum, ha bisogno di conferma manuale perché è
+una DDL sul DB): vedi `staff_users.sql` — crea la tabella con RLS e inserisce
+il primo utente.

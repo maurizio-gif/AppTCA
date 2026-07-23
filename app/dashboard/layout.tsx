@@ -16,7 +16,7 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user || !isSegreteriaEmail(user.email)) {
+  if (!user || !(await isSegreteriaEmail(user.email))) {
     redirect('/login?error=non-autorizzato')
   }
 

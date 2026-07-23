@@ -8,7 +8,7 @@ export async function login(formData: FormData) {
   const email = String(formData.get('email') ?? '')
   const password = String(formData.get('password') ?? '')
 
-  if (!isSegreteriaEmail(email)) {
+  if (!(await isSegreteriaEmail(email))) {
     redirect('/login?error=non-autorizzato')
   }
 
