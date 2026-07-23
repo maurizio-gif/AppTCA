@@ -314,6 +314,52 @@ table.data-table {
   background: var(--color-off-white);
 }
 
+.row-clickable {
+  cursor: pointer;
+}
+
+.expand-indicator {
+  width: 28px;
+  text-align: center;
+  color: var(--color-text-light);
+}
+
+.row-detail:hover {
+  background: none;
+}
+
+.row-detail td {
+  padding: 0;
+  background: var(--color-off-white);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px 28px;
+  padding: 18px 24px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.detail-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-light);
+}
+
+.detail-value {
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .muted {
   color: var(--color-text-light);
   font-size: 13px;

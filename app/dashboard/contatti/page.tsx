@@ -1,7 +1,23 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { ExpandableRow } from '@/components/ExpandableRow'
 import { StatoSelect } from './StatoSelect'
 
+export const dynamic = 'force-dynamic'
+
 const STATI_VALIDI = ['nuovo', 'in_lavorazione', 'contattato', 'chiuso']
+
+const COLONNE_VISIBILI = [
+  'id',
+  'created_at',
+  'nome',
+  'cognome',
+  'email',
+  'cellulare',
+  'tipo_richiesta',
+  'motivo',
+  'pagina',
+  'stato',
+]
 
 export default async function ContattiPage({
   searchParams,
@@ -10,10 +26,7 @@ export default async function ContattiPage({
 }) {
   const supabase = createSupabaseServiceClient()
 
-  let query = supabase
-    .from('form_contatti')
-    .select('id, created_at, nome, cognome, email, cellulare, tipo_richiesta, motivo, stato, pagina')
-    .order('created_at', { ascending: false })
+  let query = supabase.from('form_contatti').select('*').order('created_at', { ascending: false })
 
   if (searchParams.stato) {
     query = query.eq('stato', searchParams.stato)
@@ -37,6 +50,7 @@ export default async function ContattiPage({
         <table className="data-table">
           <thead>
             <tr>
+              <th></th>
               <th>Data</th>
               <th>Nome</th>
               <th>Contatti</th>
@@ -47,24 +61,28 @@ export default async function ContattiPage({
           </thead>
           <tbody>
             {righe?.map((riga) => (
-              <tr key={riga.id}>
-                <td>{new Date(riga.created_at).toLocaleString('it-IT')}</td>
-                <td>{riga.nome} {riga.cognome}</td>
-                <td>
-                  {riga.email}
-                  <br />
-                  <span className="muted">{riga.cellulare}</span>
-                </td>
-                <td>
-                  {riga.tipo_richiesta}
-                  <br />
-                  <span className="muted">{riga.motivo}</span>
-                </td>
-                <td>{riga.pagina}</td>
-                <td>
-                  <StatoSelect id={riga.id} statoIniziale={riga.stato ?? 'nuovo'} />
-                </td>
-              </tr>
+              <ExpandableRow
+                key={riga.id}
+                columnCount={7}
+                record={riga}
+                hiddenKeys={COLONNE_VISIBILI}
+                cells={[
+                  new Date(riga.created_at).toLocaleString('it-IT'),
+                  <>{riga.nome} {riga.cognome}</>,
+                  <>
+                    {riga.email}
+                    <br />
+                    <span className="muted">{riga.cellulare}</span>
+                  </>,
+                  <>
+                    {riga.tipo_richiesta}
+                    <br />
+                    <span className="muted">{riga.motivo}</span>
+                  </>,
+                  riga.pagina,
+                  <StatoSelect id={riga.id} statoIniziale={riga.stato ?? 'nuovo'} />,
+                ]}
+              />
             ))}
           </tbody>
         </table>

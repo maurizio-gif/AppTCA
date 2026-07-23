@@ -26,6 +26,7 @@ export function Sidebar({ email }: { email: string }) {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
             className={pathname === item.href ? 'active' : undefined}
           >
             {item.label}

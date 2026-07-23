@@ -1,4 +1,21 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { ExpandableRow } from '@/components/ExpandableRow'
+
+export const dynamic = 'force-dynamic'
+
+const COLONNE_VISIBILI = [
+  'id',
+  'created_at',
+  'nome_evento',
+  'nome',
+  'cognome',
+  'email',
+  'cellulare',
+  'socio',
+  'importo_pagato',
+  'stato_contratto_pgm',
+  'link_pgm',
+]
 
 // Tabella sbloccata dopo aver attivato RLS (era esposta senza protezione).
 // Contiene anche il link al contratto PerfectGym (link_pgm), utile alla
@@ -8,7 +25,7 @@ export default async function IscrizioniEventiPage() {
 
   const { data: righe, error } = await supabase
     .from('iscrizioni_eventi')
-    .select('id, created_at, nome_evento, nome, cognome, email, cellulare, socio, importo_pagato, stato_contratto_pgm, link_pgm')
+    .select('*')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -24,6 +41,7 @@ export default async function IscrizioniEventiPage() {
         <table className="data-table">
           <thead>
             <tr>
+              <th></th>
               <th>Data</th>
               <th>Evento</th>
               <th>Partecipante</th>
@@ -34,28 +52,34 @@ export default async function IscrizioniEventiPage() {
           </thead>
           <tbody>
             {righe?.map((riga) => (
-              <tr key={riga.id}>
-                <td>{riga.created_at ? new Date(riga.created_at).toLocaleString('it-IT') : '-'}</td>
-                <td>{riga.nome_evento}</td>
-                <td>
-                  {riga.nome} {riga.cognome}
-                  <br />
-                  <span className="muted">{riga.email} · {riga.cellulare}</span>
-                </td>
-                <td>{riga.socio ? 'Sì' : 'No'}</td>
-                <td>{riga.importo_pagato != null ? `€ ${riga.importo_pagato}` : '-'}</td>
-                <td>
-                  {riga.stato_contratto_pgm}
-                  {riga.link_pgm && (
-                    <>
-                      {' · '}
-                      <a href={riga.link_pgm} target="_blank" rel="noreferrer">
-                        apri
-                      </a>
-                    </>
-                  )}
-                </td>
-              </tr>
+              <ExpandableRow
+                key={riga.id}
+                columnCount={7}
+                record={riga}
+                hiddenKeys={COLONNE_VISIBILI}
+                cells={[
+                  riga.created_at ? new Date(riga.created_at).toLocaleString('it-IT') : '-',
+                  riga.nome_evento,
+                  <>
+                    {riga.nome} {riga.cognome}
+                    <br />
+                    <span className="muted">{riga.email} · {riga.cellulare}</span>
+                  </>,
+                  riga.socio ? 'Sì' : 'No',
+                  riga.importo_pagato != null ? `€ ${riga.importo_pagato}` : '-',
+                  <>
+                    {riga.stato_contratto_pgm}
+                    {riga.link_pgm && (
+                      <>
+                        {' · '}
+                        <a href={riga.link_pgm} target="_blank" rel="noreferrer">
+                          apri
+                        </a>
+                      </>
+                    )}
+                  </>,
+                ]}
+              />
             ))}
           </tbody>
         </table>

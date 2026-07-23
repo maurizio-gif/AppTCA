@@ -1,5 +1,7 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardHome() {
   const supabase = createSupabaseServiceClient()
 

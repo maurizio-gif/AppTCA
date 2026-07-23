@@ -13,24 +13,28 @@ export function StatoSelect({ id, statoIniziale }: { id: string; statoIniziale: 
   const [isPending, startTransition] = useTransition()
 
   return (
-    <select
-      className="stato-select"
-      data-stato={stato}
-      value={stato}
-      disabled={isPending}
-      onChange={(e) => {
-        const nuovoStato = e.target.value
-        setStato(nuovoStato)
-        startTransition(() => {
-          aggiornaStato(id, nuovoStato)
-        })
-      }}
-    >
-      {STATI_VALIDI.map((s) => (
-        <option key={s} value={s}>
-          {s}
-        </option>
-      ))}
-    </select>
+    // stopPropagation: la riga della tabella e' cliccabile per espandersi,
+    // non vogliamo che aprire questo select la faccia anche espandere/chiudere.
+    <span onClick={(e) => e.stopPropagation()}>
+      <select
+        className="stato-select"
+        data-stato={stato}
+        value={stato}
+        disabled={isPending}
+        onChange={(e) => {
+          const nuovoStato = e.target.value
+          setStato(nuovoStato)
+          startTransition(() => {
+            aggiornaStato(id, nuovoStato)
+          })
+        }}
+      >
+        {STATI_VALIDI.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
+      </select>
+    </span>
   )
 }

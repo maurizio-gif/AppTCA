@@ -1,4 +1,20 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { ExpandableRow } from '@/components/ExpandableRow'
+
+export const dynamic = 'force-dynamic'
+
+const COLONNE_VISIBILI = [
+  'id',
+  'created_at',
+  'minore_nome',
+  'minore_cognome',
+  'genitore_nome',
+  'genitore_cognome',
+  'genitore_email',
+  'genitore_cellulare',
+  'tipo_corso',
+  'frequenza',
+]
 
 // Pagina sola lettura: stessa logica di /dashboard/contatti (Server Component
 // + service role client), senza la parte di aggiornamento stato — qui basta
@@ -8,9 +24,7 @@ export default async function ScuolaTennisPage() {
 
   const { data: righe, error } = await supabase
     .from('form_scuola_tennis')
-    .select(
-      'id, created_at, minore_nome, minore_cognome, genitore_nome, genitore_cognome, genitore_email, genitore_cellulare, tipo_corso, frequenza'
-    )
+    .select('*')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -26,6 +40,7 @@ export default async function ScuolaTennisPage() {
         <table className="data-table">
           <thead>
             <tr>
+              <th></th>
               <th>Data</th>
               <th>Bambino/a</th>
               <th>Genitore</th>
@@ -34,20 +49,26 @@ export default async function ScuolaTennisPage() {
           </thead>
           <tbody>
             {righe?.map((riga) => (
-              <tr key={riga.id}>
-                <td>{new Date(riga.created_at).toLocaleString('it-IT')}</td>
-                <td>{riga.minore_nome} {riga.minore_cognome}</td>
-                <td>
-                  {riga.genitore_nome} {riga.genitore_cognome}
-                  <br />
-                  <span className="muted">{riga.genitore_email} · {riga.genitore_cellulare}</span>
-                </td>
-                <td>
-                  {riga.tipo_corso}
-                  <br />
-                  <span className="muted">{riga.frequenza}</span>
-                </td>
-              </tr>
+              <ExpandableRow
+                key={riga.id}
+                columnCount={5}
+                record={riga}
+                hiddenKeys={COLONNE_VISIBILI}
+                cells={[
+                  new Date(riga.created_at).toLocaleString('it-IT'),
+                  <>{riga.minore_nome} {riga.minore_cognome}</>,
+                  <>
+                    {riga.genitore_nome} {riga.genitore_cognome}
+                    <br />
+                    <span className="muted">{riga.genitore_email} · {riga.genitore_cellulare}</span>
+                  </>,
+                  <>
+                    {riga.tipo_corso}
+                    <br />
+                    <span className="muted">{riga.frequenza}</span>
+                  </>,
+                ]}
+              />
             ))}
           </tbody>
         </table>
