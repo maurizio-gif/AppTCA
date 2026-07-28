@@ -27,6 +27,8 @@ export function GestioneSezione({
     // non vogliamo che interagire coi controlli qui dentro la richiuda.
     <div className="gestione-box" onClick={(e) => e.stopPropagation()}>
       <div className="gestione-riga">
+        <span className="gestione-toggle-label">Gestito</span>
+
         <label className="toggle-switch">
           <input
             type="checkbox"

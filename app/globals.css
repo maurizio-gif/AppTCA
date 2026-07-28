@@ -930,6 +930,12 @@ table.data-table {
 
 /* ---------- Toggle switch Gestito/Da gestire ---------- */
 
+.gestione-toggle-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .toggle-switch {
   position: relative;
   display: inline-flex;
