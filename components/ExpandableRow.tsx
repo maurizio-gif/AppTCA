@@ -40,7 +40,7 @@ export function ExpandableRow({
         className={`row-clickable${open ? ' is-open' : ''}`}
         onClick={() => setOpen((o) => !o)}
       >
-        <td className="expand-indicator">{open ? '▾' : '▸'}</td>
+        <td className="expand-indicator">{open ? '−' : '+'}</td>
         {cells.map((cell, i) => (
           <td key={i} data-label={columns?.[i]}>{cell}</td>
         ))}
@@ -69,7 +69,7 @@ export function ExpandableRow({
                       setTecniciAperti((o) => !o)
                     }}
                   >
-                    {tecniciAperti ? '▾' : '▸'} {tecniciAperti ? 'Nascondi' : 'Mostra'} parametri tecnici
+                    {tecniciAperti ? '−' : '+'} {tecniciAperti ? 'Nascondi' : 'Mostra'} parametri tecnici
                   </button>
                 </div>
               )}

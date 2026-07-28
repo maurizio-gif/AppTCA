@@ -767,8 +767,9 @@ table.data-table {
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 10px;
-    padding: 10px 14px 10px 40px;
-    margin-bottom: 6px;
+    padding: 8px 14px 8px 40px;
+    margin-bottom: 4px;
+    line-height: 1.3;
   }
 
   /* Da aperta, la riga riassuntiva perde il bordo/angoli inferiori e il
