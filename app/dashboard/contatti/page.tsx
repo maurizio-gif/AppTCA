@@ -40,11 +40,12 @@ const ETICHETTA_FILTRO: Record<Filtro, string> = {
 
 type RigaContatto = Record<string, any>
 
-// Selezione multipla in OR: assente = default entrambi attivi (mostra tutto);
-// stringa vuota = nessun filtro selezionato (nessuna riga corrisponde);
-// altrimenti lista separata da virgola dei filtri attivi.
+// Selezione multipla in OR: assente (es. dal link "Form contatti" nel
+// menu) = solo "da gestire", cosi' e' quello che si vede aprendo la
+// pagina; stringa vuota = nessun filtro selezionato (nessuna riga
+// corrisponde); altrimenti lista separata da virgola dei filtri attivi.
 function parseFiltri(raw: string | undefined): Set<Filtro> {
-  if (raw === undefined) return new Set(FILTRI_VALIDI)
+  if (raw === undefined) return new Set(['da_gestire'])
   if (raw === '') return new Set()
   return new Set(raw.split(',').filter((f): f is Filtro => (FILTRI_VALIDI as readonly string[]).includes(f)))
 }
@@ -117,7 +118,7 @@ export default async function ContattiPage({
   return (
     <div>
       <div className="page-header">
-        <h1>Form contatti ("Parliamone")</h1>
+        <h1>Form contatti</h1>
       </div>
 
       <FiltroGestione attivi={filtriAttivi} />

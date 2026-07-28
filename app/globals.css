@@ -383,6 +383,15 @@ button {
 
 /* ---------- Stat cards ---------- */
 
+.riepilogo-sezione {
+  margin-bottom: 36px;
+}
+
+.riepilogo-sezione-titolo {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
 .stat-row {
   display: flex;
   gap: 20px;
