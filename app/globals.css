@@ -471,55 +471,70 @@ table.data-table {
 }
 
 .detail-groups {
-  padding: 18px 24px;
+  padding: 16px 20px;
   min-width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .detail-group + .detail-group {
-  padding-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid var(--color-border);
 }
 
 .detail-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-accent);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
+.detail-group-title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+/* Ogni campo e' una "cella" con bordo, non testo che scorre libero: cosi'
+   si legge come una tabella/griglia di dati anche a colpo d'occhio. */
 .detail-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px 28px;
-}
-
-@media (max-width: 860px) {
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
 }
 
 .detail-item {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 10px;
 }
 
 .detail-label {
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--color-text-light);
 }
 
 .detail-value {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -530,6 +545,21 @@ table.data-table {
 
 .detail-value a:hover {
   color: var(--color-accent-dark);
+}
+
+@media (max-width: 700px) {
+  .detail-groups {
+    padding: 14px;
+  }
+
+  .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .detail-item {
+    padding: 7px 9px;
+  }
 }
 
 .muted {
