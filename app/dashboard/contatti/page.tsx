@@ -1,11 +1,13 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
-import { ContactLinks } from '@/components/ContactLinks'
-import { formatDateOra } from '@/lib/format'
+import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
 
-const COLONNE_TABELLA = ['Data', 'Nome', 'Contatti', 'Richiesta', 'Attività', 'Stato', 'Gestione']
+// Solo i campi essenziali per la lettura al volo (senza espandere la riga):
+// data, nome, stato, attivita' e richiesta. Contatti e stato di gestione
+// restano un tap di distanza nel pannello espanso.
+const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Stato', 'Attività', 'Richiesta']
 
 export const dynamic = 'force-dynamic'
 
@@ -14,8 +16,6 @@ const COLONNE_VISIBILI = [
   'created_at',
   'nome',
   'cognome',
-  'email',
-  'cellulare',
   'tipo_richiesta',
   'attivita',
   'stato',
@@ -127,19 +127,17 @@ export default async function ContattiPage({
           <thead>
             <tr>
               <th></th>
-              <th>Data</th>
-              <th>Nome</th>
-              <th>Contatti</th>
-              <th>Richiesta</th>
-              <th>Attività</th>
+              <th>Data e ora</th>
+              <th>Nome e cognome</th>
               <th>Stato</th>
-              <th>Gestione</th>
+              <th>Attività</th>
+              <th>Richiesta</th>
             </tr>
           </thead>
           {gruppi.map((gruppo) => (
             <tbody key={gruppo.chiave}>
               <tr className="table-group-header">
-                <td colSpan={8}>
+                <td colSpan={6}>
                   {gruppo.label}
                   <span className="count">({gruppo.righe.length})</span>
                 </td>
@@ -147,7 +145,7 @@ export default async function ContattiPage({
               {gruppo.righe.map((riga) => (
                 <ExpandableRow
                   key={riga.id}
-                  columnCount={8}
+                  columnCount={6}
                   columns={COLONNE_TABELLA}
                   record={riga}
                   hiddenKeys={COLONNE_VISIBILI}
@@ -163,13 +161,15 @@ export default async function ContattiPage({
                   cells={[
                     formatDateOra(riga.created_at),
                     <>{riga.nome} {riga.cognome}</>,
-                    <ContactLinks email={riga.email} phone={riga.cellulare} />,
-                    riga.tipo_richiesta,
-                    Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita,
                     riga.stato || '—',
-                    <span className={`gestione-badge ${riga.gestito ? 'gestito' : 'da-gestire'}`}>
-                      {riga.gestito ? 'Gestito' : 'Da gestire'}
-                    </span>,
+                    Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
+                    riga.tipo_richiesta ? (
+                      <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
+                        {riga.tipo_richiesta}
+                      </span>
+                    ) : (
+                      '—'
+                    ),
                   ]}
                 />
               ))}

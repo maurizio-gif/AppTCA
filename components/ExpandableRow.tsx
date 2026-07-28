@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatValue, isUrl, prettifyKey, raggruppaDettagli } from '@/lib/format'
+import { contactHrefFor, formatValue, isUrl, prettifyKey, raggruppaDettagli } from '@/lib/format'
 
 // Riga di tabella cliccabile: mostra le colonne riassuntive e, se aperta,
 // una riga sotto con TUTTI i campi del record (utile per i dati che non
@@ -53,20 +53,25 @@ export function ExpandableRow({
                 <div key={gruppo.titolo} className="detail-group">
                   <div className="detail-group-title">{gruppo.titolo}</div>
                   <div className="detail-grid">
-                    {gruppo.voci.map(([key, value]) => (
-                      <div key={key} className="detail-item">
-                        <span className="detail-label">{prettifyKey(key)}</span>
-                        <span className="detail-value">
-                          {isUrl(value) ? (
-                            <a href={value} target="_blank" rel="noreferrer">
-                              {value}
-                            </a>
-                          ) : (
-                            formatValue(value)
-                          )}
-                        </span>
-                      </div>
-                    ))}
+                    {gruppo.voci.map(([key, value]) => {
+                      const contactHref = contactHrefFor(key, value)
+                      return (
+                        <div key={key} className="detail-item">
+                          <span className="detail-label">{prettifyKey(key)}</span>
+                          <span className="detail-value">
+                            {isUrl(value) ? (
+                              <a href={value} target="_blank" rel="noreferrer">
+                                {value}
+                              </a>
+                            ) : contactHref ? (
+                              <a href={contactHref}>{formatValue(value)}</a>
+                            ) : (
+                              formatValue(value)
+                            )}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               ))}

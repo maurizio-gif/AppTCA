@@ -603,13 +603,19 @@ table.data-table {
     width: 100%;
   }
 
+  /* La regola desktop qui sopra forza min-width: 640px (per lo scroll
+     orizzontale a schermo largo): su mobile va azzerata, altrimenti la
+     riga resta larga 640px invece di adattarsi allo schermo. */
+  table.data-table {
+    min-width: 0;
+  }
+
   .data-table thead {
     display: none;
   }
 
   .data-table td {
     border-bottom: none;
-    padding: 5px 0;
     min-width: 0;
     overflow-wrap: break-word;
   }
@@ -617,32 +623,43 @@ table.data-table {
   .data-table td[data-label]:not([data-label=''])::before {
     content: attr(data-label);
     display: block;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     color: var(--color-text-light);
-    margin-bottom: 2px;
+    margin-bottom: 3px;
   }
 
-  /* Righe di contenuto (card) su due colonne, per non sprecare mezza riga
-     vuota ad ogni campo; le righe di gruppo e di dettaglio restano a piena
-     larghezza (escluse qui sotto). */
+  /* Riga riassuntiva = griglia a due colonne di celle con bordo, stesso
+     linguaggio grafico del pannello espanso (.detail-grid/.detail-item)
+     invece di una lista di etichetta+valore senza contenimento visivo.
+     Le righe di gruppo e di dettaglio restano a piena larghezza (escluse
+     qui sotto). */
   .data-table tbody tr.row-clickable,
   .data-table tbody tr:not(.table-group-header):not(.row-detail):not(.row-clickable) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 14px;
+    gap: 8px;
     position: relative;
-    background: var(--color-bg);
+    background: var(--color-off-white);
     border: 1px solid var(--color-border);
     border-radius: 10px;
-    padding: 14px 16px;
+    padding: 12px;
     margin-bottom: 10px;
   }
 
   .data-table tbody tr.row-clickable {
-    padding-left: 40px;
+    padding-left: 38px;
+  }
+
+  .data-table tr.row-clickable td[data-label]:not([data-label='']),
+  .data-table tbody tr:not(.table-group-header):not(.row-detail):not(.row-clickable)
+    td[data-label]:not([data-label='']) {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 7px 9px;
   }
 
   .data-table tr.table-group-header {
@@ -673,8 +690,8 @@ table.data-table {
 
   .data-table tr.row-clickable .expand-indicator {
     position: absolute;
-    top: 14px;
-    left: 14px;
+    top: 12px;
+    left: 12px;
     width: auto;
     padding: 0;
     background: none;
@@ -766,6 +783,54 @@ table.data-table {
 .gestione-meta {
   font-size: 13px;
   color: var(--color-text-light);
+}
+
+/* ---------- Pillola "Richiesta" (colore stabile per tipo, vedi variantePillola) ---------- */
+
+.richiesta-badge {
+  display: inline;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  overflow-wrap: break-word;
+}
+
+.richiesta-badge.richiesta-blu {
+  background: #e5edf9;
+  color: #2c5aa0;
+  border-color: #c7d9f0;
+}
+
+.richiesta-badge.richiesta-ambra {
+  background: #fbeede;
+  color: #a15c07;
+  border-color: #f2dcb8;
+}
+
+.richiesta-badge.richiesta-verde {
+  background: #e3f3ea;
+  color: #1f7a4d;
+  border-color: #c3e6d3;
+}
+
+.richiesta-badge.richiesta-viola {
+  background: #ede8f8;
+  color: #5b3aa8;
+  border-color: #d9cdf0;
+}
+
+.richiesta-badge.richiesta-ciano {
+  background: #e1f3f5;
+  color: #0e7c8a;
+  border-color: #bfe4e8;
+}
+
+.richiesta-badge.richiesta-neutro {
+  background: var(--color-off-white);
+  color: var(--color-text-light);
+  border-color: var(--color-border);
 }
 
 .gestione-note-label {

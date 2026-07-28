@@ -17,6 +17,29 @@ export function isUrl(value: unknown): value is string {
   return typeof value === 'string' && /^https?:\/\//i.test(value)
 }
 
+// mailto:/tel: per i campi contatto quando finiscono nel dettaglio espanso
+// (es. non piu' mostrati come colonna principale della tabella).
+export function contactHrefFor(key: string, value: unknown): string | null {
+  if (typeof value !== 'string' || !value) return null
+  if (key === 'email') return `mailto:${value}`
+  if (key === 'cellulare') return `tel:${value}`
+  return null
+}
+
+const VARIANTI_RICHIESTA = ['blu', 'ambra', 'verde', 'viola', 'ciano'] as const
+
+// Colore stabile per tipo di richiesta, senza dover elencare a mano i
+// valori possibili (restano liberi lato form): stessa stringa -> stesso
+// colore ad ogni render.
+export function variantePillola(testo: string | null | undefined): string {
+  if (!testo) return 'neutro'
+  let hash = 0
+  for (let i = 0; i < testo.length; i++) {
+    hash = (hash * 31 + testo.charCodeAt(i)) >>> 0
+  }
+  return VARIANTI_RICHIESTA[hash % VARIANTI_RICHIESTA.length]
+}
+
 // I timestamp in Postgres sono in UTC: senza timeZone esplicita, toLocaleString
 // usa il fuso del runtime Node (UTC su Vercel), mostrando l'ora indietro di
 // 1-2h rispetto a Roma.
