@@ -27,6 +27,22 @@ export function GestioneSezione({
     // non vogliamo che interagire coi controlli qui dentro la richiuda.
     <div className="gestione-box" onClick={(e) => e.stopPropagation()}>
       <div className="gestione-riga">
+        <label className="toggle-switch">
+          <input
+            type="checkbox"
+            checked={isGestito}
+            disabled={isPending}
+            onChange={(e) => {
+              const nuovo = e.target.checked
+              setIsGestito(nuovo)
+              startTransition(() => {
+                impostaGestito(id, nuovo)
+              })
+            }}
+          />
+          <span className="toggle-switch-track" />
+        </label>
+
         <span className={`gestione-badge ${isGestito ? 'gestito' : 'da-gestire'}`}>
           {isGestito ? 'Gestito' : 'Da gestire'}
         </span>
@@ -38,21 +54,6 @@ export function GestioneSezione({
             {gestitoIl && `il ${formatDateOra(gestitoIl)}`}
           </span>
         )}
-
-        <button
-          type="button"
-          className="btn-ghost btn-small"
-          disabled={isPending}
-          onClick={() => {
-            const nuovo = !isGestito
-            setIsGestito(nuovo)
-            startTransition(() => {
-              impostaGestito(id, nuovo)
-            })
-          }}
-        >
-          {isGestito ? 'Segna come da gestire' : 'Segna come gestito'}
-        </button>
       </div>
 
       <label className="gestione-note-label" htmlFor={`note-${id}`}>
