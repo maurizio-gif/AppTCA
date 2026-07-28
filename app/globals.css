@@ -449,7 +449,9 @@ table.data-table {
 .expand-indicator {
   width: 28px;
   text-align: center;
-  color: var(--color-text-light);
+  color: var(--color-accent);
+  font-size: 16px;
+  font-weight: 700;
   position: sticky;
   left: 0;
   background: var(--color-bg);
@@ -650,7 +652,7 @@ table.data-table {
   }
 
   .data-table tbody tr.row-clickable {
-    padding-left: 38px;
+    padding-left: 42px;
   }
 
   /* Da aperta, la riga riassuntiva perde il bordo/angoli inferiori e il
@@ -713,13 +715,30 @@ table.data-table {
     background: var(--color-off-white);
   }
 
+  /* Chip ben visibile invece del testo piccolo grigio: bordo + sfondo
+     off-white da chiusa, piena di rosso quando la riga e' aperta, cosi'
+     si vede a colpo d'occhio sia dove toccare sia lo stato attuale. */
   .data-table tr.row-clickable .expand-indicator {
     position: absolute;
-    top: 12px;
-    left: 12px;
-    width: auto;
+    top: 10px;
+    left: 10px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 0;
-    background: none;
+    background: var(--color-off-white);
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    color: var(--color-accent);
+    font-size: 13px;
+  }
+
+  .data-table tr.row-clickable.is-open .expand-indicator {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
   }
 
   /* Aree di tocco piu' generose per dita su schermo piccolo */
