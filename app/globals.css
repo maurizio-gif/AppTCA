@@ -642,7 +642,7 @@ table.data-table {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     position: relative;
-    background: var(--color-off-white);
+    background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 10px;
     padding: 12px;
@@ -653,10 +653,20 @@ table.data-table {
     padding-left: 38px;
   }
 
+  /* Da aperta, la riga riassuntiva perde il bordo/angoli inferiori e il
+     margine: il pannello dettaglio qui sotto (stesso sfondo, stesso bordo
+     laterale) la continua senza soluzione, come un unico container che si
+     allunga invece di due card separate con uno spazio in mezzo. */
+  .data-table tbody tr.row-clickable.is-open {
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    margin-bottom: 0;
+  }
+
   .data-table tr.row-clickable td[data-label]:not([data-label='']),
   .data-table tbody tr:not(.table-group-header):not(.row-detail):not(.row-clickable)
     td[data-label]:not([data-label='']) {
-    background: var(--color-bg);
+    background: var(--color-off-white);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 7px 9px;
@@ -678,14 +688,29 @@ table.data-table {
   }
 
   .data-table tr.row-detail {
-    background: none;
-    border: none;
+    padding: 0;
+    margin-bottom: 10px;
+  }
+
+  /* Il bordo/sfondo/angoli vanno sulla cella (riempie tutta la riga):
+     la regola base ".row-detail td" sotto le imposta off-white, qui le
+     rendiamo bianche per restare in continuita' con la riga riassuntiva
+     sopra, che e' bianca da aperta. */
+  .data-table tr.row-detail td {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 0 0 10px 10px;
     padding: 0;
   }
 
   .data-table tr.row-detail .detail-groups {
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border: none;
+    border-radius: 0;
+    padding: 4px 12px 12px;
+  }
+
+  .data-table tr.row-detail .detail-item {
+    background: var(--color-off-white);
   }
 
   .data-table tr.row-clickable .expand-indicator {

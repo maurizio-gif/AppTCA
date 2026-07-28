@@ -33,7 +33,10 @@ export function ExpandableRow({
 
   return (
     <>
-      <tr className="row-clickable" onClick={() => setOpen((o) => !o)}>
+      <tr
+        className={`row-clickable${open ? ' is-open' : ''}`}
+        onClick={() => setOpen((o) => !o)}
+      >
         <td className="expand-indicator">{open ? '▾' : '▸'}</td>
         {cells.map((cell, i) => (
           <td key={i} data-label={columns?.[i]}>{cell}</td>
