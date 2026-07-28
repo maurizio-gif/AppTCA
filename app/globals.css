@@ -903,26 +903,6 @@ table.data-table {
   flex-wrap: wrap;
 }
 
-.gestione-badge {
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid transparent;
-}
-
-.gestione-badge.gestito {
-  background: #e4f5eb;
-  color: #1c7c46;
-  border-color: #bfe6d1;
-}
-
-.gestione-badge.da-gestire {
-  background: #fbeaea;
-  color: #8a2a2a;
-  border-color: #f1c9c9;
-}
-
 .gestione-meta {
   font-size: 13px;
   color: var(--color-text-light);
@@ -930,10 +910,22 @@ table.data-table {
 
 /* ---------- Toggle switch Gestito/Da gestire ---------- */
 
-.gestione-toggle-label {
+/* Le due etichette ai lati del toggle: quella dello stato attuale si
+   colora (rosso/verde), l'altra resta grigia - un solo controllo invece
+   di toggle + badge separato. */
+.gestione-toggle-side {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-text-light);
+  transition: color 0.15s ease;
+}
+
+.gestione-toggle-side.attivo.da-gestire {
+  color: #8a2a2a;
+}
+
+.gestione-toggle-side.attivo.gestito {
+  color: #1c7c46;
 }
 
 .toggle-switch {

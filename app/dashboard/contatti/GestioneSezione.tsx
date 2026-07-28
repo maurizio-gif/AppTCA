@@ -27,7 +27,9 @@ export function GestioneSezione({
     // non vogliamo che interagire coi controlli qui dentro la richiuda.
     <div className="gestione-box" onClick={(e) => e.stopPropagation()}>
       <div className="gestione-riga">
-        <span className="gestione-toggle-label">Gestito</span>
+        <span className={`gestione-toggle-side${!isGestito ? ' attivo da-gestire' : ''}`}>
+          Da gestire
+        </span>
 
         <label className="toggle-switch">
           <input
@@ -45,8 +47,8 @@ export function GestioneSezione({
           <span className="toggle-switch-track" />
         </label>
 
-        <span className={`gestione-badge ${isGestito ? 'gestito' : 'da-gestire'}`}>
-          {isGestito ? 'Gestito' : 'Da gestire'}
+        <span className={`gestione-toggle-side${isGestito ? ' attivo gestito' : ''}`}>
+          Gestito
         </span>
 
         {isGestito && (gestitoDa || gestitoIl) && (
