@@ -82,7 +82,7 @@ export default async function IscrizioniEventiPage() {
                     {riga.link_pgm && (
                       <>
                         {' · '}
-                        <a href={riga.link_pgm} target="_blank" rel="noreferrer">
+                        <a href={riga.link_pgm} target="_blank" rel="noreferrer" className="link">
                           apri
                         </a>
                       </>
