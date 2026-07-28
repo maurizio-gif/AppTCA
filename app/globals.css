@@ -563,6 +563,30 @@ table.data-table {
   flex-shrink: 0;
 }
 
+/* Toggle "Mostra/Nascondi parametri tecnici": stessa taglia/maiuscolo dei
+   titoli di gruppo ma discreto (grigio, non rosso) - non interessano chi
+   sta seguendo il contatto, restano un tap di distanza invece che sempre
+   in vista. */
+.detail-tecnici-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-light);
+  cursor: pointer;
+}
+
+.detail-tecnici-toggle:hover {
+  color: var(--color-text);
+}
+
 /* Ogni campo e' una "cella" con bordo, non testo che scorre libero: cosi'
    si legge come una tabella/griglia di dati anche a colpo d'occhio. */
 .detail-grid {

@@ -51,10 +51,16 @@ export function formatDateOra(value: string | null | undefined): string {
 type Voce = [string, unknown]
 
 // Categorie usate per raggruppare graficamente i campi nel dettaglio espanso
-// (ExpandableRow), in ordine di visualizzazione. Basate sul pattern del nome
-// colonna cosi' funzionano su tutte le tabelle (form_contatti, form_scuola_tennis,
-// form_invita_amico, iscrizioni_eventi) senza dover elencare ogni campo a mano.
-const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean }[] = [
+// (ExpandableRow). Basate sul pattern del nome colonna cosi' funzionano su
+// tutte le tabelle (form_contatti, form_scuola_tennis, form_invita_amico,
+// iscrizioni_eventi) senza dover elencare ogni campo a mano. "tecnico: true"
+// marca i parametri di tracciamento (UTM, id vari): non interessano chi
+// segue il contatto, restano chiusi in fondo (vedi raggruppaDettagli).
+const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean; tecnico?: boolean }[] = [
+  {
+    titolo: 'Contatti',
+    test: (k) => k === 'email' || k === 'cellulare',
+  },
   {
     titolo: 'Consensi',
     test: (k) => k === 'privacy' || k === 'marketing' || k.startsWith('consenso_'),
@@ -65,13 +71,16 @@ const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean }
       k.startsWith('pgm_') || k.includes('contratto_pgm') || k === 'esito_verifica_pgm',
   },
   {
-    titolo: 'Tracciamento',
+    titolo: 'Parametri tecnici',
     test: (k) =>
-      k.startsWith('utm_') || ['vid', 'gclid', 'fbclid', 'referrer', 'cta'].includes(k),
+      k.startsWith('utm_') || ['vid', 'gclid', 'fbclid', 'referrer', 'cta', 'flow'].includes(k),
+    tecnico: true,
   },
 ]
 
-export function raggruppaDettagli(voci: Voce[]): { titolo: string; voci: Voce[] }[] {
+export function raggruppaDettagli(
+  voci: Voce[]
+): { titolo: string; voci: Voce[]; tecnico: boolean }[] {
   const gruppi = new Map<string, Voce[]>()
   const titoli = [...CATEGORIE_DETTAGLIO.map((c) => c.titolo), 'Altri dettagli']
 
@@ -83,7 +92,16 @@ export function raggruppaDettagli(voci: Voce[]): { titolo: string; voci: Voce[] 
     gruppi.get(titolo)!.push(voce)
   }
 
-  return titoli
+  const risultato = titoli
     .filter((titolo) => gruppi.has(titolo))
-    .map((titolo) => ({ titolo, voci: gruppi.get(titolo)! }))
+    .map((titolo) => ({
+      titolo,
+      voci: gruppi.get(titolo)!,
+      tecnico: CATEGORIE_DETTAGLIO.find((c) => c.titolo === titolo)?.tecnico ?? false,
+    }))
+
+  // I dati utili a chi segue il contatto vengono prima, i parametri
+  // tecnici sempre in fondo - indipendentemente dall'ordine con cui le
+  // categorie sono dichiarate qui sopra.
+  return [...risultato.filter((g) => !g.tecnico), ...risultato.filter((g) => g.tecnico)]
 }

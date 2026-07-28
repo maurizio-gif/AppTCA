@@ -27,9 +27,12 @@ export function ExpandableRow({
   extraTitle?: string
 }) {
   const [open, setOpen] = useState(false)
+  const [tecniciAperti, setTecniciAperti] = useState(false)
 
   const dettagli = Object.entries(record).filter(([key]) => !hiddenKeys.includes(key))
   const gruppiDettagli = raggruppaDettagli(dettagli)
+  const gruppiNormali = gruppiDettagli.filter((g) => !g.tecnico)
+  const gruppiTecnici = gruppiDettagli.filter((g) => g.tecnico)
 
   return (
     <>
@@ -52,36 +55,61 @@ export function ExpandableRow({
                   {extra}
                 </div>
               )}
-              {gruppiDettagli.map((gruppo) => (
-                <div key={gruppo.titolo} className="detail-group">
-                  <div className="detail-group-title">{gruppo.titolo}</div>
-                  <div className="detail-grid">
-                    {gruppo.voci.map(([key, value]) => {
-                      const contactHref = contactHrefFor(key, value)
-                      return (
-                        <div key={key} className="detail-item">
-                          <span className="detail-label">{prettifyKey(key)}</span>
-                          <span className="detail-value">
-                            {isUrl(value) ? (
-                              <a href={value} target="_blank" rel="noreferrer">
-                                {value}
-                              </a>
-                            ) : contactHref ? (
-                              <a href={contactHref}>{formatValue(value)}</a>
-                            ) : (
-                              formatValue(value)
-                            )}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
+              {gruppiNormali.map((gruppo) => (
+                <GruppoDettaglio key={gruppo.titolo} titolo={gruppo.titolo} voci={gruppo.voci} />
               ))}
+
+              {gruppiTecnici.length > 0 && (
+                <div className="detail-group">
+                  <button
+                    type="button"
+                    className="detail-tecnici-toggle"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setTecniciAperti((o) => !o)
+                    }}
+                  >
+                    {tecniciAperti ? '▾' : '▸'} {tecniciAperti ? 'Nascondi' : 'Mostra'} parametri tecnici
+                  </button>
+                </div>
+              )}
+              {tecniciAperti &&
+                gruppiTecnici.map((gruppo) => (
+                  <GruppoDettaglio key={gruppo.titolo} titolo={gruppo.titolo} voci={gruppo.voci} />
+                ))}
             </div>
           </td>
         </tr>
       )}
     </>
+  )
+}
+
+function GruppoDettaglio({ titolo, voci }: { titolo: string; voci: [string, unknown][] }) {
+  return (
+    <div className="detail-group">
+      <div className="detail-group-title">{titolo}</div>
+      <div className="detail-grid">
+        {voci.map(([key, value]) => {
+          const contactHref = contactHrefFor(key, value)
+          return (
+            <div key={key} className="detail-item">
+              <span className="detail-label">{prettifyKey(key)}</span>
+              <span className="detail-value">
+                {isUrl(value) ? (
+                  <a href={value} target="_blank" rel="noreferrer">
+                    {value}
+                  </a>
+                ) : contactHref ? (
+                  <a href={contactHref}>{formatValue(value)}</a>
+                ) : (
+                  formatValue(value)
+                )}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
