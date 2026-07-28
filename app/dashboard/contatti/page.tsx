@@ -5,9 +5,10 @@ import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
 
 // Solo i campi essenziali per la lettura al volo (senza espandere la riga):
-// data, nome, stato, attivita' e richiesta. Contatti e stato di gestione
-// restano un tap di distanza nel pannello espanso.
-const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Stato', 'Attività', 'Richiesta']
+// nome, data, stato, attivita' e richiesta - nome per primo perche' su
+// mobile diventa la riga principale della lista (vedi CSS .row-clickable).
+// Contatti e stato di gestione restano un tap di distanza nel pannello espanso.
+const COLONNE_TABELLA = ['Nome e cognome', 'Data e ora', 'Stato', 'Attività', 'Richiesta']
 
 export const dynamic = 'force-dynamic'
 
@@ -128,8 +129,8 @@ export default async function ContattiPage({
           <thead>
             <tr>
               <th></th>
-              <th>Data e ora</th>
               <th>Nome e cognome</th>
+              <th>Data e ora</th>
               <th>Stato</th>
               <th>Attività</th>
               <th>Richiesta</th>
@@ -160,8 +161,8 @@ export default async function ContattiPage({
                     />
                   }
                   cells={[
-                    formatDateOra(riga.created_at),
                     <>{riga.nome} {riga.cognome}</>,
+                    formatDateOra(riga.created_at),
                     riga.stato || '—',
                     Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
                     riga.tipo_richiesta ? (

@@ -732,17 +732,14 @@ table.data-table {
     margin-bottom: 3px;
   }
 
-  /* Riga riassuntiva = griglia a due colonne di celle con bordo, stesso
-     linguaggio grafico del pannello espanso (.detail-grid/.detail-item)
-     invece di una lista di etichetta+valore senza contenimento visivo.
-     Le righe di gruppo e di dettaglio restano a piena larghezza (escluse
-     qui sotto). */
-  .data-table tbody tr.row-clickable,
+  /* Righe senza indicatore di espansione (es. Gestione utenti): griglia a
+     due colonne di celle con bordo, stesso linguaggio grafico del
+     pannello espanso (.detail-grid/.detail-item). Le righe di gruppo e
+     di dettaglio restano a piena larghezza (escluse qui sotto). */
   .data-table tbody tr:not(.table-group-header):not(.row-detail):not(.row-clickable) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-    position: relative;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 10px;
@@ -750,8 +747,28 @@ table.data-table {
     margin-bottom: 10px;
   }
 
+  .data-table tbody tr:not(.table-group-header):not(.row-detail):not(.row-clickable)
+    td[data-label]:not([data-label='']) {
+    background: var(--color-off-white);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 7px 9px;
+  }
+
+  /* Riga con indicatore di espansione (contatti, scuola tennis, iscrizioni
+     eventi): voce di lista bassa e compatta, non una griglia di celle -
+     bisogna poterne vedere tante a schermo per capire a colpo d'occhio
+     quanti contatti ci sono. Primo campo (il chiamante lo ordina come il
+     piu' identificativo, es. nome) in evidenza; gli altri diventano
+     un'unica riga di meta-informazioni piccola separata da punti, senza
+     etichetta sopra ne' bordo per campo. */
   .data-table tbody tr.row-clickable {
-    padding-left: 42px;
+    position: relative;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 10px 14px 10px 40px;
+    margin-bottom: 6px;
   }
 
   /* Da aperta, la riga riassuntiva perde il bordo/angoli inferiori e il
@@ -764,13 +781,34 @@ table.data-table {
     margin-bottom: 0;
   }
 
-  .data-table tr.row-clickable td[data-label]:not([data-label='']),
-  .data-table tbody tr:not(.table-group-header):not(.row-detail):not(.row-clickable)
-    td[data-label]:not([data-label='']) {
-    background: var(--color-off-white);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 7px 9px;
+  .data-table tr.row-clickable td[data-label] {
+    display: inline;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .data-table tr.row-clickable td[data-label]::before {
+    content: none;
+    display: inline;
+  }
+
+  .data-table tr.row-clickable td[data-label]:nth-of-type(2) {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 2px;
+  }
+
+  .data-table tr.row-clickable td[data-label]:nth-of-type(n + 3) {
+    font-size: 12px;
+    color: var(--color-text-light);
+  }
+
+  .data-table tr.row-clickable td[data-label]:nth-of-type(n + 4)::before {
+    content: ' · ';
+    color: var(--color-text-light);
   }
 
   .data-table tr.table-group-header {
