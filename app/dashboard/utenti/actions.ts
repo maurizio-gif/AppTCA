@@ -32,6 +32,19 @@ export async function invitaStaff(formData: FormData) {
     redirect(`/dashboard/utenti?error=${encodeURIComponent('Nome, cognome ed email sono obbligatori')}`)
   }
 
+  // Controllo esplicito invece di scoprirlo dal link email: senza questa
+  // variabile il redirectTo qui sotto diventa la stringa letterale
+  // "undefined/auth/callback", Supabase non la trova in nessuna allowlist
+  // e l'invito parte comunque ma con un link rotto (rimanda al Site URL
+  // di fallback invece che al pannello).
+  if (!process.env.NEXT_PUBLIC_SITE_URL) {
+    redirect(
+      `/dashboard/utenti?error=${encodeURIComponent(
+        'NEXT_PUBLIC_SITE_URL non configurata su Vercel (Environment Variables, ambiente Production): il link di invito sarebbe rotto. Impostala e riprova.'
+      )}`
+    )
+  }
+
   const supabase = createSupabaseServiceClient()
 
   if (!(await chiamanteHaPermesso(supabase))) {
