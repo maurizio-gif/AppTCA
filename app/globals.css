@@ -73,9 +73,11 @@ button {
   padding: 40px 32px;
 }
 
-.login-card h1 {
-  font-size: 28px;
-  text-align: center;
+.login-card h1.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   margin-bottom: 28px;
 }
 
@@ -183,16 +185,31 @@ button {
 }
 
 .sidebar-brand {
-  font-family: var(--font-display), sans-serif;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  font-size: 20px;
-  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 32px;
 }
 
-.sidebar-brand span,
+.brand-logo {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+
+.brand-logo-lg {
+  height: 40px;
+}
+
+.brand-suffix {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 13px;
+  color: var(--color-text-light);
+}
+
 .brand-accent {
   color: var(--color-accent);
 }

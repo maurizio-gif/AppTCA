@@ -8,7 +8,10 @@ export default function LoginPage({
   return (
     <main className="login-shell">
       <div className="login-card">
-        <h1>CRM <span className="brand-accent">TCA</span></h1>
+        <h1 className="login-brand">
+          <img src="/logo-tca.png" alt="TCA" className="brand-logo brand-logo-lg" />
+          <span className="brand-suffix">CRM</span>
+        </h1>
 
         {searchParams.error === 'credenziali' && (
           <p className="error-banner">Email o password errate.</p>
