@@ -8,7 +8,7 @@ export default function LoginPage({
   return (
     <main className="login-shell">
       <div className="login-card">
-        <h1>Segreteria TCA</h1>
+        <h1>CRM TCA</h1>
 
         {searchParams.error === 'credenziali' && (
           <p className="error-banner">Email o password errate.</p>

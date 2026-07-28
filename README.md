@@ -1,4 +1,4 @@
-# TCA Segreteria — esempio Next.js + Supabase
+# CRM TCA — esempio Next.js + Supabase
 
 App di esempio, **separata dal sito** (che resta statico su Astro/Netlify).
 Serve solo a mostrare la meccanica: login riservato + lettura/aggiornamento

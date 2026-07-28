@@ -14,7 +14,7 @@ const barlowCondensed = Barlow_Condensed({
 })
 
 export const metadata = {
-  title: 'Segreteria TCA',
+  title: 'CRM TCA',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

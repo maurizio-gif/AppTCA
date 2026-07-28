@@ -32,7 +32,7 @@ export function Sidebar({
   return (
     <aside className={`sidebar${open ? ' is-open' : ''}`}>
       <div className="sidebar-brand">
-        TCA <span>Segreteria</span>
+        CRM <span>TCA</span>
       </div>
 
       <button
