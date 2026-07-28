@@ -118,10 +118,15 @@ L'allowlist non è più una variabile d'ambiente (`SEGRETERIA_ALLOWLIST`, ora
 inutilizzata — puoi rimuoverla da Vercel quando vuoi) ma la tabella
 `staff_users` su Supabase. Da `/dashboard/utenti` chi è già dentro può:
 
-- **Invitare** un nuovo utente inserendo solo l'email: la Server Action
-  chiama `supabase.auth.admin.inviteUserByEmail()` (Admin API, service role
-  key) che crea l'account Supabase Auth e manda l'email di invito, e in
-  parallelo aggiunge l'email a `staff_users`. Nessun passaggio manuale su
+- **Invitare** un nuovo utente inserendo nome, cognome ed email: la Server
+  Action chiama `supabase.auth.admin.inviteUserByEmail()` (Admin API,
+  service role key) che crea l'account Supabase Auth e manda l'email di
+  invito, e in parallelo crea la riga in `staff_users` con
+  `puo_invitare: true` e tutte le chiavi di `SEZIONI` (`lib/auth/sezioni.ts`)
+  in `sezioni_consentite` — di default chi invitiamo ha accesso completo,
+  eventuali restrizioni si impostano dopo dalla tabella qui sotto. Ogni
+  nuova sezione aggiunta a `SEZIONI` diventa automaticamente selezionabile
+  per ogni utente, senza altre modifiche. Nessun passaggio manuale su
   Supabase Studio o Vercel.
 - **Rimuovere** un utente (tranne se stesso) — toglie la riga da
   `staff_users`; l'account Supabase Auth resta ma non passa più il check

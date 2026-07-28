@@ -48,11 +48,19 @@ export default async function UtentiPage({
           {searchParams.error && <p className="error-banner">{searchParams.error}</p>}
           {searchParams.ok && (
             <p className="muted" style={{ marginBottom: 16 }}>
-              Invito inviato. La persona riceverà un'email per impostare password, nome e cognome.
+              Invito inviato con tutti i diritti di accesso. La persona riceverà un'email per impostare la password.
             </p>
           )}
 
           <form action={invitaStaff}>
+            <div className="field">
+              <label htmlFor="nome">Nome</label>
+              <input id="nome" name="nome" type="text" required placeholder="Maria" />
+            </div>
+            <div className="field">
+              <label htmlFor="cognome">Cognome</label>
+              <input id="cognome" name="cognome" type="text" required placeholder="Rossi" />
+            </div>
             <div className="field">
               <label htmlFor="email">Email</label>
               <input id="email" name="email" type="email" required placeholder="nome@esempio.it" />

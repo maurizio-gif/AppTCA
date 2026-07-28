@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/serverClient'
+import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { impostaPassword } from './actions'
 
 export default async function ImpostaPasswordPage({
@@ -16,12 +17,22 @@ export default async function ImpostaPasswordPage({
     redirect('/login')
   }
 
+  // Nome e cognome sono gia' stati indicati da chi ha invitato: qui li
+  // precompiliamo, la persona puo' solo correggerli se serve.
+  const supabaseService = createSupabaseServiceClient()
+  const { data: staffRow } = await supabaseService
+    .from('staff_users')
+    .select('nome, cognome')
+    .eq('email', user.email ?? '')
+    .maybeSingle()
+
   return (
     <main className="login-shell">
       <div className="login-card">
         <h1>Imposta la password</h1>
         <p className="muted" style={{ marginBottom: 20 }}>
-          Ciao {user.email}, scegli una password per accedere al pannello.
+          Ciao {user.email}, scegli una password per accedere al pannello. Nome e cognome sono
+          già compilati con quelli indicati da chi ti ha invitato: correggili se serve.
         </p>
 
         {searchParams.error && <p className="error-banner">{searchParams.error}</p>}
@@ -29,11 +40,25 @@ export default async function ImpostaPasswordPage({
         <form action={impostaPassword}>
           <div className="field">
             <label htmlFor="nome">Nome</label>
-            <input id="nome" name="nome" type="text" required autoComplete="given-name" />
+            <input
+              id="nome"
+              name="nome"
+              type="text"
+              required
+              autoComplete="given-name"
+              defaultValue={staffRow?.nome ?? ''}
+            />
           </div>
           <div className="field">
             <label htmlFor="cognome">Cognome</label>
-            <input id="cognome" name="cognome" type="text" required autoComplete="family-name" />
+            <input
+              id="cognome"
+              name="cognome"
+              type="text"
+              required
+              autoComplete="family-name"
+              defaultValue={staffRow?.cognome ?? ''}
+            />
           </div>
           <div className="field">
             <label htmlFor="password">Nuova password</label>

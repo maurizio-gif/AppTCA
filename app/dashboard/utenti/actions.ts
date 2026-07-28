@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { createSupabaseServerClient } from '@/lib/supabase/serverClient'
+import { SEZIONI } from '@/lib/auth/sezioni'
 
 // Solo chi ha "puo_invitare" puo' invitare o modificare i permessi altrui:
 // controllo lato server, non solo nascondere i controlli in UI, altrimenti
@@ -24,8 +25,11 @@ async function chiamanteHaPermesso(
 
 export async function invitaStaff(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
-  if (!email) {
-    redirect('/dashboard/utenti?error=Email+mancante')
+  const nome = String(formData.get('nome') ?? '').trim()
+  const cognome = String(formData.get('cognome') ?? '').trim()
+
+  if (!email || !nome || !cognome) {
+    redirect(`/dashboard/utenti?error=${encodeURIComponent('Nome, cognome ed email sono obbligatori')}`)
   }
 
   const supabase = createSupabaseServiceClient()
@@ -34,9 +38,37 @@ export async function invitaStaff(formData: FormData) {
     redirect('/dashboard/utenti?error=Non+hai+il+permesso+di+invitare+nuovi+utenti')
   }
 
-  const { error: insertError } = await supabase.from('staff_users').upsert({ email })
-  if (insertError) {
-    redirect(`/dashboard/utenti?error=${encodeURIComponent(insertError.message)}`)
+  const { data: esistente } = await supabase
+    .from('staff_users')
+    .select('email')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (esistente) {
+    // Utente gia' presente (es. invito precedente scaduto, o stiamo solo
+    // rimandando l'email): aggiorna nome/cognome ma non toccare permessi
+    // e sezioni, che potrebbero essere stati personalizzati in seguito.
+    const { error: updateError } = await supabase
+      .from('staff_users')
+      .update({ nome, cognome })
+      .eq('email', email)
+    if (updateError) {
+      redirect(`/dashboard/utenti?error=${encodeURIComponent(updateError.message)}`)
+    }
+  } else {
+    // Nuovo utente: per policy del club chi invitiamo parte con tutti i
+    // diritti (puo' invitare altri e vede tutte le sezioni esistenti);
+    // eventuali restrizioni si impostano dopo, dalla tabella qui sotto.
+    const { error: insertError } = await supabase.from('staff_users').insert({
+      email,
+      nome,
+      cognome,
+      puo_invitare: true,
+      sezioni_consentite: SEZIONI.map((s) => s.chiave),
+    })
+    if (insertError) {
+      redirect(`/dashboard/utenti?error=${encodeURIComponent(insertError.message)}`)
+    }
   }
 
   // Se l'utente Supabase Auth esiste gia' (es. era stato rimosso solo dalla
