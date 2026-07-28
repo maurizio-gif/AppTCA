@@ -2,8 +2,11 @@
   --color-bg: #ffffff;
   --color-text: #1a1a1a;
   --color-text-light: #555555;
-  --color-accent: #8b1a1a;
-  --color-accent-dark: #6b1414;
+  /* Rosso del sito tcambrosiano.com (campionato da CTA e titoli: "CONTATTACI",
+     "AMBROSIANO", "ISCRIVITI ONLINE") - non e' lo stesso rosso generico usato
+     prima qui. */
+  --color-accent: #7f2520;
+  --color-accent-dark: #631c18;
   --color-border: #ebebeb;
   --color-off-white: #f5f3f0;
   --sidebar-w: 220px;
@@ -163,11 +166,14 @@ button {
   min-height: 100vh;
 }
 
+/* Sidebar chiara come la navbar di tcambrosiano.com (bianco, testo scuro,
+   rosso solo per il brand e la voce attiva) invece del tema scuro precedente. */
 .sidebar {
   width: var(--sidebar-w);
   flex-shrink: 0;
-  background: var(--color-text);
-  color: #fff;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-right: 1px solid var(--color-border);
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
@@ -182,12 +188,13 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   font-size: 20px;
-  color: #fff;
+  color: var(--color-text);
   margin-bottom: 32px;
 }
 
-.sidebar-brand span {
-  color: #e8a3a3;
+.sidebar-brand span,
+.brand-accent {
+  color: var(--color-accent);
 }
 
 .sidebar-nav {
@@ -198,7 +205,7 @@ button {
 }
 
 .sidebar-nav a {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-light);
   text-decoration: none;
   padding: 10px 12px;
   border-radius: 6px;
@@ -207,8 +214,8 @@ button {
 }
 
 .sidebar-nav a:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--color-off-white);
+  color: var(--color-text);
 }
 
 .sidebar-nav a.active {
@@ -217,10 +224,10 @@ button {
 }
 
 .sidebar-user {
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid var(--color-border);
   padding-top: 16px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-light);
 }
 
 .sidebar-user form {
@@ -229,8 +236,8 @@ button {
 
 .sidebar-user button {
   background: transparent;
-  color: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-text-light);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 13px;
@@ -239,8 +246,8 @@ button {
 }
 
 .sidebar-user button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--color-off-white);
+  color: var(--color-text);
 }
 
 .main-content {
@@ -284,10 +291,10 @@ button {
     justify-content: center;
     width: 38px;
     height: 38px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     background: transparent;
-    color: #fff;
+    color: var(--color-text);
     font-size: 20px;
     line-height: 1;
     cursor: pointer;
@@ -309,7 +316,7 @@ button {
     order: 3;
     margin-top: 14px;
     padding-top: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 1px solid var(--color-border);
   }
 
   .sidebar.is-open .sidebar-user {
