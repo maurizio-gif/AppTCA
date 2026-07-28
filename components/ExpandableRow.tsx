@@ -8,6 +8,7 @@ import { formatValue, isUrl, prettifyKey, raggruppaDettagli } from '@/lib/format
 // stanno nella tabella: UTM, consensi, campi jsonb, ecc.).
 export function ExpandableRow({
   cells,
+  columns,
   record,
   hiddenKeys = [],
   columnCount,
@@ -15,6 +16,10 @@ export function ExpandableRow({
   extraTitle = 'Gestione',
 }: {
   cells: React.ReactNode[]
+  // Etichette delle colonne (stesso ordine di `cells`): usate come
+  // data-label sulle celle, cosi' su mobile la riga diventa una card con
+  // "Etichetta: valore" invece di una tabella con scroll orizzontale.
+  columns?: string[]
   record: Record<string, unknown>
   hiddenKeys?: string[]
   columnCount: number
@@ -31,7 +36,7 @@ export function ExpandableRow({
       <tr className="row-clickable" onClick={() => setOpen((o) => !o)}>
         <td className="expand-indicator">{open ? '▾' : '▸'}</td>
         {cells.map((cell, i) => (
-          <td key={i}>{cell}</td>
+          <td key={i} data-label={columns?.[i]}>{cell}</td>
         ))}
       </tr>
       {open && (

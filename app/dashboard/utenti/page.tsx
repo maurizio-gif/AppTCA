@@ -83,10 +83,12 @@ export default async function UtentiPage({
           <tbody>
             {staff?.map((s) => (
               <tr key={s.email}>
-                <td>{s.nome || s.cognome ? `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() : '—'}</td>
-                <td>{s.email}</td>
-                <td>{formatDateOra(s.created_at)}</td>
-                <td>
+                <td data-label="Nome">{s.nome || s.cognome ? `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() : '—'}</td>
+                <td data-label="Email">
+                  <a href={`mailto:${s.email}`} className="contact-link">{s.email}</a>
+                </td>
+                <td data-label="Aggiunto il">{formatDateOra(s.created_at)}</td>
+                <td data-label="Può invitare">
                   {puoInvitare ? (
                     <PuoInvitareToggle email={s.email} puoInvitare={s.puo_invitare} />
                   ) : s.puo_invitare ? (
@@ -95,14 +97,14 @@ export default async function UtentiPage({
                     '—'
                   )}
                 </td>
-                <td>
+                <td data-label="Sezioni visibili">
                   {puoInvitare ? (
                     <SezioniToggle email={s.email} sezioniAttive={s.sezioni_consentite} />
                   ) : (
                     s.sezioni_consentite.join(', ') || '—'
                   )}
                 </td>
-                <td>
+                <td data-label="">
                   <RimuoviButton email={s.email} />
                 </td>
               </tr>

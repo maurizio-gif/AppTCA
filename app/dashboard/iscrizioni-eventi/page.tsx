@@ -1,9 +1,12 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
+import { ContactLinks } from '@/components/ContactLinks'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 
 export const dynamic = 'force-dynamic'
+
+const COLONNE_TABELLA = ['Data', 'Evento', 'Partecipante', 'Socio', 'Pagamento', 'Contratto PGM']
 
 const COLONNE_VISIBILI = [
   'id',
@@ -61,6 +64,7 @@ export default async function IscrizioniEventiPage() {
               <ExpandableRow
                 key={riga.id}
                 columnCount={7}
+                columns={COLONNE_TABELLA}
                 record={riga}
                 hiddenKeys={COLONNE_VISIBILI}
                 cells={[
@@ -69,7 +73,7 @@ export default async function IscrizioniEventiPage() {
                   <>
                     {riga.nome} {riga.cognome}
                     <br />
-                    <span className="muted">{riga.email} · {riga.cellulare}</span>
+                    <ContactLinks email={riga.email} phone={riga.cellulare} />
                   </>,
                   riga.socio ? 'Sì' : 'No',
                   riga.importo_pagato != null ? `€ ${riga.importo_pagato}` : '-',

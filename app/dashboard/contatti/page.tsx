@@ -1,8 +1,11 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
+import { ContactLinks } from '@/components/ContactLinks'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
+
+const COLONNE_TABELLA = ['Data', 'Nome', 'Contatti', 'Richiesta', 'Attività', 'Stato', 'Gestione']
 
 export const dynamic = 'force-dynamic'
 
@@ -130,12 +133,13 @@ export default async function ContattiPage({
               <th>Richiesta</th>
               <th>Attività</th>
               <th>Stato</th>
+              <th>Gestione</th>
             </tr>
           </thead>
           {gruppi.map((gruppo) => (
             <tbody key={gruppo.chiave}>
               <tr className="table-group-header">
-                <td colSpan={7}>
+                <td colSpan={8}>
                   {gruppo.label}
                   <span className="count">({gruppo.righe.length})</span>
                 </td>
@@ -143,7 +147,8 @@ export default async function ContattiPage({
               {gruppo.righe.map((riga) => (
                 <ExpandableRow
                   key={riga.id}
-                  columnCount={7}
+                  columnCount={8}
+                  columns={COLONNE_TABELLA}
                   record={riga}
                   hiddenKeys={COLONNE_VISIBILI}
                   extra={
@@ -158,14 +163,13 @@ export default async function ContattiPage({
                   cells={[
                     formatDateOra(riga.created_at),
                     <>{riga.nome} {riga.cognome}</>,
-                    <>
-                      {riga.email}
-                      <br />
-                      <span className="muted">{riga.cellulare}</span>
-                    </>,
+                    <ContactLinks email={riga.email} phone={riga.cellulare} />,
                     riga.tipo_richiesta,
                     Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita,
                     riga.stato || '—',
+                    <span className={`gestione-badge ${riga.gestito ? 'gestito' : 'da-gestire'}`}>
+                      {riga.gestito ? 'Gestito' : 'Da gestire'}
+                    </span>,
                   ]}
                 />
               ))}

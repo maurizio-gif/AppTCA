@@ -1,9 +1,12 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
+import { ContactLinks } from '@/components/ContactLinks'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 
 export const dynamic = 'force-dynamic'
+
+const COLONNE_TABELLA = ['Data', 'Bambino/a', 'Genitore', 'Corso']
 
 const COLONNE_VISIBILI = [
   'id',
@@ -58,6 +61,7 @@ export default async function ScuolaTennisPage() {
               <ExpandableRow
                 key={riga.id}
                 columnCount={5}
+                columns={COLONNE_TABELLA}
                 record={riga}
                 hiddenKeys={COLONNE_VISIBILI}
                 cells={[
@@ -66,7 +70,7 @@ export default async function ScuolaTennisPage() {
                   <>
                     {riga.genitore_nome} {riga.genitore_cognome}
                     <br />
-                    <span className="muted">{riga.genitore_email} · {riga.genitore_cellulare}</span>
+                    <ContactLinks email={riga.genitore_email} phone={riga.genitore_cellulare} />
                   </>,
                   <>
                     {riga.tipo_corso}
