@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatValue, prettifyKey } from '@/lib/format'
+import { formatValue, isUrl, prettifyKey, raggruppaDettagli } from '@/lib/format'
 
 // Riga di tabella cliccabile: mostra le colonne riassuntive e, se aperta,
 // una riga sotto con TUTTI i campi del record (utile per i dati che non
@@ -11,15 +11,20 @@ export function ExpandableRow({
   record,
   hiddenKeys = [],
   columnCount,
+  extra,
+  extraTitle = 'Gestione',
 }: {
   cells: React.ReactNode[]
   record: Record<string, unknown>
   hiddenKeys?: string[]
   columnCount: number
+  extra?: React.ReactNode
+  extraTitle?: string
 }) {
   const [open, setOpen] = useState(false)
 
   const dettagli = Object.entries(record).filter(([key]) => !hiddenKeys.includes(key))
+  const gruppiDettagli = raggruppaDettagli(dettagli)
 
   return (
     <>
@@ -32,11 +37,32 @@ export function ExpandableRow({
       {open && (
         <tr className="row-detail">
           <td colSpan={columnCount}>
-            <div className="detail-grid">
-              {dettagli.map(([key, value]) => (
-                <div key={key} className="detail-item">
-                  <span className="detail-label">{prettifyKey(key)}</span>
-                  <span className="detail-value">{formatValue(value)}</span>
+            <div className="detail-groups">
+              {extra && (
+                <div className="detail-group">
+                  <div className="detail-group-title">{extraTitle}</div>
+                  {extra}
+                </div>
+              )}
+              {gruppiDettagli.map((gruppo) => (
+                <div key={gruppo.titolo} className="detail-group">
+                  <div className="detail-group-title">{gruppo.titolo}</div>
+                  <div className="detail-grid">
+                    {gruppo.voci.map(([key, value]) => (
+                      <div key={key} className="detail-item">
+                        <span className="detail-label">{prettifyKey(key)}</span>
+                        <span className="detail-value">
+                          {isUrl(value) ? (
+                            <a href={value} target="_blank" rel="noreferrer">
+                              {value}
+                            </a>
+                          ) : (
+                            formatValue(value)
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

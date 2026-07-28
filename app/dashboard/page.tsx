@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 
 export const dynamic = 'force-dynamic'
@@ -18,20 +19,20 @@ export default async function DashboardHome() {
         <h1>Riepilogo</h1>
       </div>
       <div className="stat-row">
-        <StatCard label="Richieste contatto" value={contatti.count ?? 0} />
-        <StatCard label="Preiscrizioni scuola tennis" value={scuolaTennis.count ?? 0} />
-        <StatCard label="Inviti amico" value={invitaAmico.count ?? 0} />
-        <StatCard label="Iscrizioni eventi" value={iscrizioniEventi.count ?? 0} />
+        <StatCard href="/dashboard/contatti" label="Richieste contatto" value={contatti.count ?? 0} />
+        <StatCard href="/dashboard/scuola-tennis" label="Preiscrizioni scuola tennis" value={scuolaTennis.count ?? 0} />
+        <StatCard href="/dashboard/invita-amico" label="Inviti amico" value={invitaAmico.count ?? 0} />
+        <StatCard href="/dashboard/iscrizioni-eventi" label="Iscrizioni eventi" value={iscrizioniEventi.count ?? 0} />
       </div>
     </div>
   )
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ href, label, value }: { href: string; label: string; value: number }) {
   return (
-    <div className="stat-card">
+    <Link href={href} className="stat-card">
       <div className="value">{value}</div>
       <div className="label">{label}</div>
-    </div>
+    </Link>
   )
 }

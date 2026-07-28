@@ -28,6 +28,14 @@ export default async function ImpostaPasswordPage({
 
         <form action={impostaPassword}>
           <div className="field">
+            <label htmlFor="nome">Nome</label>
+            <input id="nome" name="nome" type="text" required autoComplete="given-name" />
+          </div>
+          <div className="field">
+            <label htmlFor="cognome">Cognome</label>
+            <input id="cognome" name="cognome" type="text" required autoComplete="family-name" />
+          </div>
+          <div className="field">
             <label htmlFor="password">Nuova password</label>
             <input
               id="password"

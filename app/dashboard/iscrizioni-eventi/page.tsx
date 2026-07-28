@@ -1,5 +1,6 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
+import { formatDateOra } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,7 +59,7 @@ export default async function IscrizioniEventiPage() {
                 record={riga}
                 hiddenKeys={COLONNE_VISIBILI}
                 cells={[
-                  riga.created_at ? new Date(riga.created_at).toLocaleString('it-IT') : '-',
+                  formatDateOra(riga.created_at),
                   riga.nome_evento,
                   <>
                     {riga.nome} {riga.cognome}

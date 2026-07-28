@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { createSupabaseServerClient } from '@/lib/supabase/serverClient'
 
@@ -12,6 +13,19 @@ export async function invitaStaff(formData: FormData) {
   }
 
   const supabase = createSupabaseServiceClient()
+
+  // Solo chi ha "puo_invitare" puo' invitare: controllo lato server, non solo
+  // nascondere il form, altrimenti la Server Action resta chiamabile a mano.
+  const chiamante = headers().get('x-tca-user-email')
+  const { data: permesso } = await supabase
+    .from('staff_users')
+    .select('puo_invitare')
+    .eq('email', chiamante ?? '')
+    .maybeSingle()
+
+  if (!permesso?.puo_invitare) {
+    redirect('/dashboard/utenti?error=Non+hai+il+permesso+di+invitare+nuovi+utenti')
+  }
 
   const { error: insertError } = await supabase.from('staff_users').upsert({ email })
   if (insertError) {
@@ -36,6 +50,32 @@ export async function invitaStaff(formData: FormData) {
 
   revalidatePath('/dashboard/utenti')
   redirect('/dashboard/utenti?ok=1')
+}
+
+export async function impostaPuoInvitare(email: string, puoInvitare: boolean) {
+  const supabase = createSupabaseServiceClient()
+
+  // Stesso controllo di invitaStaff: solo chi ha gia' il permesso puo'
+  // concederlo (o toglierlo) ad altri.
+  const chiamante = headers().get('x-tca-user-email')
+  const { data: permesso } = await supabase
+    .from('staff_users')
+    .select('puo_invitare')
+    .eq('email', chiamante ?? '')
+    .maybeSingle()
+
+  if (!permesso?.puo_invitare) {
+    throw new Error('Non hai il permesso di modificare i permessi degli altri utenti.')
+  }
+
+  const { error } = await supabase
+    .from('staff_users')
+    .update({ puo_invitare: puoInvitare })
+    .eq('email', email)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/dashboard/utenti')
 }
 
 export async function rimuoviStaff(email: string) {

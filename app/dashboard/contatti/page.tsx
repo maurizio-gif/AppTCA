@@ -1,10 +1,9 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
-import { StatoSelect } from './StatoSelect'
+import { formatDateOra } from '@/lib/format'
+import { GestioneSezione } from './GestioneSezione'
 
 export const dynamic = 'force-dynamic'
-
-const STATI_VALIDI = ['nuovo', 'in_lavorazione', 'contattato', 'chiuso']
 
 const COLONNE_VISIBILI = [
   'id',
@@ -14,29 +13,98 @@ const COLONNE_VISIBILI = [
   'email',
   'cellulare',
   'tipo_richiesta',
-  'motivo',
-  'pagina',
+  'attivita',
   'stato',
+  'gestito',
+  'gestito_da',
+  'gestito_il',
+  'note',
 ]
+
+const ETICHETTA_GRUPPO: Record<string, string> = {
+  adulti: 'Adulti',
+  junior: 'Junior',
+}
+
+const FILTRI_VALIDI = ['da_gestire', 'gestiti'] as const
+type Filtro = (typeof FILTRI_VALIDI)[number]
+
+const ETICHETTA_FILTRO: Record<Filtro, string> = {
+  da_gestire: 'Da gestire',
+  gestiti: 'Gestiti',
+}
+
+type RigaContatto = Record<string, any>
+
+// Selezione multipla in OR: assente = default entrambi attivi (mostra tutto);
+// stringa vuota = nessun filtro selezionato (nessuna riga corrisponde);
+// altrimenti lista separata da virgola dei filtri attivi.
+function parseFiltri(raw: string | undefined): Set<Filtro> {
+  if (raw === undefined) return new Set(FILTRI_VALIDI)
+  if (raw === '') return new Set()
+  return new Set(raw.split(',').filter((f): f is Filtro => (FILTRI_VALIDI as readonly string[]).includes(f)))
+}
+
+function toggleFiltro(attivi: Set<Filtro>, chiave: Filtro): Set<Filtro> {
+  const next = new Set(attivi)
+  if (next.has(chiave)) {
+    next.delete(chiave)
+  } else {
+    next.add(chiave)
+  }
+  return next
+}
+
+function applicaFiltro(righe: RigaContatto[], attivi: Set<Filtro>): RigaContatto[] {
+  if (attivi.size === 0) return []
+  return righe.filter(
+    (riga) => (attivi.has('gestiti') && riga.gestito) || (attivi.has('da_gestire') && !riga.gestito)
+  )
+}
+
+function raggruppaPerAttivita(righe: RigaContatto[]) {
+  const gruppi = new Map<string, RigaContatto[]>()
+
+  for (const riga of righe) {
+    const chiave = (riga.gruppo_attivita || '').toLowerCase() || 'altro'
+    if (!gruppi.has(chiave)) gruppi.set(chiave, [])
+    gruppi.get(chiave)!.push(riga)
+  }
+
+  const ordine = [
+    'adulti',
+    'junior',
+    ...[...gruppi.keys()].filter((k) => k !== 'adulti' && k !== 'junior'),
+  ]
+
+  return ordine
+    .filter((chiave) => gruppi.has(chiave))
+    .map((chiave) => ({
+      chiave,
+      label: ETICHETTA_GRUPPO[chiave] ?? 'Altro',
+      righe: gruppi.get(chiave)!,
+    }))
+}
 
 export default async function ContattiPage({
   searchParams,
 }: {
-  searchParams: { stato?: string }
+  searchParams: { filtro?: string }
 }) {
   const supabase = createSupabaseServiceClient()
 
-  let query = supabase.from('form_contatti').select('*').order('created_at', { ascending: false })
-
-  if (searchParams.stato) {
-    query = query.eq('stato', searchParams.stato)
-  }
-
-  const { data: righe, error } = await query
+  const { data: righe, error } = await supabase
+    .from('form_contatti')
+    .select('*')
+    .order('created_at', { ascending: false })
 
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
+
+  const filtriAttivi = parseFiltri(searchParams.filtro)
+  const righeFiltrate = applicaFiltro(righe ?? [], filtriAttivi)
+  const gruppi = raggruppaPerAttivita(righeFiltrate)
 
   return (
     <div>
@@ -44,7 +112,7 @@ export default async function ContattiPage({
         <h1>Form contatti ("Parliamone")</h1>
       </div>
 
-      <FiltroStato attivo={searchParams.stato} />
+      <FiltroGestione attivi={filtriAttivi} />
 
       <div className="data-table-wrap">
         <table className="data-table">
@@ -55,57 +123,73 @@ export default async function ContattiPage({
               <th>Nome</th>
               <th>Contatti</th>
               <th>Richiesta</th>
-              <th>Pagina</th>
+              <th>Attività</th>
               <th>Stato</th>
             </tr>
           </thead>
-          <tbody>
-            {righe?.map((riga) => (
-              <ExpandableRow
-                key={riga.id}
-                columnCount={7}
-                record={riga}
-                hiddenKeys={COLONNE_VISIBILI}
-                cells={[
-                  new Date(riga.created_at).toLocaleString('it-IT'),
-                  <>{riga.nome} {riga.cognome}</>,
-                  <>
-                    {riga.email}
-                    <br />
-                    <span className="muted">{riga.cellulare}</span>
-                  </>,
-                  <>
-                    {riga.tipo_richiesta}
-                    <br />
-                    <span className="muted">{riga.motivo}</span>
-                  </>,
-                  riga.pagina,
-                  <StatoSelect id={riga.id} statoIniziale={riga.stato ?? 'nuovo'} />,
-                ]}
-              />
-            ))}
-          </tbody>
+          {gruppi.map((gruppo) => (
+            <tbody key={gruppo.chiave}>
+              <tr className="table-group-header">
+                <td colSpan={7}>
+                  {gruppo.label}
+                  <span className="count">({gruppo.righe.length})</span>
+                </td>
+              </tr>
+              {gruppo.righe.map((riga) => (
+                <ExpandableRow
+                  key={riga.id}
+                  columnCount={7}
+                  record={riga}
+                  hiddenKeys={COLONNE_VISIBILI}
+                  extra={
+                    <GestioneSezione
+                      id={riga.id}
+                      gestito={!!riga.gestito}
+                      gestitoDa={riga.gestito_da ?? null}
+                      gestitoIl={riga.gestito_il ?? null}
+                      noteIniziali={riga.note ?? null}
+                    />
+                  }
+                  cells={[
+                    formatDateOra(riga.created_at),
+                    <>{riga.nome} {riga.cognome}</>,
+                    <>
+                      {riga.email}
+                      <br />
+                      <span className="muted">{riga.cellulare}</span>
+                    </>,
+                    riga.tipo_richiesta,
+                    Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita,
+                    riga.stato || '—',
+                  ]}
+                />
+              ))}
+            </tbody>
+          ))}
         </table>
 
-        {righe?.length === 0 && <p className="empty-state">Nessuna richiesta trovata.</p>}
+        {righeFiltrate.length === 0 && <p className="empty-state">Nessuna richiesta trovata.</p>}
       </div>
     </div>
   )
 }
 
-function FiltroStato({ attivo }: { attivo?: string }) {
-  const opzioni = ['tutti', ...STATI_VALIDI]
+function FiltroGestione({ attivi }: { attivi: Set<Filtro> }) {
   return (
     <div className="filter-row">
-      {opzioni.map((stato) => (
-        <a
-          key={stato}
-          href={stato === 'tutti' ? '/dashboard/contatti' : `/dashboard/contatti?stato=${stato}`}
-          className={`filter-pill ${(attivo ?? 'tutti') === stato ? 'active' : ''}`}
-        >
-          {stato}
-        </a>
-      ))}
+      {FILTRI_VALIDI.map((chiave) => {
+        const next = toggleFiltro(attivi, chiave)
+        const href = `/dashboard/contatti?filtro=${[...next].join(',')}`
+        return (
+          <a
+            key={chiave}
+            href={href}
+            className={`filter-pill ${attivi.has(chiave) ? 'active' : ''}`}
+          >
+            {ETICHETTA_FILTRO[chiave]}
+          </a>
+        )
+      })}
     </div>
   )
 }

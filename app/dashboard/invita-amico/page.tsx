@@ -1,5 +1,6 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
+import { formatDateOra } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,7 +50,7 @@ export default async function InvitaAmicoPage() {
                 record={riga}
                 hiddenKeys={COLONNE_VISIBILI}
                 cells={[
-                  new Date(riga.created_at).toLocaleString('it-IT'),
+                  formatDateOra(riga.created_at),
                   riga.email_socio,
                   <>
                     {riga.amico_nome} {riga.amico_cognome}
