@@ -6,6 +6,22 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { createSupabaseServerClient } from '@/lib/supabase/serverClient'
 
+// Solo chi ha "puo_invitare" puo' invitare o modificare i permessi altrui:
+// controllo lato server, non solo nascondere i controlli in UI, altrimenti
+// le Server Action restano chiamabili a mano bypassando il permesso.
+async function chiamanteHaPermesso(
+  supabase: ReturnType<typeof createSupabaseServiceClient>
+): Promise<boolean> {
+  const chiamante = headers().get('x-tca-user-email')
+  const { data } = await supabase
+    .from('staff_users')
+    .select('puo_invitare')
+    .eq('email', chiamante ?? '')
+    .maybeSingle()
+
+  return !!data?.puo_invitare
+}
+
 export async function invitaStaff(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
   if (!email) {
@@ -14,16 +30,7 @@ export async function invitaStaff(formData: FormData) {
 
   const supabase = createSupabaseServiceClient()
 
-  // Solo chi ha "puo_invitare" puo' invitare: controllo lato server, non solo
-  // nascondere il form, altrimenti la Server Action resta chiamabile a mano.
-  const chiamante = headers().get('x-tca-user-email')
-  const { data: permesso } = await supabase
-    .from('staff_users')
-    .select('puo_invitare')
-    .eq('email', chiamante ?? '')
-    .maybeSingle()
-
-  if (!permesso?.puo_invitare) {
+  if (!(await chiamanteHaPermesso(supabase))) {
     redirect('/dashboard/utenti?error=Non+hai+il+permesso+di+invitare+nuovi+utenti')
   }
 
@@ -55,22 +62,30 @@ export async function invitaStaff(formData: FormData) {
 export async function impostaPuoInvitare(email: string, puoInvitare: boolean) {
   const supabase = createSupabaseServiceClient()
 
-  // Stesso controllo di invitaStaff: solo chi ha gia' il permesso puo'
-  // concederlo (o toglierlo) ad altri.
-  const chiamante = headers().get('x-tca-user-email')
-  const { data: permesso } = await supabase
-    .from('staff_users')
-    .select('puo_invitare')
-    .eq('email', chiamante ?? '')
-    .maybeSingle()
-
-  if (!permesso?.puo_invitare) {
+  if (!(await chiamanteHaPermesso(supabase))) {
     throw new Error('Non hai il permesso di modificare i permessi degli altri utenti.')
   }
 
   const { error } = await supabase
     .from('staff_users')
     .update({ puo_invitare: puoInvitare })
+    .eq('email', email)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/dashboard/utenti')
+}
+
+export async function impostaSezioni(email: string, sezioni: string[]) {
+  const supabase = createSupabaseServiceClient()
+
+  if (!(await chiamanteHaPermesso(supabase))) {
+    throw new Error('Non hai il permesso di modificare le sezioni visibili agli altri utenti.')
+  }
+
+  const { error } = await supabase
+    .from('staff_users')
+    .update({ sezioni_consentite: sezioni })
     .eq('email', email)
 
   if (error) throw new Error(error.message)

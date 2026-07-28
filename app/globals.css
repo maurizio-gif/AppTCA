@@ -653,6 +653,28 @@ table.data-table {
   height: 15px;
 }
 
+.sezioni-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.sezioni-toggle-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-light);
+  cursor: pointer;
+}
+
+.sezioni-toggle-item input {
+  accent-color: var(--color-accent);
+  width: 13px;
+  height: 13px;
+}
+
 .page-header {
   display: flex;
   align-items: baseline;

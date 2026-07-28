@@ -1,8 +1,10 @@
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { invitaStaff } from './actions'
 import { RimuoviButton } from './RimuoviButton'
 import { PuoInvitareToggle } from './PuoInvitareToggle'
+import { SezioniToggle } from './SezioniToggle'
 import { formatDateOra } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
@@ -12,13 +14,17 @@ export default async function UtentiPage({
 }: {
   searchParams: { error?: string; ok?: string }
 }) {
+  if (!(await utenteHaSezione('utenti'))) {
+    return <p className="error-banner">Non hai accesso a questa sezione.</p>
+  }
+
   const supabase = createSupabaseServiceClient()
   const emailCorrente = headers().get('x-tca-user-email')
 
   const [{ data: staff, error }, { data: viewer }] = await Promise.all([
     supabase
       .from('staff_users')
-      .select('email, nome, cognome, puo_invitare, created_at')
+      .select('email, nome, cognome, puo_invitare, sezioni_consentite, created_at')
       .order('created_at', { ascending: true }),
     supabase
       .from('staff_users')
@@ -69,7 +75,8 @@ export default async function UtentiPage({
               <th>Nome</th>
               <th>Email</th>
               <th>Aggiunto il</th>
-              <th>Permessi</th>
+              <th>Può invitare</th>
+              <th>Sezioni visibili</th>
               <th></th>
             </tr>
           </thead>
@@ -83,9 +90,16 @@ export default async function UtentiPage({
                   {puoInvitare ? (
                     <PuoInvitareToggle email={s.email} puoInvitare={s.puo_invitare} />
                   ) : s.puo_invitare ? (
-                    'Può invitare'
+                    'Sì'
                   ) : (
                     '—'
+                  )}
+                </td>
+                <td>
+                  {puoInvitare ? (
+                    <SezioniToggle email={s.email} sezioniAttive={s.sezioni_consentite} />
+                  ) : (
+                    s.sezioni_consentite.join(', ') || '—'
                   )}
                 </td>
                 <td>

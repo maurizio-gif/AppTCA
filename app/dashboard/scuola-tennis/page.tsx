@@ -1,6 +1,7 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
 import { formatDateOra } from '@/lib/format'
+import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +22,10 @@ const COLONNE_VISIBILI = [
 // + service role client), senza la parte di aggiornamento stato — qui basta
 // vedere l'elenco delle preiscrizioni.
 export default async function ScuolaTennisPage() {
+  if (!(await utenteHaSezione('scuola-tennis'))) {
+    return <p className="error-banner">Non hai accesso a questa sezione.</p>
+  }
+
   const supabase = createSupabaseServiceClient()
 
   const { data: righe, error } = await supabase

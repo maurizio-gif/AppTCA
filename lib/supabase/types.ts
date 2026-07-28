@@ -514,6 +514,7 @@ export type Database = {
           email: string
           nome: string | null
           puo_invitare: boolean
+          sezioni_consentite: string[]
         }
         Insert: {
           cognome?: string | null
@@ -521,6 +522,7 @@ export type Database = {
           email: string
           nome?: string | null
           puo_invitare?: boolean
+          sezioni_consentite?: string[]
         }
         Update: {
           cognome?: string | null
@@ -528,6 +530,7 @@ export type Database = {
           email?: string
           nome?: string | null
           puo_invitare?: boolean
+          sezioni_consentite?: string[]
         }
         Relationships: []
       }

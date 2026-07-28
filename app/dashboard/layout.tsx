@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { isSegreteriaEmail } from '@/lib/auth/allowlist'
+import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
 import { Sidebar } from './Sidebar'
 
 // Il middleware ha gia' verificato la sessione con getUser() (chiamata di
@@ -20,9 +21,11 @@ export default async function DashboardLayout({
     redirect('/login?error=non-autorizzato')
   }
 
+  const sezioniConsentite = await getSezioniConsentite(email)
+
   return (
     <div className="app-shell">
-      <Sidebar email={email} />
+      <Sidebar email={email} sezioniConsentite={sezioniConsentite} />
       <main className="main-content">{children}</main>
     </div>
   )

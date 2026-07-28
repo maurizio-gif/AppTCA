@@ -1,6 +1,7 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
 import { formatDateOra } from '@/lib/format'
+import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
 
 export const dynamic = 'force-dynamic'
@@ -91,6 +92,10 @@ export default async function ContattiPage({
 }: {
   searchParams: { filtro?: string }
 }) {
+  if (!(await utenteHaSezione('contatti'))) {
+    return <p className="error-banner">Non hai accesso a questa sezione.</p>
+  }
+
   const supabase = createSupabaseServiceClient()
 
   const { data: righe, error } = await supabase

@@ -4,19 +4,24 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
+import { SEZIONI } from '@/lib/auth/sezioni'
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Riepilogo' },
-  { href: '/dashboard/contatti', label: 'Form contatti' },
-  { href: '/dashboard/scuola-tennis', label: 'Scuola tennis' },
-  { href: '/dashboard/invita-amico', label: 'Invita un amico' },
-  { href: '/dashboard/iscrizioni-eventi', label: 'Iscrizioni eventi' },
-  { href: '/dashboard/utenti', label: 'Gestione utenti' },
-]
-
-export function Sidebar({ email }: { email: string }) {
+// Riepilogo e' sempre visibile; le altre voci sono filtrate in base alle
+// sezioni che l'utente puo' vedere (vedi lib/auth/sezioni.ts).
+export function Sidebar({
+  email,
+  sezioniConsentite,
+}: {
+  email: string
+  sezioniConsentite: string[]
+}) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+
+  const navItems = [
+    { href: '/dashboard', label: 'Riepilogo' },
+    ...SEZIONI.filter((s) => sezioniConsentite.includes(s.chiave)),
+  ]
 
   // Chiude il menu mobile ad ogni cambio pagina, altrimenti resterebbe
   // aperto sopra il contenuto della sezione appena raggiunta.
@@ -41,7 +46,7 @@ export function Sidebar({ email }: { email: string }) {
       </button>
 
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}

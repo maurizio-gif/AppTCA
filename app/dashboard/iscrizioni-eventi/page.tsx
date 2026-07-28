@@ -1,6 +1,7 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { ExpandableRow } from '@/components/ExpandableRow'
 import { formatDateOra } from '@/lib/format'
+import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +23,10 @@ const COLONNE_VISIBILI = [
 // Contiene anche il link al contratto PerfectGym (link_pgm), utile alla
 // segreteria per aprire direttamente la pratica del socio.
 export default async function IscrizioniEventiPage() {
+  if (!(await utenteHaSezione('iscrizioni-eventi'))) {
+    return <p className="error-banner">Non hai accesso a questa sezione.</p>
+  }
+
   const supabase = createSupabaseServiceClient()
 
   const { data: righe, error } = await supabase
