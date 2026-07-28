@@ -192,26 +192,13 @@ button {
 }
 
 .brand-logo {
-  height: 26px;
+  height: 36px;
   width: auto;
   display: block;
 }
 
 .brand-logo-lg {
-  height: 40px;
-}
-
-.brand-suffix {
-  font-family: var(--font-display), sans-serif;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 13px;
-  color: var(--color-text-light);
-}
-
-.brand-accent {
-  color: var(--color-accent);
+  height: 56px;
 }
 
 .sidebar-nav {

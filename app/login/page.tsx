@@ -9,8 +9,7 @@ export default function LoginPage({
     <main className="login-shell">
       <div className="login-card">
         <h1 className="login-brand">
-          <img src="/logo-tca.png" alt="TCA" className="brand-logo brand-logo-lg" />
-          <span className="brand-suffix">CRM</span>
+          <img src="/logo-tca.png" alt="TCA CRM" className="brand-logo brand-logo-lg" />
         </h1>
 
         {searchParams.error === 'credenziali' && (
