@@ -58,12 +58,31 @@ type Voce = [string, unknown]
 // segue il contatto, restano chiusi in fondo (vedi raggruppaDettagli).
 const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean; tecnico?: boolean }[] = [
   {
-    titolo: 'Contatti',
-    test: (k) => k === 'email' || k === 'cellulare',
+    titolo: 'Bambino/a',
+    test: (k) => k.startsWith('minore_'),
   },
   {
-    titolo: 'Consensi',
-    test: (k) => k === 'privacy' || k === 'marketing' || k.startsWith('consenso_'),
+    titolo: 'Genitore',
+    test: (k) => k.startsWith('genitore_') || k.startsWith('indirizzo_'),
+  },
+  {
+    titolo: 'Iscrizione',
+    test: (k) =>
+      [
+        'tipo_corso',
+        'frequenza',
+        'giorni',
+        'compagno_preferito',
+        'orari_preferiti',
+        'orario_preparazione',
+        'taglia_maglietta',
+        'taglia_pantaloncini',
+        'taglia_felpa',
+      ].includes(k),
+  },
+  {
+    titolo: 'Contatti',
+    test: (k) => k === 'email' || k === 'cellulare',
   },
   {
     titolo: 'PerfectGym',
@@ -71,9 +90,14 @@ const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean; 
       k.startsWith('pgm_') || k.includes('contratto_pgm') || k === 'esito_verifica_pgm',
   },
   {
+    titolo: 'Consensi',
+    test: (k) => k === 'privacy' || k === 'marketing' || k.startsWith('consenso_'),
+  },
+  {
     titolo: 'Parametri tecnici',
     test: (k) =>
-      k.startsWith('utm_') || ['vid', 'gclid', 'fbclid', 'referrer', 'cta', 'flow'].includes(k),
+      k.startsWith('utm_') ||
+      ['vid', 'gclid', 'fbclid', 'referrer', 'cta', 'flow', 'pagina'].includes(k),
     tecnico: true,
   },
 ]
