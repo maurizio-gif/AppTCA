@@ -935,9 +935,9 @@ table.data-table {
     color: #fff;
   }
 
-  /* Aree di tocco piu' generose per dita su schermo piccolo */
-  .filter-pill {
-    padding: 9px 16px;
+  /* Area di tocco piu' generosa per dita su schermo piccolo */
+  .filter-select {
+    padding: 10px 32px 10px 14px;
     font-size: 14px;
   }
 
@@ -953,7 +953,7 @@ table.data-table {
 }
 
 
-/* ---------- Filtri (multi-selezione OR) ---------- */
+/* ---------- Filtro stato (select singola) ---------- */
 
 .contatti-toolbar {
   display: flex;
@@ -962,31 +962,27 @@ table.data-table {
   margin-bottom: 20px;
 }
 
-.filter-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.filter-pill {
-  padding: 6px 14px;
+.filter-select {
+  align-self: flex-start;
+  padding: 8px 32px 8px 14px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  text-decoration: none;
   font-size: 13px;
+  font-weight: 600;
   color: var(--color-text);
-  background: var(--color-bg);
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  background: var(--color-bg)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  background-size: 14px;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
 }
 
-.filter-pill:hover {
-  background: var(--color-off-white);
-}
-
-.filter-pill.active {
-  background: var(--color-accent);
+.filter-select:hover,
+.filter-select:focus {
   border-color: var(--color-accent);
-  color: #fff;
+  outline: none;
 }
 
 /* ---------- Ricerca contatti ---------- */

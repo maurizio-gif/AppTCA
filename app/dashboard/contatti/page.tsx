@@ -4,6 +4,7 @@ import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
+import { FiltroSelect } from './FiltroSelect'
 
 // Solo i campi essenziali per la lettura al volo (senza espandere la riga):
 // data, nome, stato, attivita' e richiesta - data per prima perche' su
@@ -32,41 +33,22 @@ const ETICHETTA_GRUPPO: Record<string, string> = {
   junior: 'Junior',
 }
 
-const FILTRI_VALIDI = ['da_gestire', 'gestiti'] as const
+const FILTRI_VALIDI = ['da_gestire', 'gestiti', 'tutti'] as const
 type Filtro = (typeof FILTRI_VALIDI)[number]
-
-const ETICHETTA_FILTRO: Record<Filtro, string> = {
-  da_gestire: 'Da gestire',
-  gestiti: 'Gestiti',
-}
 
 type RigaContatto = Record<string, any>
 
-// Selezione multipla in OR: assente (es. dal link "Enquiries" nel
-// menu) = solo "da gestire", cosi' e' quello che si vede aprendo la
-// pagina; stringa vuota = nessun filtro selezionato (nessuna riga
-// corrisponde); altrimenti lista separata da virgola dei filtri attivi.
-function parseFiltri(raw: string | undefined): Set<Filtro> {
-  if (raw === undefined) return new Set(['da_gestire'])
-  if (raw === '') return new Set()
-  return new Set(raw.split(',').filter((f): f is Filtro => (FILTRI_VALIDI as readonly string[]).includes(f)))
+// Singola selezione: assente (es. dal link "Enquiries" nel menu) o non
+// valida = "da gestire", cosi' e' quello che si vede aprendo la pagina.
+function parseFiltro(raw: string | undefined): Filtro {
+  if (raw && (FILTRI_VALIDI as readonly string[]).includes(raw)) return raw as Filtro
+  return 'da_gestire'
 }
 
-function toggleFiltro(attivi: Set<Filtro>, chiave: Filtro): Set<Filtro> {
-  const next = new Set(attivi)
-  if (next.has(chiave)) {
-    next.delete(chiave)
-  } else {
-    next.add(chiave)
-  }
-  return next
-}
-
-function applicaFiltro(righe: RigaContatto[], attivi: Set<Filtro>): RigaContatto[] {
-  if (attivi.size === 0) return []
-  return righe.filter(
-    (riga) => (attivi.has('gestiti') && riga.gestito) || (attivi.has('da_gestire') && !riga.gestito)
-  )
+function applicaFiltro(righe: RigaContatto[], filtro: Filtro): RigaContatto[] {
+  if (filtro === 'tutti') return righe
+  if (filtro === 'gestiti') return righe.filter((riga) => riga.gestito)
+  return righe.filter((riga) => !riga.gestito)
 }
 
 // La ricerca ignora il filtro Da gestire/Gestiti: cerca su tutti i
@@ -125,10 +107,10 @@ export default async function ContattiPage({
   }
 
   const query = (searchParams.q ?? '').trim().toLowerCase()
-  const filtriAttivi = parseFiltri(searchParams.filtro)
+  const filtro = parseFiltro(searchParams.filtro)
   const righeFiltrate = query
     ? (righe ?? []).filter((riga) => corrispondeRicerca(riga, query))
-    : applicaFiltro(righe ?? [], filtriAttivi)
+    : applicaFiltro(righe ?? [], filtro)
   const gruppi = raggruppaPerAttivita(righeFiltrate)
 
   return (
@@ -147,7 +129,7 @@ export default async function ContattiPage({
             </a>
           </p>
         ) : (
-          <FiltroGestione attivi={filtriAttivi} />
+          <FiltroSelect valore={filtro} />
         )}
       </div>
 
@@ -215,26 +197,6 @@ export default async function ContattiPage({
           </p>
         )}
       </div>
-    </div>
-  )
-}
-
-function FiltroGestione({ attivi }: { attivi: Set<Filtro> }) {
-  return (
-    <div className="filter-row">
-      {FILTRI_VALIDI.map((chiave) => {
-        const next = toggleFiltro(attivi, chiave)
-        const href = `/dashboard/contatti?filtro=${[...next].join(',')}`
-        return (
-          <a
-            key={chiave}
-            href={href}
-            className={`filter-pill ${attivi.has(chiave) ? 'active' : ''}`}
-          >
-            {ETICHETTA_FILTRO[chiave]}
-          </a>
-        )
-      })}
     </div>
   )
 }
