@@ -149,6 +149,22 @@ export async function rimuoviStaff(email: string) {
   }
 
   const supabase = createSupabaseServiceClient()
+
+  // Rimuove l'utente anche da Supabase Auth: se resta solo "invitato" li',
+  // un nuovo invito alla stessa email fallisce con "already been
+  // registered" (422) e non parte nessuna nuova email.
+  const { data: elenco, error: elencoError } = await supabase.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  })
+  if (elencoError) throw new Error(elencoError.message)
+
+  const utenteAuth = elenco.users.find((u) => u.email?.toLowerCase() === email.toLowerCase())
+  if (utenteAuth) {
+    const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(utenteAuth.id)
+    if (deleteAuthError) throw new Error(deleteAuthError.message)
+  }
+
   const { error } = await supabase.from('staff_users').delete().eq('email', email)
   if (error) throw new Error(error.message)
 
