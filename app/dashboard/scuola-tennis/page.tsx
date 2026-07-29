@@ -13,7 +13,6 @@ const COLONNE_VISIBILI = [
   'created_at',
   'genitore_email',
   'genitore_cellulare',
-  'tipo_corso',
   'frequenza',
 ]
 
