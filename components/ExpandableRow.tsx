@@ -1,12 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import { contactHrefFor, formatValue, isUrl, prettifyKey, raggruppaDettagli } from '@/lib/format'
+
+// Coordina le ExpandableRow di una stessa tabella: tiene l'id della riga
+// aperta, cosi' aprirne una chiude automaticamente le altre. Senza questo
+// provider intorno alla tabella, ogni riga si apre/chiude per conto suo
+// (fallback qui sotto in ExpandableRow).
+const AccordionContext = createContext<{
+  openId: string | null
+  setOpenId: (id: string | null) => void
+} | null>(null)
+
+export function AccordionGroup({ children }: { children: React.ReactNode }) {
+  const [openId, setOpenId] = useState<string | null>(null)
+  return <AccordionContext.Provider value={{ openId, setOpenId }}>{children}</AccordionContext.Provider>
+}
 
 // Riga di tabella cliccabile: mostra le colonne riassuntive e, se aperta,
 // una riga sotto con TUTTI i campi del record (utile per i dati che non
 // stanno nella tabella: UTM, consensi, campi jsonb, ecc.).
 export function ExpandableRow({
+  id,
   cells,
   columns,
   record,
@@ -15,6 +30,9 @@ export function ExpandableRow({
   extra,
   extraTitle = 'Gestione',
 }: {
+  // Identificativo univoco della riga nella tabella (es. l'id del record):
+  // serve al gruppo di accordion per sapere quale riga tenere aperta.
+  id: string
   cells: React.ReactNode[]
   // Etichette delle colonne (stesso ordine di `cells`): usate come
   // data-label sulle celle, cosi' su mobile la riga diventa una card con
@@ -26,8 +44,18 @@ export function ExpandableRow({
   extra?: React.ReactNode
   extraTitle?: string
 }) {
-  const [open, setOpen] = useState(false)
+  const gruppo = useContext(AccordionContext)
+  const [openLocale, setOpenLocale] = useState(false)
   const [tecniciAperti, setTecniciAperti] = useState(false)
+
+  const open = gruppo ? gruppo.openId === id : openLocale
+  const alternaOpen = () => {
+    if (gruppo) {
+      gruppo.setOpenId(open ? null : id)
+    } else {
+      setOpenLocale((o) => !o)
+    }
+  }
 
   const dettagli = Object.entries(record).filter(([key]) => !hiddenKeys.includes(key))
   const gruppiDettagli = raggruppaDettagli(dettagli)
@@ -38,7 +66,7 @@ export function ExpandableRow({
     <>
       <tr
         className={`row-clickable${open ? ' is-open' : ''}`}
-        onClick={() => setOpen((o) => !o)}
+        onClick={alternaOpen}
       >
         <td className="expand-indicator">{open ? '−' : '+'}</td>
         {cells.map((cell, i) => (

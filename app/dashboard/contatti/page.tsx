@@ -1,5 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
-import { ExpandableRow } from '@/components/ExpandableRow'
+import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
@@ -152,59 +152,62 @@ export default async function ContattiPage({
       </div>
 
       <div className="data-table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Data e ora</th>
-              <th>Nome e cognome</th>
-              <th>Stato</th>
-              <th>Attività</th>
-              <th>Richiesta</th>
-            </tr>
-          </thead>
-          {gruppi.map((gruppo) => (
-            <tbody key={gruppo.chiave}>
-              <tr className="table-group-header">
-                <td colSpan={6}>
-                  {gruppo.label}
-                  <span className="count">({gruppo.righe.length})</span>
-                </td>
+        <AccordionGroup>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Data e ora</th>
+                <th>Nome e cognome</th>
+                <th>Stato</th>
+                <th>Attività</th>
+                <th>Richiesta</th>
               </tr>
-              {gruppo.righe.map((riga) => (
-                <ExpandableRow
-                  key={riga.id}
-                  columnCount={6}
-                  columns={COLONNE_TABELLA}
-                  record={riga}
-                  hiddenKeys={COLONNE_VISIBILI}
-                  extra={
-                    <GestioneSezione
-                      id={riga.id}
-                      gestito={!!riga.gestito}
-                      gestitoDa={riga.gestito_da ?? null}
-                      gestitoIl={riga.gestito_il ?? null}
-                      noteIniziali={riga.note ?? null}
-                    />
-                  }
-                  cells={[
-                    formatDateOra(riga.created_at),
-                    <>{riga.nome} {riga.cognome}</>,
-                    riga.stato || '—',
-                    Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
-                    riga.tipo_richiesta ? (
-                      <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
-                        {riga.tipo_richiesta}
-                      </span>
-                    ) : (
-                      '—'
-                    ),
-                  ]}
-                />
-              ))}
-            </tbody>
-          ))}
-        </table>
+            </thead>
+            {gruppi.map((gruppo) => (
+              <tbody key={gruppo.chiave}>
+                <tr className="table-group-header">
+                  <td colSpan={6}>
+                    {gruppo.label}
+                    <span className="count">({gruppo.righe.length})</span>
+                  </td>
+                </tr>
+                {gruppo.righe.map((riga) => (
+                  <ExpandableRow
+                    key={riga.id}
+                    id={String(riga.id)}
+                    columnCount={6}
+                    columns={COLONNE_TABELLA}
+                    record={riga}
+                    hiddenKeys={COLONNE_VISIBILI}
+                    extra={
+                      <GestioneSezione
+                        id={riga.id}
+                        gestito={!!riga.gestito}
+                        gestitoDa={riga.gestito_da ?? null}
+                        gestitoIl={riga.gestito_il ?? null}
+                        noteIniziali={riga.note ?? null}
+                      />
+                    }
+                    cells={[
+                      formatDateOra(riga.created_at),
+                      <>{riga.nome} {riga.cognome}</>,
+                      riga.stato || '—',
+                      Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
+                      riga.tipo_richiesta ? (
+                        <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
+                          {riga.tipo_richiesta}
+                        </span>
+                      ) : (
+                        '—'
+                      ),
+                    ]}
+                  />
+                ))}
+              </tbody>
+            ))}
+          </table>
+        </AccordionGroup>
 
         {righeFiltrate.length === 0 && (
           <p className="empty-state">

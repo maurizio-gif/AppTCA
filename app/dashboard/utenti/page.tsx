@@ -1,7 +1,7 @@
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
-import { ExpandableRow } from '@/components/ExpandableRow'
+import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { invitaStaff } from './actions'
 import { RimuoviButton } from './RimuoviButton'
 import { PuoInvitareToggle } from './PuoInvitareToggle'
@@ -89,57 +89,60 @@ export default async function UtentiPage({
               <th>Email</th>
             </tr>
           </thead>
-          <tbody>
-            {staff?.map((s) => (
-              <ExpandableRow
-                key={s.email}
-                columnCount={3}
-                columns={COLONNE_TABELLA}
-                record={s}
-                hiddenKeys={COLONNE_VISIBILI}
-                extraTitle="Dettagli"
-                extra={
-                  <>
-                    <div className="detail-grid">
-                      <div className="detail-item">
-                        <span className="detail-label">Aggiunto il</span>
-                        <span className="detail-value">{formatDateOra(s.created_at)}</span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Può invitare</span>
-                        <span className="detail-value">
-                          {puoInvitare ? (
-                            <PuoInvitareToggle email={s.email} puoInvitare={s.puo_invitare} />
-                          ) : s.puo_invitare ? (
-                            'Sì'
-                          ) : (
-                            '—'
-                          )}
-                        </span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Sezioni visibili</span>
-                        <div className="detail-value">
-                          {puoInvitare ? (
-                            <SezioniToggle email={s.email} sezioniAttive={s.sezioni_consentite} />
-                          ) : (
-                            s.sezioni_consentite.join(', ') || '—'
-                          )}
+          <AccordionGroup>
+            <tbody>
+              {staff?.map((s) => (
+                <ExpandableRow
+                  key={s.email}
+                  id={s.email}
+                  columnCount={3}
+                  columns={COLONNE_TABELLA}
+                  record={s}
+                  hiddenKeys={COLONNE_VISIBILI}
+                  extraTitle="Dettagli"
+                  extra={
+                    <>
+                      <div className="detail-grid">
+                        <div className="detail-item">
+                          <span className="detail-label">Aggiunto il</span>
+                          <span className="detail-value">{formatDateOra(s.created_at)}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Può invitare</span>
+                          <span className="detail-value">
+                            {puoInvitare ? (
+                              <PuoInvitareToggle email={s.email} puoInvitare={s.puo_invitare} />
+                            ) : s.puo_invitare ? (
+                              'Sì'
+                            ) : (
+                              '—'
+                            )}
+                          </span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Sezioni visibili</span>
+                          <div className="detail-value">
+                            {puoInvitare ? (
+                              <SezioniToggle email={s.email} sezioniAttive={s.sezioni_consentite} />
+                            ) : (
+                              s.sezioni_consentite.join(', ') || '—'
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <RimuoviButton email={s.email} />
-                  </>
-                }
-                cells={[
-                  s.nome || s.cognome ? `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() : '—',
-                  <a href={`mailto:${s.email}`} className="contact-link">
-                    {s.email}
-                  </a>,
-                ]}
-              />
-            ))}
-          </tbody>
+                      <RimuoviButton email={s.email} />
+                    </>
+                  }
+                  cells={[
+                    s.nome || s.cognome ? `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() : '—',
+                    <a href={`mailto:${s.email}`} className="contact-link">
+                      {s.email}
+                    </a>,
+                  ]}
+                />
+              ))}
+            </tbody>
+          </AccordionGroup>
         </table>
         {error && <p className="error-banner">Errore nel caricamento: {error.message}</p>}
         {staff?.length === 0 && <p className="empty-state">Nessun utente ancora.</p>}

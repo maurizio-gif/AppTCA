@@ -1,5 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
-import { ExpandableRow } from '@/components/ExpandableRow'
+import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
@@ -56,31 +56,34 @@ export default async function ScuolaTennisPage() {
               <th>Corso</th>
             </tr>
           </thead>
-          <tbody>
-            {righe?.map((riga) => (
-              <ExpandableRow
-                key={riga.id}
-                columnCount={5}
-                columns={COLONNE_TABELLA}
-                record={riga}
-                hiddenKeys={COLONNE_VISIBILI}
-                cells={[
-                  formatDateOra(riga.created_at),
-                  <>{riga.minore_nome} {riga.minore_cognome}</>,
-                  <>
-                    {riga.genitore_nome} {riga.genitore_cognome}
-                    <br />
-                    <ContactLinks email={riga.genitore_email} phone={riga.genitore_cellulare} />
-                  </>,
-                  <>
-                    {riga.tipo_corso}
-                    <br />
-                    <span className="muted">{riga.frequenza}</span>
-                  </>,
-                ]}
-              />
-            ))}
-          </tbody>
+          <AccordionGroup>
+            <tbody>
+              {righe?.map((riga) => (
+                <ExpandableRow
+                  key={riga.id}
+                  id={String(riga.id)}
+                  columnCount={5}
+                  columns={COLONNE_TABELLA}
+                  record={riga}
+                  hiddenKeys={COLONNE_VISIBILI}
+                  cells={[
+                    formatDateOra(riga.created_at),
+                    <>{riga.minore_nome} {riga.minore_cognome}</>,
+                    <>
+                      {riga.genitore_nome} {riga.genitore_cognome}
+                      <br />
+                      <ContactLinks email={riga.genitore_email} phone={riga.genitore_cellulare} />
+                    </>,
+                    <>
+                      {riga.tipo_corso}
+                      <br />
+                      <span className="muted">{riga.frequenza}</span>
+                    </>,
+                  ]}
+                />
+              ))}
+            </tbody>
+          </AccordionGroup>
         </table>
         {righe?.length === 0 && <p className="empty-state">Nessuna preiscrizione trovata.</p>}
       </div>

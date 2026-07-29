@@ -1,5 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
-import { ExpandableRow } from '@/components/ExpandableRow'
+import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
@@ -59,39 +59,42 @@ export default async function IscrizioniEventiPage() {
               <th>Contratto PGM</th>
             </tr>
           </thead>
-          <tbody>
-            {righe?.map((riga) => (
-              <ExpandableRow
-                key={riga.id}
-                columnCount={7}
-                columns={COLONNE_TABELLA}
-                record={riga}
-                hiddenKeys={COLONNE_VISIBILI}
-                cells={[
-                  formatDateOra(riga.created_at),
-                  riga.nome_evento,
-                  <>
-                    {riga.nome} {riga.cognome}
-                    <br />
-                    <ContactLinks email={riga.email} phone={riga.cellulare} />
-                  </>,
-                  riga.socio ? 'Sì' : 'No',
-                  riga.importo_pagato != null ? `€ ${riga.importo_pagato}` : '-',
-                  <>
-                    {riga.stato_contratto_pgm}
-                    {riga.link_pgm && (
-                      <>
-                        {' · '}
-                        <a href={riga.link_pgm} target="_blank" rel="noreferrer" className="link">
-                          apri
-                        </a>
-                      </>
-                    )}
-                  </>,
-                ]}
-              />
-            ))}
-          </tbody>
+          <AccordionGroup>
+            <tbody>
+              {righe?.map((riga) => (
+                <ExpandableRow
+                  key={riga.id}
+                  id={String(riga.id)}
+                  columnCount={7}
+                  columns={COLONNE_TABELLA}
+                  record={riga}
+                  hiddenKeys={COLONNE_VISIBILI}
+                  cells={[
+                    formatDateOra(riga.created_at),
+                    riga.nome_evento,
+                    <>
+                      {riga.nome} {riga.cognome}
+                      <br />
+                      <ContactLinks email={riga.email} phone={riga.cellulare} />
+                    </>,
+                    riga.socio ? 'Sì' : 'No',
+                    riga.importo_pagato != null ? `€ ${riga.importo_pagato}` : '-',
+                    <>
+                      {riga.stato_contratto_pgm}
+                      {riga.link_pgm && (
+                        <>
+                          {' · '}
+                          <a href={riga.link_pgm} target="_blank" rel="noreferrer" className="link">
+                            apri
+                          </a>
+                        </>
+                      )}
+                    </>,
+                  ]}
+                />
+              ))}
+            </tbody>
+          </AccordionGroup>
         </table>
         {righe?.length === 0 && <p className="empty-state">Nessuna iscrizione trovata.</p>}
       </div>
