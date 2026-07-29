@@ -7,7 +7,14 @@ export function prettifyKey(key: string): string {
 export function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'boolean') return value ? 'Sì' : 'No'
-  if (Array.isArray(value) || typeof value === 'object') {
+  if (Array.isArray(value)) {
+    // Le colonne jsonb tipo "giorni"/"orari_preferiti" sono liste di
+    // stringhe scelte dall'utente nel form: vanno lette come elenco
+    // ("Lun, Gio"), non come JSON grezzo con virgolette e parentesi quadre.
+    if (value.length === 0) return '—'
+    return value.map((voce) => formatValue(voce)).join(', ')
+  }
+  if (typeof value === 'object') {
     return JSON.stringify(value, null, 2)
   }
   return String(value)
