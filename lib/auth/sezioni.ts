@@ -4,12 +4,15 @@
 
 // Riepilogo (/dashboard) e' sempre visibile a chiunque sia autenticato: non
 // ha una chiave qui, solo le altre sezioni sono restringibili per utente.
+// "gruppo" organizza il menu quando le voci cresceranno (vedi Sidebar.tsx):
+// una voce senza gruppo finisce comunque in cima, non richiede di
+// aggiornare nient'altro per aggiungere una nuova sezione.
 export const SEZIONI = [
-  { chiave: 'contatti', label: 'Form contatti', href: '/dashboard/contatti' },
-  { chiave: 'scuola-tennis', label: 'Scuola tennis', href: '/dashboard/scuola-tennis' },
-  { chiave: 'invita-amico', label: 'Invita un amico', href: '/dashboard/invita-amico' },
-  { chiave: 'iscrizioni-eventi', label: 'Iscrizioni eventi', href: '/dashboard/iscrizioni-eventi' },
-  { chiave: 'utenti', label: 'Gestione utenti', href: '/dashboard/utenti' },
+  { chiave: 'contatti', label: 'Form contatti', href: '/dashboard/contatti', gruppo: 'Moduli' },
+  { chiave: 'scuola-tennis', label: 'Scuola tennis', href: '/dashboard/scuola-tennis', gruppo: 'Moduli' },
+  { chiave: 'invita-amico', label: 'Invita un amico', href: '/dashboard/invita-amico', gruppo: 'Moduli' },
+  { chiave: 'iscrizioni-eventi', label: 'Iscrizioni eventi', href: '/dashboard/iscrizioni-eventi', gruppo: 'Moduli' },
+  { chiave: 'utenti', label: 'Gestione utenti', href: '/dashboard/utenti', gruppo: 'Amministrazione' },
 ] as const
 
 export type SezioneChiave = (typeof SEZIONI)[number]['chiave']

@@ -220,11 +220,27 @@ button {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   flex: 1;
 }
 
+.nav-group + .nav-group {
+  margin-top: 16px;
+}
+
+.nav-group-title {
+  padding: 0 12px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-light);
+}
+
 .sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--color-text-light);
   text-decoration: none;
   padding: 10px 12px;
@@ -241,6 +257,12 @@ button {
 .sidebar-nav a.active {
   background: var(--color-accent);
   color: #fff;
+}
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .sidebar-user {
@@ -283,6 +305,14 @@ button {
 
 /* ---------- Mobile: sidebar diventa una barra in alto con menu a comparsa ---------- */
 @media (max-width: 860px) {
+  /* Altezza reale della barra logo+hamburger (36px logo + 14px di
+     padding sopra e sotto): il drawer sotto e' posizionato rispetto al
+     viewport (non alla barra, che ha height:auto) e deve saperla per
+     agganciarsi esattamente li' invece di sovrapporsi al contenuto. */
+  :root {
+    --mobile-header-h: 66px;
+  }
+
   .app-shell {
     flex-direction: column;
     min-height: 0;
@@ -320,24 +350,52 @@ button {
     cursor: pointer;
   }
 
-  .sidebar-nav,
-  .sidebar-user {
+  /* Il drawer (nav + utente) e il suo sfondo scuro sono nascosti finche'
+     il menu non e' aperto; da aperti diventano un vero pannello a
+     comparsa sopra il contenuto della pagina, non piu' un blocco che
+     spingeva giu' il resto - fondamentale quando le voci di menu
+     crescono, altrimenti bisognerebbe scorrere tutto il menu prima di
+     vedere il contenuto della pagina. */
+  .sidebar-backdrop,
+  .sidebar-drawer {
     display: none;
   }
 
-  .sidebar.is-open .sidebar-nav,
-  .sidebar.is-open .sidebar-user {
-    display: flex;
-    flex-basis: 100%;
+  .sidebar.is-open .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    top: var(--mobile-header-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 26, 26, 0.45);
   }
 
-  .sidebar.is-open .sidebar-nav {
+  .sidebar.is-open .sidebar-drawer {
+    display: flex;
     flex-direction: column;
-    gap: 0;
-    order: 3;
-    margin-top: 14px;
-    padding-top: 14px;
+    position: fixed;
+    top: var(--mobile-header-h);
+    left: 0;
+    right: 0;
+    max-height: calc(100vh - var(--mobile-header-h));
+    overflow-y: auto;
+    background: var(--color-bg);
     border-top: 1px solid var(--color-border);
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.16);
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    animation: sidebar-drawer-in 0.18s ease;
+  }
+
+  @keyframes sidebar-drawer-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* Righe ben separate (una riga di divisore ciascuna) invece di voci
@@ -348,7 +406,7 @@ button {
     border-bottom: 1px solid var(--color-border);
   }
 
-  .sidebar.is-open .sidebar-nav a:last-child {
+  .nav-group a:last-child {
     border-bottom: none;
   }
 
@@ -357,17 +415,16 @@ button {
     border-bottom-color: transparent;
   }
 
-  /* Bug: display:flex sulla riga qui sotto (dalla regola combinata con
-     .sidebar-nav sopra) senza flex-direction faceva finire email e
-     bottone "Esci" sulla stessa riga, sovrapposti. */
-  .sidebar.is-open .sidebar-user {
-    order: 4;
+  /* Bug (gia' risolto): display:flex senza flex-direction faceva finire
+     email e bottone "Esci" sulla stessa riga, sovrapposti. */
+  .sidebar-user {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
 
-  .sidebar.is-open .sidebar-user form {
+  .sidebar-user form {
     margin-top: 0;
   }
 
