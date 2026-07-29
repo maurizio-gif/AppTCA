@@ -11,10 +11,6 @@ const COLONNE_TABELLA = ['Data', 'Bambino/a', 'Genitore', 'Corso']
 const COLONNE_VISIBILI = [
   'id',
   'created_at',
-  'minore_nome',
-  'minore_cognome',
-  'genitore_nome',
-  'genitore_cognome',
   'genitore_email',
   'genitore_cellulare',
   'tipo_corso',
