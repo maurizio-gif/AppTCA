@@ -1189,6 +1189,86 @@ table.data-table {
   border-color: var(--color-border);
 }
 
+/* ---------- Sezione "Richiesta" nel pannello espanso (Enquiries) ---------- */
+
+/* Non e' un .detail-grid: cosi' il messaggio (spesso lungo) occupa tutta
+   la larghezza disponibile invece di finire in una colonna stretta da
+   160px, alta e scomoda da leggere (il bug segnalato su desktop). */
+.richiesta-dettaglio {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.richiesta-riepilogo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Badge piu' grande di quello in tabella, con icona: qui deve essere il
+   primo elemento notato aprendo la riga, non un dettaglio tra gli altri. */
+.richiesta-badge-lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.richiesta-badge-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Data/ora dell'appuntamento (richiamami o appuntamento in sede): un
+   riquadro colorato a parte, non un'altra riga di testo grigio, cosi' chi
+   apre la riga vede subito quando si e' impegnati senza dover leggere
+   tutto il messaggio. */
+.richiesta-appuntamento {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: #fbeede;
+  border: 1px solid #f2dcb8;
+  border-radius: 8px;
+  color: #a15c07;
+}
+
+.richiesta-appuntamento-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.richiesta-appuntamento-data,
+.richiesta-appuntamento-ora {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.richiesta-appuntamento-ora {
+  font-size: 15px;
+}
+
+.richiesta-messaggio {
+  background: var(--color-off-white);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .gestione-note-label {
   font-size: 11px;
   text-transform: uppercase;
