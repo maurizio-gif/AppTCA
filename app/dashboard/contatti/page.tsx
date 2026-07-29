@@ -3,6 +3,7 @@ import { ExpandableRow } from '@/components/ExpandableRow'
 import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
+import { RicercaContatti } from './RicercaContatti'
 
 // Solo i campi essenziali per la lettura al volo (senza espandere la riga):
 // data, nome, stato, attivita' e richiesta - data per prima perche' su
@@ -68,6 +69,17 @@ function applicaFiltro(righe: RigaContatto[], attivi: Set<Filtro>): RigaContatto
   )
 }
 
+// La ricerca ignora il filtro Da gestire/Gestiti: cerca su tutti i
+// contatti, gestiti o meno, dentro nome, cognome, email e cellulare.
+const CAMPI_RICERCA = ['nome', 'cognome', 'email', 'cellulare'] as const
+
+function corrispondeRicerca(riga: RigaContatto, query: string): boolean {
+  return CAMPI_RICERCA.some((campo) => {
+    const valore = riga[campo]
+    return typeof valore === 'string' && valore.toLowerCase().includes(query)
+  })
+}
+
 function raggruppaPerAttivita(righe: RigaContatto[]) {
   const gruppi = new Map<string, RigaContatto[]>()
 
@@ -95,7 +107,7 @@ function raggruppaPerAttivita(righe: RigaContatto[]) {
 export default async function ContattiPage({
   searchParams,
 }: {
-  searchParams: { filtro?: string }
+  searchParams: { filtro?: string; q?: string }
 }) {
   if (!(await utenteHaSezione('contatti'))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
@@ -112,8 +124,11 @@ export default async function ContattiPage({
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
+  const query = (searchParams.q ?? '').trim().toLowerCase()
   const filtriAttivi = parseFiltri(searchParams.filtro)
-  const righeFiltrate = applicaFiltro(righe ?? [], filtriAttivi)
+  const righeFiltrate = query
+    ? (righe ?? []).filter((riga) => corrispondeRicerca(riga, query))
+    : applicaFiltro(righe ?? [], filtriAttivi)
   const gruppi = raggruppaPerAttivita(righeFiltrate)
 
   return (
@@ -122,7 +137,19 @@ export default async function ContattiPage({
         <h1>Inquiries</h1>
       </div>
 
-      <FiltroGestione attivi={filtriAttivi} />
+      <div className="contatti-toolbar">
+        <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
+        {query ? (
+          <p className="search-note">
+            Ricerca su tutti i contatti, gestiti e da gestire —{' '}
+            <a href="/dashboard/contatti" className="link">
+              annulla ricerca
+            </a>
+          </p>
+        ) : (
+          <FiltroGestione attivi={filtriAttivi} />
+        )}
+      </div>
 
       <div className="data-table-wrap">
         <table className="data-table">
@@ -179,7 +206,11 @@ export default async function ContattiPage({
           ))}
         </table>
 
-        {righeFiltrate.length === 0 && <p className="empty-state">Nessuna richiesta trovata.</p>}
+        {righeFiltrate.length === 0 && (
+          <p className="empty-state">
+            {query ? 'Nessun risultato per la ricerca.' : 'Nessuna richiesta trovata.'}
+          </p>
+        )}
       </div>
     </div>
   )
