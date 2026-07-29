@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
+import { ExpandableRow } from '@/components/ExpandableRow'
 import { invitaStaff } from './actions'
 import { RimuoviButton } from './RimuoviButton'
 import { PuoInvitareToggle } from './PuoInvitareToggle'
@@ -8,6 +9,9 @@ import { SezioniToggle } from './SezioniToggle'
 import { formatDateOra } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
+
+const COLONNE_TABELLA = ['Nome e cognome', 'Email']
+const COLONNE_VISIBILI = ['email', 'nome', 'cognome', 'puo_invitare', 'sezioni_consentite', 'created_at']
 
 export default async function UtentiPage({
   searchParams,
@@ -80,42 +84,60 @@ export default async function UtentiPage({
         <table className="data-table">
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>Email</th>
-              <th>Aggiunto il</th>
-              <th>Può invitare</th>
-              <th>Sezioni visibili</th>
               <th></th>
+              <th>Nome e cognome</th>
+              <th>Email</th>
             </tr>
           </thead>
           <tbody>
             {staff?.map((s) => (
-              <tr key={s.email}>
-                <td data-label="Nome">{s.nome || s.cognome ? `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() : '—'}</td>
-                <td data-label="Email">
-                  <a href={`mailto:${s.email}`} className="contact-link">{s.email}</a>
-                </td>
-                <td data-label="Aggiunto il">{formatDateOra(s.created_at)}</td>
-                <td data-label="Può invitare">
-                  {puoInvitare ? (
-                    <PuoInvitareToggle email={s.email} puoInvitare={s.puo_invitare} />
-                  ) : s.puo_invitare ? (
-                    'Sì'
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td data-label="Sezioni visibili">
-                  {puoInvitare ? (
-                    <SezioniToggle email={s.email} sezioniAttive={s.sezioni_consentite} />
-                  ) : (
-                    s.sezioni_consentite.join(', ') || '—'
-                  )}
-                </td>
-                <td data-label="">
-                  <RimuoviButton email={s.email} />
-                </td>
-              </tr>
+              <ExpandableRow
+                key={s.email}
+                columnCount={3}
+                columns={COLONNE_TABELLA}
+                record={s}
+                hiddenKeys={COLONNE_VISIBILI}
+                extraTitle="Dettagli"
+                extra={
+                  <>
+                    <div className="detail-grid">
+                      <div className="detail-item">
+                        <span className="detail-label">Aggiunto il</span>
+                        <span className="detail-value">{formatDateOra(s.created_at)}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Può invitare</span>
+                        <span className="detail-value">
+                          {puoInvitare ? (
+                            <PuoInvitareToggle email={s.email} puoInvitare={s.puo_invitare} />
+                          ) : s.puo_invitare ? (
+                            'Sì'
+                          ) : (
+                            '—'
+                          )}
+                        </span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Sezioni visibili</span>
+                        <div className="detail-value">
+                          {puoInvitare ? (
+                            <SezioniToggle email={s.email} sezioniAttive={s.sezioni_consentite} />
+                          ) : (
+                            s.sezioni_consentite.join(', ') || '—'
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <RimuoviButton email={s.email} />
+                  </>
+                }
+                cells={[
+                  s.nome || s.cognome ? `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() : '—',
+                  <a href={`mailto:${s.email}`} className="contact-link">
+                    {s.email}
+                  </a>,
+                ]}
+              />
             ))}
           </tbody>
         </table>

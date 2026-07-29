@@ -32,7 +32,7 @@ export function PuoInvitareToggle({
           })
         }}
       />
-      Può invitare
+      {valore ? 'Sì' : 'No'}
     </label>
   )
 }
