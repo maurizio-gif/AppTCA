@@ -21,7 +21,7 @@ export default async function DashboardHome() {
         <h1>Riepilogo</h1>
       </div>
 
-      <SezioneRiepilogo titolo="Form contatti">
+      <SezioneRiepilogo titolo="Inquiries">
         <StatCard
           href="/dashboard/contatti?filtro=da_gestire"
           label="Da gestire"
