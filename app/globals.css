@@ -409,12 +409,15 @@ button {
   }
 
   .sidebar-brand {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
     margin-bottom: 0;
     flex: 1;
-    min-width: 0;
+  }
+
+  /* Nome e logout in evidenza solo da desktop: su mobile restano solo
+     nel drawer (email + "Esci" in fondo al menu), altrimenti si accavallano
+     con logo e hamburger nella barra stretta. */
+  .user-row {
+    display: none;
   }
 
   .sidebar-toggle {
