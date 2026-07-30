@@ -6,11 +6,12 @@ export const dynamic = 'force-dynamic'
 export default async function DashboardHome() {
   const supabase = createSupabaseServiceClient()
 
-  const [contattiDaGestire, contattiGestiti, scuolaTennis, invitaAmico, iscrizioniEventi] =
+  const [contattiDaGestire, contattiGestiti, scuolaTennis, summerCamp, invitaAmico, iscrizioniEventi] =
     await Promise.all([
       supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', false),
       supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', true),
       supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }),
+      supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }),
       supabase.from('form_invita_amico').select('*', { count: 'exact', head: true }),
       supabase.from('iscrizioni_eventi').select('*', { count: 'exact', head: true }),
     ])
@@ -36,6 +37,10 @@ export default async function DashboardHome() {
 
       <SezioneRiepilogo titolo="Scuola tennis">
         <StatCard href="/dashboard/scuola-tennis" label="Preiscrizioni" value={scuolaTennis.count ?? 0} />
+      </SezioneRiepilogo>
+
+      <SezioneRiepilogo titolo="Summer Camp">
+        <StatCard href="/dashboard/summer-camp" label="Iscrizioni" value={summerCamp.count ?? 0} />
       </SezioneRiepilogo>
 
       <SezioneRiepilogo titolo="Invita un amico">

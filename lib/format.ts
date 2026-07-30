@@ -91,6 +91,7 @@ const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean; 
     titolo: 'Iscrizione',
     test: (k) =>
       [
+        // Scuola tennis
         'tipo_corso',
         'frequenza',
         'giorni',
@@ -100,6 +101,14 @@ const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean; 
         'taglia_maglietta',
         'taglia_pantaloncini',
         'taglia_felpa',
+        // Summer camp
+        'tesserato_fitp',
+        'tessera_fitp_numero',
+        'socio_club',
+        'partecipato_anno_scorso',
+        'settimane',
+        'pre_camp_settimane',
+        'note_mediche',
       ].includes(k),
   },
   {
