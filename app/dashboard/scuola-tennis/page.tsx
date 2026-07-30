@@ -118,15 +118,15 @@ export default async function ScuolaTennisPage({
                       <ContactLinks email={riga.genitore_email} phone={riga.genitore_cellulare} />
                     </>,
                     <>
-                      {riga.tipo_corso ? (
-                        <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_corso)}`}>
-                          {riga.tipo_corso}
+                      {riga.tipo_corso || '—'}
+                      <br />
+                      {riga.frequenza ? (
+                        <span className={`richiesta-badge richiesta-${variantePillola(riga.frequenza)}`}>
+                          {riga.frequenza}
                         </span>
                       ) : (
                         '—'
                       )}
-                      <br />
-                      <span className="muted">{riga.frequenza}</span>
                     </>,
                   ]}
                 />
