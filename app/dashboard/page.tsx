@@ -2,8 +2,53 @@ import Link from 'next/link'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
+import { EnquiriesChart } from '@/components/EnquiriesChart'
 
 export const dynamic = 'force-dynamic'
+
+// Chiave di giorno (YYYY-MM-DD) nel fuso di Roma, cosi' un'enquiry delle
+// 00:30 non finisce sul giorno UTC precedente (vedi anche formatDateOra).
+function chiaveGiorno(valoreISO: string): string {
+  return new Date(valoreISO).toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' })
+}
+
+function aggiungiGiorni(chiave: string, giorni: number): string {
+  const d = new Date(`${chiave}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + giorni)
+  return d.toISOString().slice(0, 10)
+}
+
+type PuntoGiorno = { data: string; adulti: number; junior: number; altro: number }
+
+// Serie continua giorno per giorno dalla prima enquiry ad oggi (fuso Roma),
+// riempita a zero dove manca - cosi' il grafico ha una scala temporale
+// reale invece di "saltare" i giorni senza enquiry.
+function costruisciSerieGiornaliera(righe: { created_at: string; gruppo_attivita: string | null }[]): PuntoGiorno[] {
+  if (righe.length === 0) return []
+
+  const conteggi = new Map<string, { adulti: number; junior: number; altro: number }>()
+
+  for (const riga of righe) {
+    const chiave = chiaveGiorno(riga.created_at)
+    const bucket = conteggi.get(chiave) ?? { adulti: 0, junior: 0, altro: 0 }
+    const gruppo = (riga.gruppo_attivita || '').toLowerCase()
+    if (gruppo === 'adulti') bucket.adulti += 1
+    else if (gruppo === 'junior') bucket.junior += 1
+    else bucket.altro += 1
+    conteggi.set(chiave, bucket)
+  }
+
+  const chiavi = [...conteggi.keys()].sort()
+  const primoGiorno = chiavi[0]
+  const oggi = chiaveGiorno(new Date().toISOString())
+
+  const serie: PuntoGiorno[] = []
+  for (let giorno = primoGiorno; giorno <= oggi; giorno = aggiungiGiorni(giorno, 1)) {
+    const bucket = conteggi.get(giorno) ?? { adulti: 0, junior: 0, altro: 0 }
+    serie.push({ data: giorno, ...bucket })
+  }
+  return serie
+}
 
 export default async function DashboardHome() {
   const email = headers().get('x-tca-user-email')
@@ -15,6 +60,7 @@ export default async function DashboardHome() {
   const [
     contattiDaGestire,
     contattiGestiti,
+    contattiPerGrafico,
     scuolaTennisDaCaricare,
     scuolaTennisCaricato,
     summerCampDaCaricare,
@@ -24,6 +70,7 @@ export default async function DashboardHome() {
   ] = await Promise.all([
     supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', false),
     supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', true),
+    supabase.from('form_contatti').select('created_at, gruppo_attivita').order('created_at'),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
@@ -32,6 +79,8 @@ export default async function DashboardHome() {
     supabase.from('iscrizioni_eventi').select('*', { count: 'exact', head: true }),
   ])
 
+  const serieGiornaliera = costruisciSerieGiornaliera(contattiPerGrafico.data ?? [])
+
   return (
     <div>
       <div className="page-header">
@@ -39,7 +88,10 @@ export default async function DashboardHome() {
       </div>
 
       {puoVedere('contatti') && (
-        <SezioneRiepilogo titolo="Enquiries">
+        <SezioneRiepilogo
+          titolo="Enquiries"
+          extra={<EnquiriesChart giorni={serieGiornaliera} />}
+        >
           <StatCard
             href="/dashboard/contatti?filtro=da_gestire"
             label="Da gestire"
@@ -98,11 +150,20 @@ export default async function DashboardHome() {
   )
 }
 
-function SezioneRiepilogo({ titolo, children }: { titolo: string; children: React.ReactNode }) {
+function SezioneRiepilogo({
+  titolo,
+  children,
+  extra,
+}: {
+  titolo: string
+  children: React.ReactNode
+  extra?: React.ReactNode
+}) {
   return (
     <section className="riepilogo-sezione">
       <h2 className="riepilogo-sezione-titolo">{titolo}</h2>
       <div className="stat-row">{children}</div>
+      {extra}
     </section>
   )
 }

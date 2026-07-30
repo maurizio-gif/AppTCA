@@ -575,6 +575,209 @@ button {
   font-size: 14px;
 }
 
+/* ---------- Grafico enquiries per giorno ---------- */
+
+.enquiries-chart {
+  --chart-adulti: #2a78d6;
+  --chart-junior: #eb6834;
+  --chart-altro: #898781;
+  margin-top: 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px 0 16px 16px;
+}
+
+.enquiries-chart-vuoto {
+  margin-top: 16px;
+}
+
+.enquiries-chart-legenda {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-right: 16px;
+  margin-bottom: 14px;
+}
+
+.enquiries-chart-legenda-voce {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-light);
+}
+
+.enquiries-chart-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.enquiries-chart-swatch-adulti {
+  background: var(--chart-adulti);
+}
+
+.enquiries-chart-swatch-junior {
+  background: var(--chart-junior);
+}
+
+.enquiries-chart-swatch-altro {
+  background: var(--chart-altro);
+}
+
+.enquiries-chart-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-light);
+  font-style: italic;
+}
+
+.enquiries-chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.enquiries-chart-track {
+  display: flex;
+  align-items: flex-end;
+  padding-right: 16px;
+}
+
+.enquiries-chart-colonna {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+}
+
+.enquiries-chart-colonna:hover,
+.enquiries-chart-colonna.is-attiva {
+  background: var(--color-off-white);
+}
+
+.enquiries-chart-colonna:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.enquiries-chart-barra {
+  width: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.enquiries-chart-segmento {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+}
+
+.enquiries-chart-segmento:not(:last-child) {
+  margin-bottom: 2px;
+}
+
+.enquiries-chart-segmento-adulti {
+  background: var(--chart-adulti);
+}
+
+.enquiries-chart-segmento-junior {
+  background: var(--chart-junior);
+}
+
+.enquiries-chart-segmento-altro {
+  background: var(--chart-altro);
+}
+
+.enquiries-chart-segmento-vuoto {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+
+.enquiries-chart-etichetta {
+  font-size: 10px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.enquiries-chart-tooltip {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 10px));
+  z-index: 60;
+  background: var(--color-text);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  min-width: 140px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+.enquiries-chart-tooltip-data {
+  font-weight: 700;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.enquiries-chart-tooltip-riga,
+.enquiries-chart-tooltip-totale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.enquiries-chart-tooltip-riga span:nth-child(2),
+.enquiries-chart-tooltip-totale span {
+  flex: 1;
+}
+
+.enquiries-chart-tooltip-riga strong,
+.enquiries-chart-tooltip-totale strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.enquiries-chart-tooltip-chiave {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.enquiries-chart-tooltip-chiave-adulti {
+  background: var(--chart-adulti);
+}
+
+.enquiries-chart-tooltip-chiave-junior {
+  background: var(--chart-junior);
+}
+
+.enquiries-chart-tooltip-chiave-altro {
+  background: var(--chart-altro);
+}
+
+.enquiries-chart-tooltip-totale {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 700;
+}
+
 /* ---------- Data table ---------- */
 
 .data-table-wrap {
