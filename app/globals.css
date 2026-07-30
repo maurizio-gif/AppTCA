@@ -251,6 +251,40 @@ button {
   max-width: 110px;
 }
 
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Logout in evidenza accanto al nome, non solo in fondo al drawer: cosi'
+   si esce con un tap in piu' senza dover apire il menu su mobile. */
+.logout-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-bg);
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.logout-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.logout-btn:hover {
+  background: var(--color-off-white);
+  border-color: var(--color-accent);
+}
+
 .brand-logo {
   height: 36px;
   width: auto;

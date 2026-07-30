@@ -58,7 +58,26 @@ export function Sidebar({
     <aside className={`sidebar${open ? ' is-open' : ''}`}>
       <div className="sidebar-brand">
         <img src="/logo-tca.png" alt="TCA CRM" className="brand-logo" />
-        <UserBadge nomeUtente={nomeUtente} email={email} />
+        <div className="user-row">
+          <UserBadge nomeUtente={nomeUtente} email={email} />
+          <form action={logout}>
+            <button type="submit" className="logout-btn" title="Esci" aria-label="Esci">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="M16 17l5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+            </button>
+          </form>
+        </div>
       </div>
 
       <button
