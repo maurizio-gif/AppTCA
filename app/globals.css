@@ -1076,7 +1076,7 @@ table.data-table {
 
 /* ---------- Filtro stato (select singola) ---------- */
 
-.contatti-toolbar {
+.filtri-toolbar {
   display: flex;
   flex-direction: column;
   gap: 12px;

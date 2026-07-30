@@ -4,7 +4,7 @@ import { formatDataConGiorno, formatDateOra, variantePillola } from '@/lib/forma
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
-import { FiltroSelect } from './FiltroSelect'
+import { FiltroSelect } from '@/components/FiltroSelect'
 
 // Solo i campi essenziali per la lettura al volo (senza espandere la riga):
 // data, nome, stato, attivita' e richiesta - data per prima perche' su
@@ -40,6 +40,12 @@ const ETICHETTA_GRUPPO: Record<string, string> = {
 
 const FILTRI_VALIDI = ['da_gestire', 'gestiti', 'tutti'] as const
 type Filtro = (typeof FILTRI_VALIDI)[number]
+
+const OPZIONI_FILTRO = [
+  { valore: 'da_gestire', etichetta: 'Da gestire' },
+  { valore: 'gestiti', etichetta: 'Gestiti' },
+  { valore: 'tutti', etichetta: 'Tutti' },
+]
 
 type RigaContatto = Record<string, any>
 
@@ -156,7 +162,7 @@ export default async function ContattiPage({
         <h1>Enquiries</h1>
       </div>
 
-      <div className="contatti-toolbar">
+      <div className="filtri-toolbar">
         <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
         {query ? (
           <p className="search-note">
@@ -166,7 +172,7 @@ export default async function ContattiPage({
             </a>
           </p>
         ) : (
-          <FiltroSelect valore={filtro} />
+          <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
         )}
       </div>
 

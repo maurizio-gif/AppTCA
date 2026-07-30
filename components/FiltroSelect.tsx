@@ -2,13 +2,16 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
-const OPZIONI = [
-  { valore: 'da_gestire', etichetta: 'Da gestire' },
-  { valore: 'gestiti', etichetta: 'Gestiti' },
-  { valore: 'tutti', etichetta: 'Tutti' },
-] as const
-
-export function FiltroSelect({ valore }: { valore: string }) {
+// Tendina a selezione singola generica per il parametro "filtro" nell'URL:
+// stesso componente usato da Enquiries e Scuola Tennis, solo le opzioni
+// cambiano da pagina a pagina.
+export function FiltroSelect({
+  valore,
+  opzioni,
+}: {
+  valore: string
+  opzioni: { valore: string; etichetta: string }[]
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -24,7 +27,7 @@ export function FiltroSelect({ valore }: { valore: string }) {
       }}
       aria-label="Filtra per stato"
     >
-      {OPZIONI.map((o) => (
+      {opzioni.map((o) => (
         <option key={o.valore} value={o.valore}>
           {o.etichetta}
         </option>

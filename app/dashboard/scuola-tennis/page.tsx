@@ -1,6 +1,7 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
+import { FiltroSelect } from '@/components/FiltroSelect'
 import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { CaricatoPgmToggle } from './CaricatoPgmToggle'
@@ -20,10 +21,36 @@ const COLONNE_VISIBILI = [
   'caricato_pgm_il',
 ]
 
-// Pagina sola lettura: stessa logica di /dashboard/contatti (Server Component
-// + service role client), senza la parte di aggiornamento stato — qui basta
-// vedere l'elenco delle preiscrizioni.
-export default async function ScuolaTennisPage() {
+const FILTRI_VALIDI = ['da_caricare', 'caricato', 'tutti'] as const
+type Filtro = (typeof FILTRI_VALIDI)[number]
+
+const OPZIONI_FILTRO = [
+  { valore: 'da_caricare', etichetta: 'Da caricare' },
+  { valore: 'caricato', etichetta: 'Caricato' },
+  { valore: 'tutti', etichetta: 'Tutti' },
+]
+
+// Singola selezione: assente (es. dal link "Scuola tennis" nel menu) o non
+// valida = "da caricare", cosi' e' quello che si vede aprendo la pagina.
+function parseFiltro(raw: string | undefined): Filtro {
+  if (raw && (FILTRI_VALIDI as readonly string[]).includes(raw)) return raw as Filtro
+  return 'da_caricare'
+}
+
+function applicaFiltro(righe: Record<string, any>[], filtro: Filtro) {
+  if (filtro === 'tutti') return righe
+  if (filtro === 'caricato') return righe.filter((riga) => riga.caricato_pgm)
+  return righe.filter((riga) => !riga.caricato_pgm)
+}
+
+// Pagina di sola lettura per i dati del form, con in aggiunta il toggle
+// Caricato su Perfect Gym: stessa logica/formattazione di /dashboard/contatti
+// (Server Component + service role client).
+export default async function ScuolaTennisPage({
+  searchParams,
+}: {
+  searchParams: { filtro?: string }
+}) {
   if (!(await utenteHaSezione('scuola-tennis'))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
   }
@@ -39,11 +66,19 @@ export default async function ScuolaTennisPage() {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
+  const filtro = parseFiltro(searchParams.filtro)
+  const righeFiltrate = applicaFiltro(righe ?? [], filtro)
+
   return (
     <div>
       <div className="page-header">
         <h1>Preiscrizioni Scuola Tennis</h1>
       </div>
+
+      <div className="filtri-toolbar">
+        <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
+      </div>
+
       <div className="data-table-wrap">
         <table className="data-table">
           <thead>
@@ -57,7 +92,7 @@ export default async function ScuolaTennisPage() {
           </thead>
           <AccordionGroup>
             <tbody>
-              {righe?.map((riga) => (
+              {righeFiltrate.map((riga) => (
                 <ExpandableRow
                   key={riga.id}
                   id={String(riga.id)}
@@ -99,7 +134,7 @@ export default async function ScuolaTennisPage() {
             </tbody>
           </AccordionGroup>
         </table>
-        {righe?.length === 0 && <p className="empty-state">Nessuna preiscrizione trovata.</p>}
+        {righeFiltrate.length === 0 && <p className="empty-state">Nessuna preiscrizione trovata.</p>}
       </div>
     </div>
   )
