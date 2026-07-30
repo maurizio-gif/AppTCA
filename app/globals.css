@@ -652,8 +652,8 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0 0;
+  gap: 6px;
+  padding: 6px 0 8px;
   border: none;
   background: none;
   font-family: inherit;
@@ -711,6 +711,27 @@ button {
   font-size: 10px;
   color: var(--color-text-light);
   white-space: nowrap;
+}
+
+/* Totale del giorno sempre visibile, non solo nel tooltip: un riquadro
+   piccolo cosi' si legge come dato a se', non come testo che scorre via. */
+.enquiries-chart-totale-tag {
+  min-width: 20px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-off-white);
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.enquiries-chart-totale-tag.is-zero {
+  color: var(--color-text-light);
+  font-weight: 600;
+  border-style: dashed;
 }
 
 .enquiries-chart-tooltip {

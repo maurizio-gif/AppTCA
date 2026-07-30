@@ -131,6 +131,11 @@ export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
                   )}
                 </div>
                 <span className="enquiries-chart-etichetta">{etichettaGiorno}</span>
+                <span
+                  className={`enquiries-chart-totale-tag${totale === 0 ? ' is-zero' : ''}`}
+                >
+                  {totale}
+                </span>
               </button>
             )
           })}
