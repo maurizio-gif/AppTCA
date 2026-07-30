@@ -12,20 +12,30 @@ export default async function DashboardHome() {
 
   const supabase = createSupabaseServiceClient()
 
-  const [contattiDaGestire, contattiGestiti, scuolaTennis, summerCamp, invitaAmico, iscrizioniEventi] =
-    await Promise.all([
-      supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', false),
-      supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', true),
-      supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }),
-      supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }),
-      supabase.from('form_invita_amico').select('*', { count: 'exact', head: true }),
-      supabase.from('iscrizioni_eventi').select('*', { count: 'exact', head: true }),
-    ])
+  const [
+    contattiDaGestire,
+    contattiGestiti,
+    scuolaTennisDaCaricare,
+    scuolaTennisCaricato,
+    summerCampDaCaricare,
+    summerCampCaricato,
+    invitaAmico,
+    iscrizioniEventi,
+  ] = await Promise.all([
+    supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', false),
+    supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', true),
+    supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
+    supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
+    supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
+    supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
+    supabase.from('form_invita_amico').select('*', { count: 'exact', head: true }),
+    supabase.from('iscrizioni_eventi').select('*', { count: 'exact', head: true }),
+  ])
 
   return (
     <div>
       <div className="page-header">
-        <h1>Riepilogo</h1>
+        <h1>Dashboard</h1>
       </div>
 
       {puoVedere('contatti') && (
@@ -45,13 +55,31 @@ export default async function DashboardHome() {
 
       {puoVedere('scuola-tennis') && (
         <SezioneRiepilogo titolo="Scuola tennis">
-          <StatCard href="/dashboard/scuola-tennis" label="Preiscrizioni" value={scuolaTennis.count ?? 0} />
+          <StatCard
+            href="/dashboard/scuola-tennis?filtro=da_caricare"
+            label="Da caricare"
+            value={scuolaTennisDaCaricare.count ?? 0}
+          />
+          <StatCard
+            href="/dashboard/scuola-tennis?filtro=caricato"
+            label="Caricato"
+            value={scuolaTennisCaricato.count ?? 0}
+          />
         </SezioneRiepilogo>
       )}
 
       {puoVedere('summer-camp') && (
         <SezioneRiepilogo titolo="Summer Camp">
-          <StatCard href="/dashboard/summer-camp" label="Iscrizioni" value={summerCamp.count ?? 0} />
+          <StatCard
+            href="/dashboard/summer-camp?filtro=da_caricare"
+            label="Da caricare"
+            value={summerCampDaCaricare.count ?? 0}
+          />
+          <StatCard
+            href="/dashboard/summer-camp?filtro=caricato"
+            label="Caricato"
+            value={summerCampCaricato.count ?? 0}
+          />
         </SezioneRiepilogo>
       )}
 

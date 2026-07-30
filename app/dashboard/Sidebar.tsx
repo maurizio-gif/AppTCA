@@ -43,7 +43,7 @@ export function Sidebar({
   const [open, setOpen] = useState(false)
 
   const navItems: VoceMenu[] = [
-    { href: '/dashboard', label: 'Riepilogo', chiave: 'riepilogo' },
+    { href: '/dashboard', label: 'Dashboard', chiave: 'riepilogo' },
     ...SEZIONI.filter((s) => sezioniConsentite.includes(s.chiave)),
   ]
   const gruppiMenu = raggruppaVoci(navItems)
