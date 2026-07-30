@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { isSegreteriaEmail } from '@/lib/auth/allowlist'
 import { getNomeUtente, getSezioniConsentite } from '@/lib/auth/sezioni-server'
 import { Sidebar } from './Sidebar'
+import { LogoutInattivita } from './LogoutInattivita'
 
 // Il middleware ha gia' verificato la sessione con getUser() (chiamata di
 // rete a Supabase Auth) e ci passa l'email gia' validata via header: non la
@@ -28,6 +29,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="app-shell">
+      <LogoutInattivita />
       <Sidebar email={email} nomeUtente={nomeUtente} sezioniConsentite={sezioniConsentite} />
       <main className="main-content">{children}</main>
     </div>
