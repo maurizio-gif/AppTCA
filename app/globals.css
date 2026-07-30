@@ -656,7 +656,13 @@ table.data-table {
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.richiesta-evidenza .richiesta-badge {
+  font-size: 13px;
+  padding: 4px 12px;
 }
 
 .richiesta-appuntamento {
