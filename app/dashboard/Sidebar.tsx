@@ -32,9 +32,11 @@ function raggruppaVoci(voci: VoceMenu[]) {
 
 export function Sidebar({
   email,
+  nomeUtente,
   sezioniConsentite,
 }: {
   email: string
+  nomeUtente: string | null
   sezioniConsentite: string[]
 }) {
   const pathname = usePathname()
@@ -56,6 +58,7 @@ export function Sidebar({
     <aside className={`sidebar${open ? ' is-open' : ''}`}>
       <div className="sidebar-brand">
         <img src="/logo-tca.png" alt="TCA CRM" className="brand-logo" />
+        <UserBadge nomeUtente={nomeUtente} email={email} />
       </div>
 
       <button
@@ -99,5 +102,21 @@ export function Sidebar({
         </div>
       </div>
     </aside>
+  )
+}
+
+// Sempre visibile (nella barra logo, non nel drawer che su mobile resta
+// chiuso finche' non si apre il menu): cosi' si sa sempre con quale utente
+// si e' collegati senza dover aprire il menu per leggere l'email in fondo.
+function UserBadge({ nomeUtente, email }: { nomeUtente: string | null; email: string }) {
+  const visualizzato = nomeUtente || email
+  const iniziale = visualizzato.trim().charAt(0).toUpperCase()
+  const primoNome = nomeUtente ? nomeUtente.split(' ')[0] : email
+
+  return (
+    <span className="user-badge" title={visualizzato}>
+      <span className="user-badge-avatar">{iniziale}</span>
+      <span className="user-badge-nome">{primoNome}</span>
+    </span>
   )
 }
