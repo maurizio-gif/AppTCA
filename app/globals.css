@@ -1185,6 +1185,16 @@ table.data-table {
   border-color: var(--color-border);
 }
 
+.gestione-errore {
+  font-size: 13px;
+  color: var(--color-accent-dark);
+  background: #fbeaea;
+  border: 1px solid #f0cccc;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+}
+
 .gestione-note-label {
   font-size: 11px;
   text-transform: uppercase;

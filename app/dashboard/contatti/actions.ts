@@ -8,8 +8,25 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 // middleware (gia' validato con Supabase Auth), mai da un valore passato
 // dal client: cosi' non si puo' falsificare "gestito da" via devtools.
 export async function impostaGestito(id: string, gestito: boolean) {
-  const email = headers().get('x-tca-user-email')
   const supabase = createSupabaseServiceClient()
+
+  // Verifica lato server (non solo lato UI, altrimenti la Server Action
+  // resta chiamabile a mano bypassando il controllo): un contatto puo'
+  // passare a "gestito" solo se ha gia' una nota salvata.
+  if (gestito) {
+    const { data: contatto, error: fetchError } = await supabase
+      .from('form_contatti')
+      .select('note')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (fetchError) throw new Error(fetchError.message)
+    if (!contatto?.note?.trim()) {
+      throw new Error('Aggiungi e salva una nota prima di segnare il contatto come gestito.')
+    }
+  }
+
+  const email = headers().get('x-tca-user-email')
 
   const { error } = await supabase
     .from('form_contatti')
