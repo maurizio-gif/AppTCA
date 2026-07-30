@@ -644,6 +644,36 @@ table.data-table {
   color: var(--color-text);
 }
 
+/* Richiesta in evidenza (Enquiries): appuntamento e motivo scritti dal
+   cliente, appena si apre la riga. A tutta larghezza e sfondo proprio
+   invece della griglia stretta dei dettagli, dove un testo libero lungo
+   andrebbe a capo parola per parola invece di leggersi come un paragrafo. */
+.richiesta-evidenza {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.richiesta-appuntamento {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-accent-dark);
+}
+
+.richiesta-motivo {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Ogni campo e' una "cella" con bordo, non testo che scorre libero: cosi'
    si legge come una tabella/griglia di dati anche a colpo d'occhio. */
 .detail-grid {

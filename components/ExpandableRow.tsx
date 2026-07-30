@@ -27,6 +27,7 @@ export function ExpandableRow({
   record,
   hiddenKeys = [],
   columnCount,
+  evidenza,
   extra,
   extraTitle = 'Gestione',
 }: {
@@ -41,6 +42,11 @@ export function ExpandableRow({
   record: Record<string, unknown>
   hiddenKeys?: string[]
   columnCount: number
+  // Contenuto in evidenza mostrato per primo, a tutta larghezza e senza il
+  // riquadro/titolo dei gruppi generici: per testo libero (es. il motivo
+  // della richiesta) che nella griglia stretta dei dettagli andrebbe a capo
+  // parola per parola invece di leggersi come un paragrafo normale.
+  evidenza?: React.ReactNode
   extra?: React.ReactNode
   extraTitle?: string
 }) {
@@ -77,6 +83,7 @@ export function ExpandableRow({
         <tr className="row-detail">
           <td colSpan={columnCount}>
             <div className="detail-groups">
+              {evidenza}
               {extra && (
                 <div className="detail-group">
                   <div className="detail-group-title">{extraTitle}</div>

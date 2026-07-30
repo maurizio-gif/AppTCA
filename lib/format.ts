@@ -55,6 +55,21 @@ export function formatDateOra(value: string | null | undefined): string {
   return new Date(value).toLocaleString('it-IT', { timeZone: 'Europe/Rome' })
 }
 
+// Data di un appuntamento richiesto (colonna "date", senza ora) con il
+// giorno della settimana per leggerla a colpo d'occhio, es. "giovedì 30
+// luglio 2026", invece della sola data numerica.
+export function formatDataConGiorno(value: string | null | undefined): string {
+  if (!value) return '—'
+  const testo = new Date(`${value}T00:00:00`).toLocaleDateString('it-IT', {
+    timeZone: 'Europe/Rome',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  return testo.charAt(0).toUpperCase() + testo.slice(1)
+}
+
 type Voce = [string, unknown]
 
 // Categorie usate per raggruppare graficamente i campi nel dettaglio espanso

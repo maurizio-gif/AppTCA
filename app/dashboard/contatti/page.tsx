@@ -1,6 +1,6 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
-import { formatDateOra, variantePillola } from '@/lib/format'
+import { formatDataConGiorno, formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
@@ -26,6 +26,11 @@ const COLONNE_VISIBILI = [
   'gestito_da',
   'gestito_il',
   'note',
+  // Mostrati in evidenza appena si apre la riga (vedi RichiestaEvidenza),
+  // non nella griglia generica dei dettagli.
+  'motivo',
+  'data_richiesta',
+  'ora_richiesta',
 ]
 
 const ETICHETTA_GRUPPO: Record<string, string> = {
@@ -60,6 +65,30 @@ function corrispondeRicerca(riga: RigaContatto, query: string): boolean {
     const valore = riga[campo]
     return typeof valore === 'string' && valore.toLowerCase().includes(query)
   })
+}
+
+// In evidenza appena si apre la riga: quando e' stato richiesto (data e
+// ora, col giorno della settimana per leggerla al volo) e il motivo scritto
+// dal cliente - a tutta larghezza, non nella griglia stretta dei dettagli
+// dove un testo lungo andrebbe a capo parola per parola.
+function RichiestaEvidenza({ riga }: { riga: RigaContatto }) {
+  const haAppuntamento = !!(riga.data_richiesta || riga.ora_richiesta)
+  const haMotivo = !!riga.motivo
+
+  if (!haAppuntamento && !haMotivo) return null
+
+  return (
+    <div className="richiesta-evidenza">
+      {haAppuntamento && (
+        <p className="richiesta-appuntamento">
+          {riga.data_richiesta && formatDataConGiorno(riga.data_richiesta)}
+          {riga.data_richiesta && riga.ora_richiesta && ' · '}
+          {riga.ora_richiesta && `ore ${riga.ora_richiesta}`}
+        </p>
+      )}
+      {haMotivo && <p className="richiesta-motivo">{riga.motivo}</p>}
+    </div>
+  )
 }
 
 function raggruppaPerAttivita(righe: RigaContatto[]) {
@@ -162,6 +191,7 @@ export default async function ContattiPage({
                     columns={COLONNE_TABELLA}
                     record={riga}
                     hiddenKeys={COLONNE_VISIBILI}
+                    evidenza={<RichiestaEvidenza riga={riga} />}
                     extra={
                       <GestioneSezione
                         id={riga.id}
