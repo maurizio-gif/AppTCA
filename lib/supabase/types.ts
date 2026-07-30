@@ -347,6 +347,9 @@ export type Database = {
       }
       form_summer_camp: {
         Row: {
+          caricato_pgm: boolean
+          caricato_pgm_da: string | null
+          caricato_pgm_il: string | null
           consenso_certificato_medico: boolean | null
           consenso_privacy: boolean | null
           consenso_regolamento: boolean | null
@@ -386,6 +389,9 @@ export type Database = {
           vid: string | null
         }
         Insert: {
+          caricato_pgm?: boolean
+          caricato_pgm_da?: string | null
+          caricato_pgm_il?: string | null
           consenso_certificato_medico?: boolean | null
           consenso_privacy?: boolean | null
           consenso_regolamento?: boolean | null
@@ -425,6 +431,9 @@ export type Database = {
           vid?: string | null
         }
         Update: {
+          caricato_pgm?: boolean
+          caricato_pgm_da?: string | null
+          caricato_pgm_il?: string | null
           consenso_certificato_medico?: boolean | null
           consenso_privacy?: boolean | null
           consenso_regolamento?: boolean | null

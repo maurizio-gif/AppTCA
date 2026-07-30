@@ -1,14 +1,46 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
+import { FiltroSelect } from '@/components/FiltroSelect'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
+import { CaricatoPgmToggle } from './CaricatoPgmToggle'
 
 export const dynamic = 'force-dynamic'
 
 const COLONNE_TABELLA = ['Data', 'Bambino/a', 'Genitore', 'Settimane']
 
-const COLONNE_VISIBILI = ['id', 'created_at', 'genitore_email', 'genitore_cellulare']
+const COLONNE_VISIBILI = [
+  'id',
+  'created_at',
+  'genitore_email',
+  'genitore_cellulare',
+  'caricato_pgm',
+  'caricato_pgm_da',
+  'caricato_pgm_il',
+]
+
+const FILTRI_VALIDI = ['da_caricare', 'caricato', 'tutti'] as const
+type Filtro = (typeof FILTRI_VALIDI)[number]
+
+const OPZIONI_FILTRO = [
+  { valore: 'da_caricare', etichetta: 'Da caricare' },
+  { valore: 'caricato', etichetta: 'Caricato' },
+  { valore: 'tutti', etichetta: 'Tutti' },
+]
+
+// Singola selezione: assente (es. dal link "Summer Camp" nel menu) o non
+// valida = "da caricare", cosi' e' quello che si vede aprendo la pagina.
+function parseFiltro(raw: string | undefined): Filtro {
+  if (raw && (FILTRI_VALIDI as readonly string[]).includes(raw)) return raw as Filtro
+  return 'da_caricare'
+}
+
+function applicaFiltro(righe: Record<string, any>[], filtro: Filtro) {
+  if (filtro === 'tutti') return righe
+  if (filtro === 'caricato') return righe.filter((riga) => riga.caricato_pgm)
+  return righe.filter((riga) => !riga.caricato_pgm)
+}
 
 function riepilogoSettimane(riga: Record<string, any>) {
   const settimane = Array.isArray(riga.settimane) ? riga.settimane : []
@@ -29,10 +61,14 @@ function riepilogoSettimane(riga: Record<string, any>) {
   )
 }
 
-// Pagina sola lettura: stessa logica/formattazione di /dashboard/scuola-tennis
-// (Server Component + service role client), niente aggiornamento stato -
-// qui basta vedere l'elenco delle iscrizioni al Summer Camp.
-export default async function SummerCampPage() {
+// Pagina di sola lettura per i dati del form, con in aggiunta il toggle
+// Caricato su Perfect Gym: stessa logica/formattazione di
+// /dashboard/scuola-tennis (Server Component + service role client).
+export default async function SummerCampPage({
+  searchParams,
+}: {
+  searchParams: { filtro?: string }
+}) {
   if (!(await utenteHaSezione('summer-camp'))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
   }
@@ -48,11 +84,19 @@ export default async function SummerCampPage() {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
+  const filtro = parseFiltro(searchParams.filtro)
+  const righeFiltrate = applicaFiltro(righe ?? [], filtro)
+
   return (
     <div>
       <div className="page-header">
         <h1>Iscrizioni Summer Camp</h1>
       </div>
+
+      <div className="filtri-toolbar">
+        <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
+      </div>
+
       <div className="data-table-wrap">
         <table className="data-table">
           <thead>
@@ -66,7 +110,7 @@ export default async function SummerCampPage() {
           </thead>
           <AccordionGroup>
             <tbody>
-              {righe?.map((riga) => (
+              {righeFiltrate.map((riga) => (
                 <ExpandableRow
                   key={riga.id}
                   id={String(riga.id)}
@@ -74,6 +118,15 @@ export default async function SummerCampPage() {
                   columns={COLONNE_TABELLA}
                   record={riga}
                   hiddenKeys={COLONNE_VISIBILI}
+                  extraTitle="Caricato su Perfect Gym"
+                  extra={
+                    <CaricatoPgmToggle
+                      id={riga.id}
+                      caricato={!!riga.caricato_pgm}
+                      caricatoDa={riga.caricato_pgm_da ?? null}
+                      caricatoIl={riga.caricato_pgm_il ?? null}
+                    />
+                  }
                   cells={[
                     formatDateOra(riga.created_at),
                     <>{riga.minore_nome} {riga.minore_cognome}</>,
@@ -89,7 +142,7 @@ export default async function SummerCampPage() {
             </tbody>
           </AccordionGroup>
         </table>
-        {righe?.length === 0 && <p className="empty-state">Nessuna iscrizione trovata.</p>}
+        {righeFiltrate.length === 0 && <p className="empty-state">Nessuna iscrizione trovata.</p>}
       </div>
     </div>
   )
