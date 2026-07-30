@@ -209,6 +209,9 @@ export type Database = {
       }
       form_scuola_tennis: {
         Row: {
+          caricato_pgm: boolean
+          caricato_pgm_da: string | null
+          caricato_pgm_il: string | null
           compagno_preferito: string | null
           consenso_privacy: boolean | null
           consenso_regolamento: boolean | null
@@ -251,6 +254,9 @@ export type Database = {
           vid: string | null
         }
         Insert: {
+          caricato_pgm?: boolean
+          caricato_pgm_da?: string | null
+          caricato_pgm_il?: string | null
           compagno_preferito?: string | null
           consenso_privacy?: boolean | null
           consenso_regolamento?: boolean | null
@@ -293,6 +299,9 @@ export type Database = {
           vid?: string | null
         }
         Update: {
+          caricato_pgm?: boolean
+          caricato_pgm_da?: string | null
+          caricato_pgm_il?: string | null
           compagno_preferito?: string | null
           consenso_privacy?: boolean | null
           consenso_regolamento?: boolean | null

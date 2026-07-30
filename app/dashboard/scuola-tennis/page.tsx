@@ -1,8 +1,9 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
-import { formatDateOra } from '@/lib/format'
+import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
+import { CaricatoPgmToggle } from './CaricatoPgmToggle'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,9 @@ const COLONNE_VISIBILI = [
   'genitore_email',
   'genitore_cellulare',
   'frequenza',
+  'caricato_pgm',
+  'caricato_pgm_da',
+  'caricato_pgm_il',
 ]
 
 // Pagina sola lettura: stessa logica di /dashboard/contatti (Server Component
@@ -61,6 +65,15 @@ export default async function ScuolaTennisPage() {
                   columns={COLONNE_TABELLA}
                   record={riga}
                   hiddenKeys={COLONNE_VISIBILI}
+                  extraTitle="Caricato su Perfect Gym"
+                  extra={
+                    <CaricatoPgmToggle
+                      id={riga.id}
+                      caricato={!!riga.caricato_pgm}
+                      caricatoDa={riga.caricato_pgm_da ?? null}
+                      caricatoIl={riga.caricato_pgm_il ?? null}
+                    />
+                  }
                   cells={[
                     formatDateOra(riga.created_at),
                     <>{riga.minore_nome} {riga.minore_cognome}</>,
@@ -70,7 +83,13 @@ export default async function ScuolaTennisPage() {
                       <ContactLinks email={riga.genitore_email} phone={riga.genitore_cellulare} />
                     </>,
                     <>
-                      {riga.tipo_corso}
+                      {riga.tipo_corso ? (
+                        <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_corso)}`}>
+                          {riga.tipo_corso}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
                       <br />
                       <span className="muted">{riga.frequenza}</span>
                     </>,
