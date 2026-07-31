@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { formatDateOra } from '@/lib/format'
 import { impostaGestito, salvaNote } from './actions'
+import { EliminaContattoButton } from './EliminaContattoButton'
 
 export function GestioneSezione({
   id,
@@ -10,12 +11,14 @@ export function GestioneSezione({
   gestitoDa,
   gestitoIl,
   noteIniziali,
+  puoCancellare,
 }: {
   id: string
   gestito: boolean
   gestitoDa: string | null
   gestitoIl: string | null
   noteIniziali: string | null
+  puoCancellare: boolean
 }) {
   const [isGestito, setIsGestito] = useState(gestito)
   const [note, setNote] = useState(noteIniziali ?? '')
@@ -112,6 +115,8 @@ export function GestioneSezione({
       >
         {noteSalvata ? 'Nota salvata' : 'Salva nota'}
       </button>
+
+      {puoCancellare && <EliminaContattoButton id={id} />}
     </div>
   )
 }

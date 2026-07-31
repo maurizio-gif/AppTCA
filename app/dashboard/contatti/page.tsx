@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { formatDataConGiorno, formatDateOra, variantePillola } from '@/lib/format'
@@ -139,15 +140,18 @@ export default async function ContattiPage({
   }
 
   const supabase = createSupabaseServiceClient()
+  const emailCorrente = headers().get('x-tca-user-email')
 
-  const { data: righe, error } = await supabase
-    .from('form_contatti')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const [{ data: righe, error }, { data: viewer }] = await Promise.all([
+    supabase.from('form_contatti').select('*').order('created_at', { ascending: false }),
+    supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
+  ])
 
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
+
+  const puoCancellare = !!viewer?.puo_cancellare
 
   const query = (searchParams.q ?? '').trim().toLowerCase()
   const filtro = parseFiltro(searchParams.filtro)
@@ -213,6 +217,7 @@ export default async function ContattiPage({
                         gestitoDa={riga.gestito_da ?? null}
                         gestitoIl={riga.gestito_il ?? null}
                         noteIniziali={riga.note ?? null}
+                        puoCancellare={puoCancellare}
                       />
                     }
                     cells={[

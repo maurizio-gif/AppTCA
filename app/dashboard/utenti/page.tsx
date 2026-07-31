@@ -5,13 +5,22 @@ import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { invitaStaff } from './actions'
 import { RimuoviButton } from './RimuoviButton'
 import { PuoInvitareToggle } from './PuoInvitareToggle'
+import { PuoCancellareToggle } from './PuoCancellareToggle'
 import { SezioniToggle } from './SezioniToggle'
 import { formatDateOra } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
 const COLONNE_TABELLA = ['Nome e cognome', 'Email']
-const COLONNE_VISIBILI = ['email', 'nome', 'cognome', 'puo_invitare', 'sezioni_consentite', 'created_at']
+const COLONNE_VISIBILI = [
+  'email',
+  'nome',
+  'cognome',
+  'puo_invitare',
+  'puo_cancellare',
+  'sezioni_consentite',
+  'created_at',
+]
 
 export default async function UtentiPage({
   searchParams,
@@ -28,7 +37,7 @@ export default async function UtentiPage({
   const [{ data: staff, error }, { data: viewer }] = await Promise.all([
     supabase
       .from('staff_users')
-      .select('email, nome, cognome, puo_invitare, sezioni_consentite, created_at')
+      .select('email, nome, cognome, puo_invitare, puo_cancellare, sezioni_consentite, created_at')
       .order('created_at', { ascending: true }),
     supabase
       .from('staff_users')
@@ -113,6 +122,18 @@ export default async function UtentiPage({
                             {puoInvitare ? (
                               <PuoInvitareToggle email={s.email} puoInvitare={s.puo_invitare} />
                             ) : s.puo_invitare ? (
+                              'Sì'
+                            ) : (
+                              '—'
+                            )}
+                          </span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Può cancellare record</span>
+                          <span className="detail-value">
+                            {puoInvitare ? (
+                              <PuoCancellareToggle email={s.email} puoCancellare={s.puo_cancellare} />
+                            ) : s.puo_cancellare ? (
                               'Sì'
                             ) : (
                               '—'

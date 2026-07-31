@@ -531,6 +531,7 @@ export type Database = {
           created_at: string
           email: string
           nome: string | null
+          puo_cancellare: boolean
           puo_invitare: boolean
           sezioni_consentite: string[]
         }
@@ -539,6 +540,7 @@ export type Database = {
           created_at?: string
           email: string
           nome?: string | null
+          puo_cancellare?: boolean
           puo_invitare?: boolean
           sezioni_consentite?: string[]
         }
@@ -547,6 +549,7 @@ export type Database = {
           created_at?: string
           email?: string
           nome?: string | null
+          puo_cancellare?: boolean
           puo_invitare?: boolean
           sezioni_consentite?: string[]
         }

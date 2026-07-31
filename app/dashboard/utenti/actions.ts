@@ -121,6 +121,23 @@ export async function impostaPuoInvitare(email: string, puoInvitare: boolean) {
   revalidatePath('/dashboard/utenti')
 }
 
+export async function impostaPuoCancellare(email: string, puoCancellare: boolean) {
+  const supabase = createSupabaseServiceClient()
+
+  if (!(await chiamanteHaPermesso(supabase))) {
+    throw new Error('Non hai il permesso di modificare i permessi degli altri utenti.')
+  }
+
+  const { error } = await supabase
+    .from('staff_users')
+    .update({ puo_cancellare: puoCancellare })
+    .eq('email', email)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/dashboard/utenti')
+}
+
 export async function impostaSezioni(email: string, sezioni: string[]) {
   const supabase = createSupabaseServiceClient()
 

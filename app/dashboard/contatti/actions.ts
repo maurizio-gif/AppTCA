@@ -55,3 +55,29 @@ export async function salvaNote(id: string, note: string) {
 
   revalidatePath('/dashboard/contatti')
 }
+
+// Verifica lato server (non solo lato UI, altrimenti la Server Action resta
+// chiamabile a mano bypassando il permesso): solo chi ha "puo_cancellare"
+// puo' cancellare definitivamente un contatto.
+export async function eliminaContatto(id: string) {
+  const email = headers().get('x-tca-user-email')
+  const supabase = createSupabaseServiceClient()
+
+  const { data: chiamante } = await supabase
+    .from('staff_users')
+    .select('puo_cancellare')
+    .eq('email', email ?? '')
+    .maybeSingle()
+
+  if (!chiamante?.puo_cancellare) {
+    throw new Error('Non hai il permesso di cancellare i record.')
+  }
+
+  const { error } = await supabase.from('form_contatti').delete().eq('id', id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/dashboard/contatti')
+}
