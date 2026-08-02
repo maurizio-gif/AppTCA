@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState } from 'react'
 import { contactHrefFor, formatValue, isUrl, prettifyKey, raggruppaDettagli } from '@/lib/format'
+import { ExternalLink } from '@/components/ExternalLink'
 
 // Coordina le ExpandableRow di una stessa tabella: tiene l'id della riga
 // aperta, cosi' aprirne una chiude automaticamente le altre. Senza questo
@@ -132,9 +133,7 @@ function GruppoDettaglio({ titolo, voci }: { titolo: string; voci: [string, unkn
               <span className="detail-label">{prettifyKey(key)}</span>
               <span className="detail-value">
                 {isUrl(value) ? (
-                  <a href={value} target="_blank" rel="noreferrer">
-                    {value}
-                  </a>
+                  <ExternalLink href={value}>{value}</ExternalLink>
                 ) : contactHref ? (
                   <a href={contactHref}>{formatValue(value)}</a>
                 ) : (

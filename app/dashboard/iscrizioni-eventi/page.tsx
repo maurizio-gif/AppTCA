@@ -1,6 +1,7 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
+import { ExternalLink } from '@/components/ExternalLink'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 
@@ -84,9 +85,9 @@ export default async function IscrizioniEventiPage() {
                       {riga.link_pgm && (
                         <>
                           {' · '}
-                          <a href={riga.link_pgm} target="_blank" rel="noreferrer" className="link">
+                          <ExternalLink href={riga.link_pgm} className="link">
                             apri
-                          </a>
+                          </ExternalLink>
                         </>
                       )}
                     </>,
