@@ -44,11 +44,10 @@ export function Sidebar({
   const [open, setOpen] = useState(false)
   const { nonLette } = useNotifiche()
 
-  // Dashboard e Notifiche sono sempre visibili a chiunque sia autenticato,
-  // non fanno parte delle sezioni assegnabili per utente (vedi lib/auth/sezioni.ts).
+  // Dashboard e' sempre visibile a chiunque sia autenticato, non fa parte
+  // delle sezioni assegnabili per utente (vedi lib/auth/sezioni.ts).
   const navItems: VoceMenu[] = [
     { href: '/dashboard', label: 'Dashboard', chiave: 'riepilogo' },
-    { href: '/dashboard/notifiche', label: 'Notifiche', chiave: 'notifiche' },
     ...SEZIONI.filter((s) => sezioniConsentite.includes(s.chiave)),
   ]
   const gruppiMenu = raggruppaVoci(navItems)

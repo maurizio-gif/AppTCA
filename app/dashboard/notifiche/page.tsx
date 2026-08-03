@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { formatDateOra } from '@/lib/format'
 import { BUCKET_ALLEGATI_NOTIFICHE, formatDimensioneFile } from '@/lib/allegati'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
@@ -17,19 +18,21 @@ export const dynamic = 'force-dynamic'
 
 type RigaNotifica = Record<string, any>
 
-// Nessun permesso da controllare: e' la posta personale di chiunque sia
-// autenticato, stessa filosofia di Riepilogo (vedi lib/auth/sezioni.ts).
 export default async function NotifichePage({
   searchParams,
 }: {
   searchParams: { vista?: string }
 }) {
+  if (!(await utenteHaSezione('notifiche'))) {
+    return <p className="error-banner">Non hai accesso a questa sezione.</p>
+  }
+
   const email = headers().get('x-tca-user-email')
   const supabase = createSupabaseServiceClient()
 
   const [{ data: staffAll }, { data: ricevuti, error: erroreRicevuti }, { data: inviati, error: erroreInviati }] =
     await Promise.all([
-      supabase.from('staff_users').select('email, nome, cognome').order('email'),
+      supabase.from('staff_users').select('email, nome, cognome, sezioni_consentite').order('email'),
       supabase.from('notifiche').select('*').eq('a_email', email ?? '').order('created_at', { ascending: false }),
       supabase.from('notifiche').select('*').eq('da_email', email ?? '').order('created_at', { ascending: false }),
     ])
@@ -60,8 +63,11 @@ export default async function NotifichePage({
     return nomeCompleto || indirizzo
   }
 
+  // Solo chi ha anche il permesso "Notifiche" puo' essere scelto come
+  // destinatario: scrivere a chi non ha la sezione non servirebbe a nulla,
+  // non la vedrebbe mai (vedi NotificheProvider/layout.tsx).
   const destinatariDisponibili = (staffAll ?? [])
-    .filter((s) => s.email !== email)
+    .filter((s) => s.email !== email && (s.sezioni_consentite ?? []).includes('notifiche'))
     .map((s) => ({ email: s.email, nome: nomeOperatore(s.email) }))
 
   const vista = searchParams.vista === 'inviati' ? 'inviati' : 'ricevuti'

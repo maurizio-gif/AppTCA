@@ -18,9 +18,13 @@ const NotificheContext = createContext<StatoNotifiche | null>(null)
 // cosi' i due restano sempre in accordo (confermare dal banner aggiorna
 // subito anche il badge, senza aspettare il prossimo giro).
 export function NotificheProvider({
+  abilitato,
   nonLetteIniziali,
   children,
 }: {
+  // Chi non ha il permesso "Notifiche" (vedi lib/auth/sezioni.ts) non deve
+  // ricevere nulla: nessun polling, badge sempre a zero, banner mai mostrato.
+  abilitato: boolean
   nonLetteIniziali: number
   children: React.ReactNode
 }) {
@@ -42,10 +46,11 @@ export function NotificheProvider({
   }, [])
 
   useEffect(() => {
+    if (!abilitato) return
     aggiorna()
     const id = setInterval(aggiorna, INTERVALLO_MS)
     return () => clearInterval(id)
-  }, [aggiorna])
+  }, [abilitato, aggiorna])
 
   function segnaLettaLocale(idNotifica: number) {
     setUltima((u) => (u?.id === idNotifica ? null : u))
