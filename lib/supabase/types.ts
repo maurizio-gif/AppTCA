@@ -555,6 +555,33 @@ export type Database = {
         }
         Relationships: []
       }
+      notifiche: {
+        Row: {
+          a_email: string
+          created_at: string
+          da_email: string
+          id: number
+          letta_il: string | null
+          messaggio: string
+        }
+        Insert: {
+          a_email: string
+          created_at?: string
+          da_email: string
+          id?: number
+          letta_il?: string | null
+          messaggio: string
+        }
+        Update: {
+          a_email?: string
+          created_at?: string
+          da_email?: string
+          id?: number
+          letta_il?: string | null
+          messaggio?: string
+        }
+        Relationships: []
+      }
       staff_users: {
         Row: {
           cognome: string | null

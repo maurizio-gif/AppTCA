@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
 import { SEZIONI } from '@/lib/auth/sezioni'
 import { NavIcon } from '@/components/NavIcon'
+import { useNotifiche } from './NotificheProvider'
 
 type VoceMenu = { href: string; label: string; chiave: string; gruppo?: string }
 
@@ -41,9 +42,13 @@ export function Sidebar({
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const { nonLette } = useNotifiche()
 
+  // Dashboard e Notifiche sono sempre visibili a chiunque sia autenticato,
+  // non fanno parte delle sezioni assegnabili per utente (vedi lib/auth/sezioni.ts).
   const navItems: VoceMenu[] = [
     { href: '/dashboard', label: 'Dashboard', chiave: 'riepilogo' },
+    { href: '/dashboard/notifiche', label: 'Notifiche', chiave: 'notifiche' },
     ...SEZIONI.filter((s) => sezioniConsentite.includes(s.chiave)),
   ]
   const gruppiMenu = raggruppaVoci(navItems)
@@ -107,6 +112,9 @@ export function Sidebar({
                 >
                   <NavIcon name={item.chiave} />
                   <span>{item.label}</span>
+                  {item.chiave === 'notifiche' && nonLette > 0 && (
+                    <span className="nav-badge">{nonLette}</span>
+                  )}
                 </Link>
               ))}
             </div>
