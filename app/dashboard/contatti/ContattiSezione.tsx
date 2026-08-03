@@ -1,12 +1,15 @@
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
-import { formatDataConGiorno, formatDateOra, variantePillola } from '@/lib/format'
+import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
-import { apparteneAGruppo, type GruppoContatto } from '@/lib/contatti'
+import { apparteneAGruppo, classificaContatto, type GruppoContatto } from '@/lib/contatti'
 import type { SezioneChiave } from '@/lib/auth/sezioni'
 import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
+import { RichiestaEvidenza } from './RichiestaEvidenza'
+import { VistaTabs } from './VistaTabs'
+import { CalendarioAppuntamenti } from './CalendarioAppuntamenti'
 import { FiltroSelect } from '@/components/FiltroSelect'
 
 // Solo i campi essenziali per la lettura al volo (senza espandere la riga):
@@ -71,42 +74,16 @@ function corrispondeRicerca(riga: RigaContatto, query: string): boolean {
   })
 }
 
-// In evidenza appena si apre la riga, nell'ordine in cui servono a chi
-// deve richiamare/rispondere: che tipo di richiesta e' (Richiamami,
-// Appuntamento in sede, Messaggio...), poi giorno e orario se e' un
-// appuntamento/richiamata, infine il testo per esteso scritto dal cliente -
-// a tutta larghezza, non nella griglia stretta dei dettagli dove un testo
-// lungo andrebbe a capo parola per parola.
-function RichiestaEvidenza({ riga }: { riga: RigaContatto }) {
-  const haTipo = !!riga.tipo_richiesta
-  const haAppuntamento = !!(riga.data_richiesta || riga.ora_richiesta)
-  const haMotivo = !!riga.motivo
-
-  if (!haTipo && !haAppuntamento && !haMotivo) return null
-
-  return (
-    <div className="richiesta-evidenza">
-      {haTipo && (
-        <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
-          {riga.tipo_richiesta}
-        </span>
-      )}
-      {haAppuntamento && (
-        <p className="richiesta-appuntamento">
-          {riga.data_richiesta && formatDataConGiorno(riga.data_richiesta)}
-          {riga.data_richiesta && riga.ora_richiesta && ' · '}
-          {riga.ora_richiesta && `ore ${riga.ora_richiesta}`}
-        </p>
-      )}
-      {haMotivo && <p className="richiesta-motivo">{riga.motivo}</p>}
-    </div>
-  )
-}
-
 // Pagina condivisa da /dashboard/contatti/adulti e /dashboard/contatti/junior:
 // stessa UI, filtrata sul gruppo assegnato a questa sezione (vedi
 // lib/contatti.ts) e gestita separatamente cosi' da poter dare il permesso
 // di accesso a operatori diversi per Adulti e per Junior.
+//
+// Solo per Adulti, la sezione si divide in due viste (vedi VistaTabs):
+// Messaggi (da smaltire subito, in ordine di arrivo) e Appuntamenti
+// (mostrati nel calendario in base al giorno fissato, non a quando e'
+// arrivata la richiesta - vedi CalendarioAppuntamenti). Su Junior non c'e'
+// questa distinzione, resta l'unica lista di sempre.
 export async function ContattiSezione({
   gruppo,
   titolo,
@@ -118,7 +95,7 @@ export async function ContattiSezione({
   titolo: string
   permesso: SezioneChiave
   basePath: string
-  searchParams: { filtro?: string; q?: string }
+  searchParams: { filtro?: string; q?: string; vista?: string }
 }) {
   if (!(await utenteHaSezione(permesso))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
@@ -140,11 +117,21 @@ export async function ContattiSezione({
 
   const righeSezione = (righe ?? []).filter((riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo))
 
+  const conDivisioneViste = gruppo === 'adulti'
+  const messaggiSezione = conDivisioneViste
+    ? righeSezione.filter((riga) => classificaContatto(riga) === 'messaggio')
+    : righeSezione
+  const appuntamentiSezione = conDivisioneViste
+    ? righeSezione.filter((riga) => classificaContatto(riga) !== 'messaggio')
+    : []
+
+  const vista = conDivisioneViste && searchParams.vista === 'appuntamenti' ? 'appuntamenti' : 'messaggi'
+
   const query = (searchParams.q ?? '').trim().toLowerCase()
   const filtro = parseFiltro(searchParams.filtro)
   const righeFiltrate = query
-    ? righeSezione.filter((riga) => corrispondeRicerca(riga, query))
-    : applicaFiltro(righeSezione, filtro)
+    ? messaggiSezione.filter((riga) => corrispondeRicerca(riga, query))
+    : applicaFiltro(messaggiSezione, filtro)
 
   return (
     <div>
@@ -152,78 +139,92 @@ export async function ContattiSezione({
         <h1>{titolo}</h1>
       </div>
 
-      <div className="filtri-toolbar">
-        <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
-        {query ? (
-          <p className="search-note">
-            Ricerca su tutti i contatti, gestiti e da gestire —{' '}
-            <a href={basePath} className="link">
-              annulla ricerca
-            </a>
-          </p>
-        ) : (
-          <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
-        )}
-      </div>
+      {conDivisioneViste && (
+        <VistaTabs
+          vista={vista}
+          contatoreMessaggi={messaggiSezione.filter((riga) => !riga.gestito).length}
+          contatoreAppuntamenti={appuntamentiSezione.filter((riga) => !riga.gestito).length}
+        />
+      )}
 
-      <div className="data-table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Data e ora</th>
-              <th>Nome e cognome</th>
-              <th>Stato</th>
-              <th>Attività</th>
-              <th>Richiesta</th>
-            </tr>
-          </thead>
-          <AccordionGroup>
-            <tbody>
-              {righeFiltrate.map((riga) => (
-                <ExpandableRow
-                  key={riga.id}
-                  id={String(riga.id)}
-                  columnCount={6}
-                  columns={COLONNE_TABELLA}
-                  record={riga}
-                  hiddenKeys={COLONNE_VISIBILI}
-                  evidenza={<RichiestaEvidenza riga={riga} />}
-                  extra={
-                    <GestioneSezione
-                      id={riga.id}
-                      gestito={!!riga.gestito}
-                      gestitoDa={riga.gestito_da ?? null}
-                      gestitoIl={riga.gestito_il ?? null}
-                      noteIniziali={riga.note ?? null}
-                      puoCancellare={puoCancellare}
+      {vista === 'appuntamenti' ? (
+        <CalendarioAppuntamenti righe={appuntamentiSezione} puoCancellare={puoCancellare} />
+      ) : (
+        <>
+          <div className="filtri-toolbar">
+            <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
+            {query ? (
+              <p className="search-note">
+                Ricerca su tutti i contatti, gestiti e da gestire —{' '}
+                <a href={basePath} className="link">
+                  annulla ricerca
+                </a>
+              </p>
+            ) : (
+              <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
+            )}
+          </div>
+
+          <div className="data-table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Data e ora</th>
+                  <th>Nome e cognome</th>
+                  <th>Stato</th>
+                  <th>Attività</th>
+                  <th>Richiesta</th>
+                </tr>
+              </thead>
+              <AccordionGroup>
+                <tbody>
+                  {righeFiltrate.map((riga) => (
+                    <ExpandableRow
+                      key={riga.id}
+                      id={String(riga.id)}
+                      columnCount={6}
+                      columns={COLONNE_TABELLA}
+                      record={riga}
+                      hiddenKeys={COLONNE_VISIBILI}
+                      evidenza={<RichiestaEvidenza riga={riga} />}
+                      extra={
+                        <GestioneSezione
+                          id={riga.id}
+                          gestito={!!riga.gestito}
+                          gestitoDa={riga.gestito_da ?? null}
+                          gestitoIl={riga.gestito_il ?? null}
+                          noteIniziali={riga.note ?? null}
+                          puoCancellare={puoCancellare}
+                        />
+                      }
+                      cells={[
+                        formatDateOra(riga.created_at),
+                        <>{riga.nome} {riga.cognome}</>,
+                        riga.stato || '—',
+                        Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
+                        riga.tipo_richiesta ? (
+                          <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
+                            {riga.tipo_richiesta}
+                          </span>
+                        ) : (
+                          '—'
+                        ),
+                      ]}
                     />
-                  }
-                  cells={[
-                    formatDateOra(riga.created_at),
-                    <>{riga.nome} {riga.cognome}</>,
-                    riga.stato || '—',
-                    Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
-                    riga.tipo_richiesta ? (
-                      <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
-                        {riga.tipo_richiesta}
-                      </span>
-                    ) : (
-                      '—'
-                    ),
-                  ]}
-                />
-              ))}
-            </tbody>
-          </AccordionGroup>
-        </table>
+                  ))}
+                </tbody>
+              </AccordionGroup>
+            </table>
 
-        {righeFiltrate.length === 0 && (
-          <p className="empty-state">
-            {query ? 'Nessun risultato per la ricerca.' : 'Nessuna richiesta trovata.'}
-          </p>
-        )}
-      </div>
+            {righeFiltrate.length === 0 && (
+              <p className="empty-state">
+                {query ? 'Nessun risultato per la ricerca.' : 'Nessuna richiesta trovata.'}
+              </p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
