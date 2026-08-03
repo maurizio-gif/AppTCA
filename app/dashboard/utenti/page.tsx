@@ -39,7 +39,9 @@ export default async function UtentiPage({
     supabase
       .from('staff_users')
       .select('email, nome, cognome, puo_invitare, puo_cancellare, sezioni_consentite, created_at')
-      .order('created_at', { ascending: true }),
+      // Sempre in ordine alfabetico di cognome, come ogni altro elenco di operatori.
+      .order('cognome', { ascending: true })
+      .order('nome', { ascending: true }),
     supabase
       .from('staff_users')
       .select('puo_invitare')

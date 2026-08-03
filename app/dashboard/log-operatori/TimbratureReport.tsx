@@ -3,6 +3,7 @@ import { FiltroSelect } from '@/components/FiltroSelect'
 import { FiltroData } from '@/components/FiltroData'
 import { EsportaCsv } from '@/components/EsportaCsv'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
+import { confrontaOperatori } from '@/lib/format'
 import { accoppiaTurni, formattaDurata, giornoRoma, type Turno } from '@/lib/timbratura'
 
 function formattaOra(iso: string): string {
@@ -59,7 +60,11 @@ export async function TimbratureReport({
     return dataOk && operatoreOk
   })
 
-  const emailUniche = [...new Set(tuttiITurni.map((t) => t.email))].sort()
+  // Sempre in ordine alfabetico di cognome, come ogni altro elenco di operatori.
+  const emailUniche = [...new Set(tuttiITurni.map((t) => t.email))]
+    .map((email) => ({ email, ...mappaStaff.get(email) }))
+    .sort(confrontaOperatori)
+    .map((s) => s.email)
   const opzioniOperatori = [
     { valore: 'tutti', etichetta: 'Tutti gli operatori' },
     ...emailUniche.map((email) => ({ valore: email, etichetta: nomeOperatore(email) })),

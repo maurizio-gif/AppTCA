@@ -68,19 +68,28 @@ export function ComponiNotifica({ destinatari }: { destinatari: { email: string;
       {esito && <p className={`timbra-esito ${esito.tipo}`}>{esito.testo}</p>}
 
       <div className="componi-notifica-destinatari">
-        {destinatari.map((d) => (
-          <label key={d.email} className="sezioni-toggle-item">
-            <input
-              type="checkbox"
-              checked={selezionati.includes(d.email)}
+        {destinatari.map((d) => {
+          const attivo = selezionati.includes(d.email)
+          return (
+            <button
+              key={d.email}
+              type="button"
+              className={`chip-toggle${attivo ? ' is-attivo' : ''}`}
+              aria-pressed={attivo}
               disabled={isPending}
-              onChange={() => toggleDestinatario(d.email)}
-            />
-            {d.nome}
-          </label>
-        ))}
+              onClick={() => toggleDestinatario(d.email)}
+            >
+              {d.nome}
+            </button>
+          )
+        })}
         {destinatari.length === 0 && <p className="muted">Non ci sono altri operatori a cui scrivere.</p>}
       </div>
+      {selezionati.length > 0 && (
+        <p className="muted componi-notifica-conteggio">
+          {selezionati.length} {selezionati.length === 1 ? 'destinatario selezionato' : 'destinatari selezionati'}.
+        </p>
+      )}
 
       <textarea
         className="gestione-note componi-notifica-testo"
