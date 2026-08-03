@@ -105,7 +105,7 @@ export async function TimbratureReport({
         </ol>
         <p className="box-istruzioni-nota">
           Un turno ancora senza uscita registrata appare come «In corso» ed è escluso dal totale ore, finché la
-          persona non timbra l'uscita. Per vedere questa pagina serve lo stesso permesso di «Log operatori»: di
+          persona non timbra l'uscita. Per vedere questa pagina serve lo stesso permesso di «Controllo Operatori»: di
           norma va lasciato solo a chi si occupa di amministrazione/paghe.
         </p>
       </BoxIstruzioni>

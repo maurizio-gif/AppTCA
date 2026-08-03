@@ -19,7 +19,7 @@ export default async function LogOperatoriPage({
   return (
     <div>
       <div className="page-header">
-        <h1>Log operatori</h1>
+        <h1>Controllo Operatori</h1>
       </div>
 
       <VistaTabs
