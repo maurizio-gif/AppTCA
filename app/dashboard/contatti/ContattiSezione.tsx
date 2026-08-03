@@ -8,7 +8,7 @@ import type { SezioneChiave } from '@/lib/auth/sezioni'
 import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
-import { VistaTabs } from './VistaTabs'
+import { VistaTabs } from '@/components/VistaTabs'
 import { CalendarioAppuntamenti } from './CalendarioAppuntamenti'
 import { FiltroSelect } from '@/components/FiltroSelect'
 
@@ -142,8 +142,14 @@ export async function ContattiSezione({
       {conDivisioneViste && (
         <VistaTabs
           vista={vista}
-          contatoreMessaggi={messaggiSezione.filter((riga) => !riga.gestito).length}
-          contatoreAppuntamenti={appuntamentiSezione.filter((riga) => !riga.gestito).length}
+          tabs={[
+            { chiave: 'messaggi', etichetta: 'Messaggi', contatore: messaggiSezione.filter((r) => !r.gestito).length },
+            {
+              chiave: 'appuntamenti',
+              etichetta: 'Appuntamenti',
+              contatore: appuntamentiSezione.filter((r) => !r.gestito).length,
+            },
+          ]}
         />
       )}
 

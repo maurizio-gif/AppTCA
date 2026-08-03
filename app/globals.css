@@ -1360,6 +1360,54 @@ table.data-table {
   outline: none;
 }
 
+/* ---------- Filtro date (Timbrature) ---------- */
+
+.filtro-date {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filtro-date-campo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-light);
+}
+
+.filtro-date-campo input {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.filtro-date-campo input:hover,
+.filtro-date-campo input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+/* ---------- Riepilogo Timbrature ---------- */
+
+.timbrature-riepilogo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.timbrature-riepilogo .muted {
+  margin: 0;
+}
+
 /* ---------- Ricerca contatti ---------- */
 
 .search-box {
