@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import { formatDateOra } from '@/lib/format'
 import { registraTimbratura } from './actions'
 
 type RigaStorico = {
@@ -26,13 +27,7 @@ function messaggioErroreGeo(errore: GeolocationPositionError): string {
   }
 }
 
-export function TimbraCartellino({
-  suggerita,
-  storico,
-}: {
-  suggerita: 'entrata' | 'uscita'
-  storico: RigaStorico[]
-}) {
+export function TimbraCartellino({ storico }: { storico: RigaStorico[] }) {
   const [storicoLocale, setStoricoLocale] = useState(storico)
   const [messaggio, setMessaggio] = useState<{ tipo: 'ok' | 'errore'; testo: string } | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -44,6 +39,15 @@ export function TimbraCartellino({
   useEffect(() => {
     setStoricoLocale(storico)
   }, [storico])
+
+  // La riga piu' recente decide tutto: se e' un'entrata senza un'uscita
+  // successiva, si e' "in servizio" - l'entrata resta mostrata in evidenza
+  // finche' non si timbra l'uscita, che la fa sparire (si torna pronti per
+  // una nuova entrata). Stessa logica di controllo usata lato server in
+  // registraTimbratura: qui serve solo per decidere cosa mostrare/abilitare.
+  const ultima = storicoLocale[0]
+  const inServizio = ultima?.tipo === 'entrata'
+  const entrataInCorso = inServizio ? ultima : null
 
   function timbra(tipo: 'entrata' | 'uscita') {
     if (!('geolocation' in navigator)) {
@@ -61,12 +65,16 @@ export function TimbraCartellino({
           const risultato = await registraTimbratura(tipo, latitude, longitude)
 
           if (risultato.ok) {
+            const quandoFormattato = formatDateOra(risultato.quando)
             setMessaggio({
               tipo: 'ok',
-              testo: `${tipo === 'entrata' ? 'Entrata' : 'Uscita'} registrata alle ${new Date().toLocaleTimeString('it-IT')} (${risultato.distanza}m dal circolo).`,
+              testo:
+                tipo === 'entrata'
+                  ? `Entrata registrata alle ${quandoFormattato} (${risultato.distanza}m dal circolo).`
+                  : `Uscita registrata alle ${quandoFormattato} (${risultato.distanza}m dal circolo).`,
             })
             setStoricoLocale((prev) => [
-              { id: -Date.now(), quando: new Date().toLocaleString('it-IT'), tipo, distanza: risultato.distanza },
+              { id: -Date.now(), quando: quandoFormattato, tipo, distanza: risultato.distanza },
               ...prev,
             ])
           } else {
@@ -84,27 +92,47 @@ export function TimbraCartellino({
     )
   }
 
+  const disabilitaEntrata = isPending || inCorso !== null || inServizio
+  const disabilitaUscita = isPending || inCorso !== null || !inServizio
+
   return (
     <div>
+      {entrataInCorso && (
+        <p className="timbra-stato">
+          In servizio — entrato alle {entrataInCorso.quando}
+        </p>
+      )}
+
       {messaggio && <p className={`timbra-esito ${messaggio.tipo}`}>{messaggio.testo}</p>}
 
       <div className="timbra-azioni">
-        <button
-          type="button"
-          className={`timbra-btn${suggerita === 'entrata' ? ' suggerita' : ''}`}
-          disabled={isPending || inCorso !== null}
-          onClick={() => timbra('entrata')}
-        >
-          {inCorso === 'entrata' ? 'Verifica posizione…' : 'Timbra entrata'}
-        </button>
-        <button
-          type="button"
-          className={`timbra-btn${suggerita === 'uscita' ? ' suggerita' : ''}`}
-          disabled={isPending || inCorso !== null}
-          onClick={() => timbra('uscita')}
-        >
-          {inCorso === 'uscita' ? 'Verifica posizione…' : 'Timbra uscita'}
-        </button>
+        <div className="timbra-azione">
+          <button
+            type="button"
+            className={`timbra-btn${!disabilitaEntrata ? ' suggerita' : ''}`}
+            disabled={disabilitaEntrata}
+            onClick={() => timbra('entrata')}
+          >
+            {inCorso === 'entrata' ? 'Verifica posizione…' : 'Timbra entrata'}
+          </button>
+          {inServizio && !isPending && inCorso === null && (
+            <p className="timbra-hint">Hai già timbrato l'entrata.</p>
+          )}
+        </div>
+
+        <div className="timbra-azione">
+          <button
+            type="button"
+            className={`timbra-btn${!disabilitaUscita ? ' suggerita' : ''}`}
+            disabled={disabilitaUscita}
+            onClick={() => timbra('uscita')}
+          >
+            {inCorso === 'uscita' ? 'Verifica posizione…' : 'Timbra uscita'}
+          </button>
+          {!inServizio && !isPending && inCorso === null && (
+            <p className="timbra-hint">Devi prima timbrare l'entrata.</p>
+          )}
+        </div>
       </div>
 
       <div className="data-table-wrap">

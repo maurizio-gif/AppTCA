@@ -6,7 +6,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { registraLog } from '@/lib/audit'
 import { dentroZona, ZONA_TIMBRATURA } from '@/lib/timbratura'
 
-type RisultatoTimbratura = { ok: true; distanza: number } | { ok: false; errore: string }
+type RisultatoTimbratura = { ok: true; quando: string; distanza: number } | { ok: false; errore: string }
 
 // La validazione della zona avviene SOLO qui, mai lato client: le
 // coordinate arrivano dal browser dell'operatore e non ci si può fidare
@@ -34,6 +34,34 @@ export async function registraTimbratura(
     return { ok: false, errore: 'Coordinate non valide.' }
   }
 
+  const supabase = createSupabaseServiceClient()
+
+  // La sequenza entrata -> uscita -> entrata -> ... si verifica sempre
+  // lato server, mai fidandosi dello stato mostrato dal client (potrebbe
+  // essere desincronizzato, es. due dispositivi aperti insieme): un'uscita
+  // richiede che l'ultima timbratura registrata sia un'entrata ancora
+  // "aperta", e un'entrata richiede che non ce ne sia gia' una aperta.
+  const { data: ultima, error: ultimaError } = await supabase
+    .from('timbrature')
+    .select('tipo')
+    .eq('email', email)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (ultimaError) {
+    return { ok: false, errore: ultimaError.message }
+  }
+
+  const inServizio = ultima?.tipo === 'entrata'
+
+  if (tipo === 'entrata' && inServizio) {
+    return { ok: false, errore: "Hai già timbrato l'entrata: timbra l'uscita prima di una nuova entrata." }
+  }
+  if (tipo === 'uscita' && !inServizio) {
+    return { ok: false, errore: "Devi prima timbrare l'entrata." }
+  }
+
   const { dentro, distanza } = dentroZona(lat, lng)
   const distanzaArrotondata = Math.round(distanza)
 
@@ -47,17 +75,14 @@ export async function registraTimbratura(
     }
   }
 
-  const supabase = createSupabaseServiceClient()
-  const { error } = await supabase.from('timbrature').insert({
-    email,
-    tipo,
-    lat,
-    lng,
-    distanza_metri: distanzaArrotondata,
-  })
+  const { data: riga, error } = await supabase
+    .from('timbrature')
+    .insert({ email, tipo, lat, lng, distanza_metri: distanzaArrotondata })
+    .select('created_at')
+    .single()
 
-  if (error) {
-    return { ok: false, errore: error.message }
+  if (error || !riga) {
+    return { ok: false, errore: error?.message ?? 'Errore durante il salvataggio.' }
   }
 
   await registraLog(email, tipo === 'entrata' ? 'timbratura_entrata' : 'timbratura_uscita', {
@@ -67,5 +92,5 @@ export async function registraTimbratura(
 
   revalidatePath('/dashboard/timbratura')
 
-  return { ok: true, distanza: distanzaArrotondata }
+  return { ok: true, quando: riga.created_at, distanza: distanzaArrotondata }
 }

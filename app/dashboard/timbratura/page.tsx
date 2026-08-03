@@ -27,13 +27,6 @@ export default async function TimbraturaPage() {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
-  // Se l'ultimo timbro e' un'entrata senza uscita, il prossimo passo
-  // naturale e' l'uscita, e viceversa: solo un suggerimento visivo (il
-  // pulsante piu' in evidenza), non un vincolo - resta possibile timbrare
-  // in qualsiasi ordine se ci si e' scordati di farlo.
-  const ultimoTipo = storico?.[0]?.tipo ?? null
-  const suggerita = ultimoTipo === 'entrata' ? 'uscita' : 'entrata'
-
   return (
     <div>
       <div className="page-header">
@@ -46,7 +39,6 @@ export default async function TimbraturaPage() {
       </p>
 
       <TimbraCartellino
-        suggerita={suggerita}
         storico={(storico ?? []).map((r) => ({
           id: r.id,
           quando: formatDateOra(r.created_at),
