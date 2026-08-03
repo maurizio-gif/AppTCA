@@ -2,6 +2,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
 import { FiltroSelect } from '@/components/FiltroSelect'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { CaricatoPgmToggle } from './CaricatoPgmToggle'
@@ -74,6 +75,17 @@ export default async function ScuolaTennisPage({
       <div className="page-header">
         <h1>Preiscrizioni Scuola Tennis</h1>
       </div>
+
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>Filtra tra Da caricare/Caricato/Tutti con la tendina qui sotto.</li>
+          <li>Apri una riga per vedere tutti i dettagli della preiscrizione (bambino/a, genitore, corso scelto).</li>
+          <li>
+            Una volta caricata la preiscrizione su PerfectGym, attiva il toggle «Caricato su Perfect Gym»: resta
+            visibile chi l'ha segnata e quando.
+          </li>
+        </ol>
+      </BoxIstruzioni>
 
       <div className="filtri-toolbar">
         <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />

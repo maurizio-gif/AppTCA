@@ -3,6 +3,7 @@ import { formatDateOra } from '@/lib/format'
 import { AZIONI_LOG, etichettaAzione } from '@/lib/audit'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 
 // Un pannello di segreteria non genera migliaia di azioni al giorno: 300
 // righe piu' recenti (dopo i filtri, vedi sotto) bastano abbondantemente
@@ -72,11 +73,26 @@ export async function AttivitaLog({
 
   return (
     <div>
-      <p className="muted" style={{ marginBottom: 16 }}>
+      <p className="muted" style={{ marginBottom: 12 }}>
         Le azioni piu' significative fatte dagli operatori nel pannello: accessi, permessi modificati, contatti
         gestiti o cancellati, iscrizioni segnate su PerfectGym. Non e' un log di ogni singolo click, solo delle
         azioni con un effetto reale. Apri una riga per vedere tutti i dettagli.
       </p>
+
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>Filtra per operatore e/o per tipo di azione con le due tendine qui sotto.</li>
+          <li>
+            Apri una riga per vedere tutti i dettagli grezzi (email, entità coinvolta, id del record, dettagli
+            specifici dell'azione).
+          </li>
+          <li>Le righe sono ordinate dalla più recente, fino a un massimo di 300 per filtro applicato.</li>
+        </ol>
+        <p className="box-istruzioni-nota">
+          Un tentativo di accesso con un'email non autorizzata compare qui come «Accesso rifiutato», anche se
+          quella persona non è (o non è più) tra gli operatori.
+        </p>
+      </BoxIstruzioni>
 
       <div className="filtri-toolbar">
         <FiltroSelect

@@ -11,6 +11,7 @@ import { RichiestaEvidenza } from './RichiestaEvidenza'
 import { VistaTabs } from '@/components/VistaTabs'
 import { CalendarioAppuntamenti } from './CalendarioAppuntamenti'
 import { FiltroSelect } from '@/components/FiltroSelect'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 
 // Solo i campi essenziali per la lettura al volo (senza espandere la riga):
 // data, nome, stato, attivita' e richiesta - data per prima perche' su
@@ -154,9 +155,51 @@ export async function ContattiSezione({
       )}
 
       {vista === 'appuntamenti' ? (
-        <CalendarioAppuntamenti righe={appuntamentiSezione} puoCancellare={puoCancellare} />
+        <>
+          <BoxIstruzioni titolo="Come funziona">
+            <ol>
+              <li>
+                Il calendario mostra ogni appuntamento nel giorno <strong>fissato</strong>, non nel giorno in cui è
+                arrivata la richiesta: un giorno con un pallino ha almeno un appuntamento.
+              </li>
+              <li>
+                Pallino rosso: c'è almeno un appuntamento da gestire quel giorno. Pallino verde: tutti gestiti.
+              </li>
+              <li>Clicca un giorno con il pallino per aprire sotto la lista degli appuntamenti di quel giorno.</li>
+              <li>
+                Apri una riga per aggiungere una nota, segnarla come gestita o cancellarla (se hai il permesso).
+              </li>
+            </ol>
+            <p className="box-istruzioni-nota">
+              Un appuntamento senza una data registrata finisce nella sezione «Senza data» in fondo alla pagina,
+              così non resta invisibile.
+            </p>
+          </BoxIstruzioni>
+          <CalendarioAppuntamenti righe={appuntamentiSezione} puoCancellare={puoCancellare} />
+        </>
       ) : (
         <>
+          <BoxIstruzioni titolo="Come funziona">
+            <ol>
+              <li>Cerca per nome, cognome, email o cellulare, oppure filtra tra Da gestire/Gestiti/Tutti.</li>
+              <li>Apri una riga per vedere tutti i dettagli e aggiungere una nota interna.</li>
+              <li>
+                Per segnare un contatto come «Gestito» devi prima scrivere e salvare una nota: è il modo per
+                lasciare traccia di cosa è stato fatto.
+              </li>
+              {conDivisioneViste && (
+                <li>
+                  Solo qui trovi i messaggi (richiamami, domande generiche): gli appuntamenti fissati sono
+                  nell'altro tab, nel calendario.
+                </li>
+              )}
+            </ol>
+            <p className="box-istruzioni-nota">
+              «Cancella record» è visibile solo a chi ha il permesso di cancellare, ed è irreversibile: chiede
+              sempre una conferma.
+            </p>
+          </BoxIstruzioni>
+
           <div className="filtri-toolbar">
             <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
             {query ? (

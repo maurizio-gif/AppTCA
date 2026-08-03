@@ -1,5 +1,6 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 
@@ -37,6 +38,14 @@ export default async function InvitaAmicoPage() {
       <div className="page-header">
         <h1>Inviti "Invita un amico"</h1>
       </div>
+
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>Elenco di sola lettura: ogni riga è un invito compilato dal sito, un socio che invita un amico.</li>
+          <li>Apri una riga per vedere tutti i dettagli (contatti dell'amico invitato, dati di provenienza).</li>
+        </ol>
+      </BoxIstruzioni>
+
       <div className="data-table-wrap">
         <table className="data-table">
           <thead>

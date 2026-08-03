@@ -7,6 +7,7 @@ import { RimuoviButton } from './RimuoviButton'
 import { PuoInvitareToggle } from './PuoInvitareToggle'
 import { PuoCancellareToggle } from './PuoCancellareToggle'
 import { SezioniToggle } from './SezioniToggle'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
@@ -53,6 +54,25 @@ export default async function UtentiPage({
       <div className="page-header">
         <h1>Gestione utenti</h1>
       </div>
+
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>Chi ha il permesso «Può invitare» può invitare nuovi operatori e modificare i permessi altrui.</li>
+          <li>
+            Chi viene invitato parte con tutti i diritti (vede tutte le sezioni, può invitare); le restrizioni si
+            impostano dopo, apri la sua scheda per togliere sezioni o permessi.
+          </li>
+          <li>
+            «Sezioni visibili» decide quali voci compaiono nel menu di quella persona: sono le stesse chiavi
+            elencate in questa pagina (Enquiries, Scuola tennis, Timbra cartellino, ecc.).
+          </li>
+          <li>«Può cancellare record» dà il diritto di cancellare definitivamente le Enquiries.</li>
+        </ol>
+        <p className="box-istruzioni-nota">
+          Non puoi rimuovere il tuo stesso account, e senza il permesso «Può invitare» puoi solo consultare
+          l'elenco.
+        </p>
+      </BoxIstruzioni>
 
       {puoInvitare ? (
         <div className="login-card" style={{ maxWidth: 480, margin: '0 0 28px' }}>

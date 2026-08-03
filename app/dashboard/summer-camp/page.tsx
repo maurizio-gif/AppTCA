@@ -2,6 +2,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
 import { FiltroSelect } from '@/components/FiltroSelect'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { CaricatoPgmToggle } from './CaricatoPgmToggle'
@@ -92,6 +93,20 @@ export default async function SummerCampPage({
       <div className="page-header">
         <h1>Iscrizioni Summer Camp</h1>
       </div>
+
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>Filtra tra Da caricare/Caricato/Tutti con la tendina qui sotto.</li>
+          <li>
+            Apri una riga per vedere tutti i dettagli dell'iscrizione (bambino/a, genitore, settimane scelte, note
+            mediche).
+          </li>
+          <li>
+            Una volta caricata l'iscrizione su PerfectGym, attiva il toggle «Caricato su Perfect Gym»: resta
+            visibile chi l'ha segnata e quando.
+          </li>
+        </ol>
+      </BoxIstruzioni>
 
       <div className="filtri-toolbar">
         <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
