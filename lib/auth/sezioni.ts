@@ -16,7 +16,7 @@ export const SEZIONI = [
   { chiave: 'iscrizioni-eventi', label: 'Iscrizioni eventi', href: '/dashboard/iscrizioni-eventi', gruppo: 'Moduli' },
   { chiave: 'timbratura', label: 'Timbra cartellino', href: '/dashboard/timbratura', gruppo: 'Amministrazione' },
   { chiave: 'utenti', label: 'Gestione utenti', href: '/dashboard/utenti', gruppo: 'Amministrazione' },
-  { chiave: 'log-operatori', label: 'Log operatori', href: '/dashboard/log-operatori', gruppo: 'Amministrazione' },
+  { chiave: 'log-operatori', label: 'Controllo Operatori', href: '/dashboard/log-operatori', gruppo: 'Amministrazione' },
 ] as const
 
 export type SezioneChiave = (typeof SEZIONI)[number]['chiave']
