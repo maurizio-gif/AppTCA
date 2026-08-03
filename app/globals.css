@@ -1717,14 +1717,10 @@ table.data-table {
   border-color: var(--color-accent);
 }
 
-.cal-cella.oggi {
-  border-color: var(--color-accent);
-  box-shadow: inset 0 0 0 1px var(--color-accent);
-}
-
 .cal-cella.selezionata {
   background: #f3e3e3;
   border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
 }
 
 .cal-giorno-num {
@@ -1732,8 +1728,14 @@ table.data-table {
   font-variant-numeric: tabular-nums;
 }
 
+/* "Oggi" e' solo il numero sottolineato: un bordo pieno come quello della
+   cella selezionata (vedi sopra) le farebbe sembrare la stessa cosa. */
 .cal-cella.oggi .cal-giorno-num {
   color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .cal-puntini {
