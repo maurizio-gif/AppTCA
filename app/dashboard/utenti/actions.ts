@@ -6,6 +6,7 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { createSupabaseServerClient } from '@/lib/supabase/serverClient'
 import { SEZIONI } from '@/lib/auth/sezioni'
+import { registraLog } from '@/lib/audit'
 
 // Solo chi ha "puo_invitare" puo' invitare o modificare i permessi altrui:
 // controllo lato server, non solo nascondere i controlli in UI, altrimenti
@@ -100,6 +101,12 @@ export async function invitaStaff(formData: FormData) {
     redirect(`/dashboard/utenti?error=${encodeURIComponent(inviteError.message)}`)
   }
 
+  await registraLog(headers().get('x-tca-user-email'), 'utente_invitato', {
+    entita: 'staff_users',
+    entitaId: email,
+    dettagli: { email_target: email, nome, cognome },
+  })
+
   revalidatePath('/dashboard/utenti')
   redirect('/dashboard/utenti?ok=1')
 }
@@ -118,6 +125,12 @@ export async function impostaPuoInvitare(email: string, puoInvitare: boolean) {
 
   if (error) throw new Error(error.message)
 
+  await registraLog(headers().get('x-tca-user-email'), 'permesso_invitare_modificato', {
+    entita: 'staff_users',
+    entitaId: email,
+    dettagli: { email_target: email, valore: puoInvitare },
+  })
+
   revalidatePath('/dashboard/utenti')
 }
 
@@ -135,6 +148,12 @@ export async function impostaPuoCancellare(email: string, puoCancellare: boolean
 
   if (error) throw new Error(error.message)
 
+  await registraLog(headers().get('x-tca-user-email'), 'permesso_cancellare_modificato', {
+    entita: 'staff_users',
+    entitaId: email,
+    dettagli: { email_target: email, valore: puoCancellare },
+  })
+
   revalidatePath('/dashboard/utenti')
 }
 
@@ -151,6 +170,12 @@ export async function impostaSezioni(email: string, sezioni: string[]) {
     .eq('email', email)
 
   if (error) throw new Error(error.message)
+
+  await registraLog(headers().get('x-tca-user-email'), 'sezioni_modificate', {
+    entita: 'staff_users',
+    entitaId: email,
+    dettagli: { email_target: email, sezioni },
+  })
 
   revalidatePath('/dashboard/utenti')
 }
@@ -184,6 +209,12 @@ export async function rimuoviStaff(email: string) {
 
   const { error } = await supabase.from('staff_users').delete().eq('email', email)
   if (error) throw new Error(error.message)
+
+  await registraLog(user?.email, 'utente_rimosso', {
+    entita: 'staff_users',
+    entitaId: email,
+    dettagli: { email_target: email },
+  })
 
   revalidatePath('/dashboard/utenti')
 }

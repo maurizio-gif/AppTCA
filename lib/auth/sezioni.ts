@@ -15,6 +15,7 @@ export const SEZIONI = [
   { chiave: 'invita-amico', label: 'Invita un amico', href: '/dashboard/invita-amico', gruppo: 'Moduli' },
   { chiave: 'iscrizioni-eventi', label: 'Iscrizioni eventi', href: '/dashboard/iscrizioni-eventi', gruppo: 'Moduli' },
   { chiave: 'utenti', label: 'Gestione utenti', href: '/dashboard/utenti', gruppo: 'Amministrazione' },
+  { chiave: 'log-operatori', label: 'Log operatori', href: '/dashboard/log-operatori', gruppo: 'Amministrazione' },
 ] as const
 
 export type SezioneChiave = (typeof SEZIONI)[number]['chiave']

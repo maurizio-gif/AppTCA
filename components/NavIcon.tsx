@@ -56,6 +56,12 @@ const ICONE: Record<string, React.ReactNode> = {
       <path d="M15 13.2c2.5.4 4.5 2.5 4.5 5.3" />
     </>
   ),
+  'log-operatori': (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3.2 2" />
+    </>
+  ),
 }
 
 const SEGNAPOSTO = <circle cx="12" cy="12" r="3" />

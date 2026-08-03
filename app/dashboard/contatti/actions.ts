@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { registraLog } from '@/lib/audit'
 
 // Chi ha gestito il contatto viene letto dall'header impostato dal
 // middleware (gia' validato con Supabase Auth), mai da un valore passato
@@ -41,11 +42,18 @@ export async function impostaGestito(id: string, gestito: boolean) {
     throw new Error(error.message)
   }
 
+  await registraLog(email, 'contatto_gestito', {
+    entita: 'form_contatti',
+    entitaId: id,
+    dettagli: { gestito },
+  })
+
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
 }
 
 export async function salvaNote(id: string, note: string) {
+  const email = headers().get('x-tca-user-email')
   const supabase = createSupabaseServiceClient()
 
   const { error } = await supabase.from('form_contatti').update({ note }).eq('id', id)
@@ -53,6 +61,11 @@ export async function salvaNote(id: string, note: string) {
   if (error) {
     throw new Error(error.message)
   }
+
+  // Il testo della nota non entra nei "dettagli" del log: duplicherebbe
+  // dati del contatto (potenzialmente sensibili) in un'altra tabella senza
+  // un reale bisogno, basta sapere chi e quando ha aggiornato la nota.
+  await registraLog(email, 'contatto_nota_salvata', { entita: 'form_contatti', entitaId: id })
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
@@ -80,6 +93,8 @@ export async function eliminaContatto(id: string) {
   if (error) {
     throw new Error(error.message)
   }
+
+  await registraLog(email, 'contatto_cancellato', { entita: 'form_contatti', entitaId: id })
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
