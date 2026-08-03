@@ -2,6 +2,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { FiltroData } from '@/components/FiltroData'
 import { EsportaCsv } from '@/components/EsportaCsv'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { accoppiaTurni, formattaDurata, giornoRoma, type Turno } from '@/lib/timbratura'
 
 function formattaOra(iso: string): string {
@@ -79,10 +80,35 @@ export async function TimbratureReport({
 
   return (
     <div>
-      <p className="muted" style={{ marginBottom: 16 }}>
+      <p className="muted" style={{ marginBottom: 12 }}>
         Turni calcolati accoppiando ogni entrata con l'uscita successiva. Filtra per periodo e operatore, poi esporta
         in CSV: pronto per essere inviato al consulente del lavoro.
       </p>
+
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>
+            Per dare a un dipendente accesso alla timbratura: <strong>Gestione utenti</strong> → apri la sua scheda →
+            attiva «Timbra cartellino» tra le sezioni visibili.
+          </li>
+          <li>
+            Filtra qui sotto per periodo (dal/al — di default il mese in corso) e per operatore.
+          </li>
+          <li>
+            La tabella mostra ogni turno con entrata, uscita e durata calcolata automaticamente; sotto, il totale ore
+            del periodo filtrato.
+          </li>
+          <li>
+            Premi «Esporta CSV» per scaricare esattamente le righe filtrate: il file si apre correttamente in Excel,
+            pronto da inviare al consulente del lavoro.
+          </li>
+        </ol>
+        <p className="box-istruzioni-nota">
+          Un turno ancora senza uscita registrata appare come «In corso» ed è escluso dal totale ore, finché la
+          persona non timbra l'uscita. Per vedere questa pagina serve lo stesso permesso di «Log operatori»: di
+          norma va lasciato solo a chi si occupa di amministrazione/paghe.
+        </p>
+      </BoxIstruzioni>
 
       <div className="filtri-toolbar">
         <FiltroData dal={dal} al={al} />
