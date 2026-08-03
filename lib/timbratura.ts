@@ -3,12 +3,10 @@
 // client) sia, se utile, da componenti client per un riscontro immediato.
 
 // Centro della zona valida: Via Feltre 33, 20134 Milano (TC Ambrosiano).
-// COORDINATE PROVVISORIE, da confermare con un pin preciso su Google Maps
-// prima di usare la funzione in produzione: sbagliare qui rifiuta timbri
-// legittimi o accetta timbri fuori sede.
+// Coordinate confermate con un pin preciso su Google Maps.
 export const ZONA_TIMBRATURA = {
-  lat: 45.46342,
-  lng: 9.19405,
+  lat: 45.4917765,
+  lng: 9.2427521,
   raggioMetri: 100,
 }
 
