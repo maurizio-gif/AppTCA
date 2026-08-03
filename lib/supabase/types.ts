@@ -585,6 +585,36 @@ export type Database = {
         }
         Relationships: []
       }
+      timbrature: {
+        Row: {
+          created_at: string
+          distanza_metri: number
+          email: string
+          id: number
+          lat: number
+          lng: number
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          distanza_metri: number
+          email: string
+          id?: number
+          lat: number
+          lng: number
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          distanza_metri?: number
+          email?: string
+          id?: number
+          lat?: number
+          lng?: number
+          tipo?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1860,6 +1860,76 @@ table.data-table {
   margin-bottom: 24px;
 }
 
+/* ---------- Timbra cartellino ---------- */
+
+.timbra-azioni {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.timbra-btn {
+  flex: 1;
+  min-width: 160px;
+  padding: 26px 20px;
+  border-radius: 14px;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-light);
+  cursor: pointer;
+  font-family: var(--font-display), sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.timbra-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+}
+
+.timbra-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+/* Il pulsante consigliato (probabile prossimo passo, vedi page.tsx) e'
+   pieno invece che solo col bordo, cosi' si nota a colpo d'occhio quale
+   dei due si sceglierebbe di solito, senza impedire l'altro. */
+.timbra-btn.suggerita {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.timbra-btn.suggerita:hover:not(:disabled) {
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+}
+
+.timbra-esito {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.timbra-esito.ok {
+  background: #e3f3ea;
+  color: #1f7a4d;
+  border: 1px solid #c3e6d3;
+}
+
+.timbra-esito.errore {
+  background: #fbeaea;
+  color: var(--color-accent-dark);
+  border: 1px solid #f0cccc;
+}
+
 /* ---------- Loading state ---------- */
 
 .page-loading {

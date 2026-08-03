@@ -22,6 +22,9 @@ export const AZIONI_LOG: Record<string, string> = {
   contatto_cancellato: 'Contatto: cancellato definitivamente',
   scuola_tennis_caricato_pgm: 'Scuola Tennis: stato PerfectGym modificato',
   summer_camp_caricato_pgm: 'Summer Camp: stato PerfectGym modificato',
+  timbratura_entrata: 'Timbratura: entrata',
+  timbratura_uscita: 'Timbratura: uscita',
+  timbratura_rifiutata: 'Timbratura: rifiutata (fuori zona)',
 }
 
 export function etichettaAzione(azione: string): string {
