@@ -8,6 +8,7 @@ import { VistaTabs } from '@/components/VistaTabs'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { ComponiNotifica } from './ComponiNotifica'
 import { ConfermaLetturaButton } from './ConfermaLetturaButton'
+import { AttivaNotifichePush } from './AttivaNotifichePush'
 
 // Vita breve: basta il tempo di caricare la pagina e cliccare l'allegato,
 // non serve un link valido a lungo (la pagina e' comunque "force-dynamic",
@@ -90,8 +91,14 @@ export default async function NotifichePage({
           <li>In «Ricevuti» apri un messaggio e premi «Confermo di aver letto»: registra data e ora di lettura.</li>
           <li>In «Inviati» controlli se e quando è stato letto ogni messaggio che hai inviato.</li>
           <li>Puoi allegare un file (JPG, PNG, PDF, Word o Excel, massimo 5 MB) a ogni messaggio.</li>
+          <li>
+            «Attiva notifiche push» avvisa anche a pannello chiuso, con una notifica del telefono/computer: va
+            attivata separatamente su ogni dispositivo con cui vuoi riceverle.
+          </li>
         </ol>
       </BoxIstruzioni>
+
+      <AttivaNotifichePush />
 
       <ComponiNotifica destinatari={destinatariDisponibili} />
 

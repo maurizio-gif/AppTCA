@@ -2175,6 +2175,22 @@ table.data-table {
   padding: 12px 14px;
 }
 
+.push-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.push-toggle-stato {
+  font-size: 13px;
+  color: var(--color-text-light);
+}
+
+.push-toggle-nota {
+  margin-bottom: 20px;
+}
+
 .componi-notifica {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
