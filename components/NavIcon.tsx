@@ -11,6 +11,12 @@ const ICONE: Record<string, React.ReactNode> = {
       <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.2" />
     </>
   ),
+  notifiche: (
+    <>
+      <path d="M12 3.5a5 5 0 0 0-5 5v3.2c0 .9-.35 1.77-1 2.4L5 15h14l-1-1c-.65-.63-1-1.5-1-2.4V8.5a5 5 0 0 0-5-5Z" />
+      <path d="M9.5 18.5a2.5 2.5 0 0 0 5 0" />
+    </>
+  ),
   timbratura: (
     <>
       <circle cx="12" cy="14" r="7.5" />

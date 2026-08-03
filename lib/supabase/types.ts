@@ -555,6 +555,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notifiche: {
+        Row: {
+          a_email: string
+          allegato_dimensione: number | null
+          allegato_nome: string | null
+          allegato_path: string | null
+          allegato_tipo: string | null
+          created_at: string
+          da_email: string
+          id: number
+          letta_il: string | null
+          messaggio: string
+        }
+        Insert: {
+          a_email: string
+          allegato_dimensione?: number | null
+          allegato_nome?: string | null
+          allegato_path?: string | null
+          allegato_tipo?: string | null
+          created_at?: string
+          da_email: string
+          id?: number
+          letta_il?: string | null
+          messaggio: string
+        }
+        Update: {
+          a_email?: string
+          allegato_dimensione?: number | null
+          allegato_nome?: string | null
+          allegato_path?: string | null
+          allegato_tipo?: string | null
+          created_at?: string
+          da_email?: string
+          id?: number
+          letta_il?: string | null
+          messaggio?: string
+        }
+        Relationships: []
+      }
       staff_users: {
         Row: {
           cognome: string | null

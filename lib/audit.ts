@@ -25,6 +25,7 @@ export const AZIONI_LOG: Record<string, string> = {
   timbratura_entrata: 'Timbratura: entrata',
   timbratura_uscita: 'Timbratura: uscita',
   timbratura_rifiutata: 'Timbratura: rifiutata (fuori zona)',
+  notifica_inviata: 'Notifica interna inviata',
 }
 
 export function etichettaAzione(azione: string): string {

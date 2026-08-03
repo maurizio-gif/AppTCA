@@ -2,6 +2,9 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { isSegreteriaEmail } from '@/lib/auth/allowlist'
 import { getNomeUtente, getSezioniConsentite } from '@/lib/auth/sezioni-server'
+import { getStatoNotifiche } from './notifiche/actions'
+import { NotificheProvider } from './NotificheProvider'
+import { NotificheBanner } from './NotificheBanner'
 import { Sidebar } from './Sidebar'
 import { LogoutInattivita } from './LogoutInattivita'
 
@@ -22,16 +25,22 @@ export default async function DashboardLayout({
     redirect('/login?error=non-autorizzato')
   }
 
-  const [sezioniConsentite, nomeUtente] = await Promise.all([
+  const [sezioniConsentite, nomeUtente, statoNotifiche] = await Promise.all([
     getSezioniConsentite(email),
     getNomeUtente(email),
+    getStatoNotifiche(),
   ])
 
   return (
-    <div className="app-shell">
-      <LogoutInattivita />
-      <Sidebar email={email} nomeUtente={nomeUtente} sezioniConsentite={sezioniConsentite} />
-      <main className="main-content">{children}</main>
-    </div>
+    <NotificheProvider nonLetteIniziali={statoNotifiche.nonLette}>
+      <div className="app-shell">
+        <LogoutInattivita />
+        <Sidebar email={email} nomeUtente={nomeUtente} sezioniConsentite={sezioniConsentite} />
+        <main className="main-content">
+          <NotificheBanner />
+          {children}
+        </main>
+      </div>
+    </NotificheProvider>
   )
 }
