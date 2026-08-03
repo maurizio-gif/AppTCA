@@ -2191,8 +2191,44 @@ table.data-table {
 .componi-notifica-destinatari {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.componi-notifica-conteggio {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+/* Pillola cliccabile per scegliere uno o piu' destinatari: piu' leggibile
+   di una lista di checkbox quando lo staff e' numeroso, lo stato scelto si
+   vede a colpo d'occhio dal colore invece di dover leggere ogni casella. */
+.chip-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chip-toggle:hover {
+  border-color: var(--color-accent);
+}
+
+.chip-toggle.is-attivo {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.chip-toggle:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .componi-notifica-testo {

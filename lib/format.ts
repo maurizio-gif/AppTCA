@@ -1,3 +1,14 @@
+// Ordine standard per qualsiasi elenco di operatori nel pannello (tabelle,
+// tendine filtro, destinatari notifiche, ecc.): sempre alfabetico per
+// cognome, con l'email come criterio di riserva quando manca il nome.
+export function confrontaOperatori(
+  a: { nome?: string | null; cognome?: string | null; email: string },
+  b: { nome?: string | null; cognome?: string | null; email: string }
+): number {
+  const chiave = (o: typeof a) => `${o.cognome ?? ''} ${o.nome ?? ''}`.trim() || o.email
+  return chiave(a).localeCompare(chiave(b), 'it', { sensitivity: 'base' })
+}
+
 export function prettifyKey(key: string): string {
   return key
     .replace(/_/g, ' ')

@@ -1,7 +1,7 @@
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
-import { formatDateOra } from '@/lib/format'
+import { confrontaOperatori, formatDateOra } from '@/lib/format'
 import { BUCKET_ALLEGATI_NOTIFICHE, formatDimensioneFile } from '@/lib/allegati'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { VistaTabs } from '@/components/VistaTabs'
@@ -65,9 +65,11 @@ export default async function NotifichePage({
 
   // Solo chi ha anche il permesso "Notifiche" puo' essere scelto come
   // destinatario: scrivere a chi non ha la sezione non servirebbe a nulla,
-  // non la vedrebbe mai (vedi NotificheProvider/layout.tsx).
+  // non la vedrebbe mai (vedi NotificheProvider/layout.tsx). Sempre in
+  // ordine alfabetico di cognome, come ogni altro elenco di operatori.
   const destinatariDisponibili = (staffAll ?? [])
     .filter((s) => s.email !== email && (s.sezioni_consentite ?? []).includes('notifiche'))
+    .sort(confrontaOperatori)
     .map((s) => ({ email: s.email, nome: nomeOperatore(s.email) }))
 
   const vista = searchParams.vista === 'inviati' ? 'inviati' : 'ricevuti'

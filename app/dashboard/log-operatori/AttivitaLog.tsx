@@ -1,5 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
-import { formatDateOra } from '@/lib/format'
+import { confrontaOperatori, formatDateOra } from '@/lib/format'
 import { AZIONI_LOG, etichettaAzione } from '@/lib/audit'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
@@ -52,7 +52,11 @@ export async function AttivitaLog({
   // tentativo di accesso con un'email non autorizzata (mostra l'email
   // grezza in quel caso, non c'e' un nome da cercare).
   const mappaStaff = new Map((staffAll ?? []).map((s) => [s.email, s]))
-  const emailUniche = [...new Set((emailLog ?? []).map((r) => r.email).filter((e): e is string => !!e))].sort()
+  // Sempre in ordine alfabetico di cognome, come ogni altro elenco di operatori.
+  const emailUniche = [...new Set((emailLog ?? []).map((r) => r.email).filter((e): e is string => !!e))]
+    .map((email) => ({ email, ...mappaStaff.get(email) }))
+    .sort(confrontaOperatori)
+    .map((s) => s.email)
 
   function nomeOperatore(email: string | null): string {
     if (!email) return '—'
