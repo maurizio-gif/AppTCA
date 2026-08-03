@@ -1,8 +1,9 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { formatDateOra } from '@/lib/format'
-import { AZIONI_LOG, etichettaAzione, formattaDettagliLog } from '@/lib/audit'
+import { AZIONI_LOG, etichettaAzione } from '@/lib/audit'
 import { FiltroSelect } from '@/components/FiltroSelect'
+import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,14 @@ export const dynamic = 'force-dynamic'
 // righe piu' recenti (dopo i filtri, vedi sotto) bastano abbondantemente
 // senza bisogno di una paginazione vera.
 const LIMITE = 300
+
+const COLONNE_TABELLA = ['Quando', 'Operatore', 'Azione']
+
+// "Operatore" e "Azione" (etichetta) sono calcolati e mostrati come cella,
+// non fanno parte del dettaglio generico: azione grezza e id restano
+// comunque visibili nel pannello espanso, entita/entita_id/dettagli non
+// sono mai nascosti - e' proprio quello che si apre la riga per vedere.
+const COLONNE_VISIBILI = ['id', 'created_at', 'azione']
 
 export default async function LogOperatoriPage({
   searchParams,
@@ -45,18 +54,22 @@ export default async function LogOperatoriPage({
   }
 
   // Chi ha fatto almeno un'azione, non solo lo staff attuale: cosi' resta
-  // filtrabile anche un operatore rimosso in seguito, o un tentativo di
-  // accesso con un'email non autorizzata.
+  // filtrabile/riconoscibile anche un operatore rimosso in seguito, o un
+  // tentativo di accesso con un'email non autorizzata (mostra l'email
+  // grezza in quel caso, non c'e' un nome da cercare).
   const mappaStaff = new Map((staffAll ?? []).map((s) => [s.email, s]))
   const emailUniche = [...new Set((emailLog ?? []).map((r) => r.email).filter((e): e is string => !!e))].sort()
 
+  function nomeOperatore(email: string | null): string {
+    if (!email) return '—'
+    const s = mappaStaff.get(email)
+    const nomeCompleto = s ? `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() : ''
+    return nomeCompleto || email
+  }
+
   const opzioniOperatori = [
     { valore: 'tutti', etichetta: 'Tutti gli operatori' },
-    ...emailUniche.map((email) => {
-      const s = mappaStaff.get(email)
-      const nomeCompleto = s ? `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() : ''
-      return { valore: email, etichetta: nomeCompleto || email }
-    }),
+    ...emailUniche.map((email) => ({ valore: email, etichetta: nomeOperatore(email) })),
   ]
 
   const opzioniAzioni = [
@@ -73,7 +86,7 @@ export default async function LogOperatoriPage({
       <p className="muted" style={{ marginBottom: 16 }}>
         Le azioni piu' significative fatte dagli operatori nel pannello: accessi, permessi modificati, contatti
         gestiti o cancellati, iscrizioni segnate su PerfectGym. Non e' un log di ogni singolo click, solo delle
-        azioni con un effetto reale.
+        azioni con un effetto reale. Apri una riga per vedere tutti i dettagli.
       </p>
 
       <div className="filtri-toolbar">
@@ -90,22 +103,27 @@ export default async function LogOperatoriPage({
         <table className="data-table">
           <thead>
             <tr>
+              <th></th>
               <th>Quando</th>
               <th>Operatore</th>
               <th>Azione</th>
-              <th>Dettagli</th>
             </tr>
           </thead>
-          <tbody>
-            {(righe ?? []).map((riga) => (
-              <tr key={riga.id}>
-                <td data-label="Quando">{formatDateOra(riga.created_at)}</td>
-                <td data-label="Operatore">{riga.email ?? '—'}</td>
-                <td data-label="Azione">{etichettaAzione(riga.azione)}</td>
-                <td data-label="Dettagli">{formattaDettagliLog(riga)}</td>
-              </tr>
-            ))}
-          </tbody>
+          <AccordionGroup>
+            <tbody>
+              {(righe ?? []).map((riga) => (
+                <ExpandableRow
+                  key={riga.id}
+                  id={String(riga.id)}
+                  columnCount={COLONNE_TABELLA.length + 1}
+                  columns={COLONNE_TABELLA}
+                  record={riga}
+                  hiddenKeys={COLONNE_VISIBILI}
+                  cells={[formatDateOra(riga.created_at), nomeOperatore(riga.email), etichettaAzione(riga.azione)]}
+                />
+              ))}
+            </tbody>
+          </AccordionGroup>
         </table>
 
         {(righe ?? []).length === 0 && <p className="empty-state">Nessuna azione registrata.</p>}
