@@ -23,11 +23,10 @@ export function PuoCancellareToggle({
           const nuovo = e.target.checked
           setValore(nuovo)
           startTransition(async () => {
-            try {
-              await impostaPuoCancellare(email, nuovo)
-            } catch (err) {
+            const risultato = await impostaPuoCancellare(email, nuovo)
+            if (!risultato.ok) {
               setValore(!nuovo)
-              alert(err instanceof Error ? err.message : 'Errore durante il salvataggio.')
+              alert(risultato.errore)
             }
           })
         }}

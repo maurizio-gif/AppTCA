@@ -22,10 +22,9 @@ export function EliminaContattoButton({ id }: { id: string }) {
           if (!confermato) return
 
           startTransition(async () => {
-            try {
-              await eliminaContatto(id)
-            } catch (err) {
-              setErrore(err instanceof Error ? err.message : 'Errore durante la cancellazione.')
+            const risultato = await eliminaContatto(id)
+            if (!risultato.ok) {
+              setErrore(risultato.errore)
             }
           })
         }}

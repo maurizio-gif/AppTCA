@@ -20,7 +20,7 @@ export function ToggleConMeta({
   attivoIl: string | null
   etichettaOff: string
   etichettaOn: string
-  onToggle: (nuovo: boolean) => Promise<void>
+  onToggle: (nuovo: boolean) => Promise<{ ok: true } | { ok: false; errore: string }>
 }) {
   const [isAttivo, setIsAttivo] = useState(attivo)
   const [errore, setErrore] = useState<string | null>(null)
@@ -30,11 +30,10 @@ export function ToggleConMeta({
     setErrore(null)
     setIsAttivo(nuovo)
     startTransition(async () => {
-      try {
-        await onToggle(nuovo)
-      } catch (err) {
+      const risultato = await onToggle(nuovo)
+      if (!risultato.ok) {
         setIsAttivo(!nuovo)
-        setErrore(err instanceof Error ? err.message : 'Errore durante il salvataggio.')
+        setErrore(risultato.errore)
       }
     })
   }

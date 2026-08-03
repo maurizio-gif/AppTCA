@@ -14,10 +14,9 @@ export function RimuoviButton({ email }: { email: string }) {
       onClick={() => {
         if (!confirm(`Rimuovere l'accesso per ${email}?`)) return
         startTransition(async () => {
-          try {
-            await rimuoviStaff(email)
-          } catch (e) {
-            alert(e instanceof Error ? e.message : 'Errore durante la rimozione.')
+          const risultato = await rimuoviStaff(email)
+          if (!risultato.ok) {
+            alert(risultato.errore)
           }
         })
       }}

@@ -5,9 +5,13 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { registraLog } from '@/lib/audit'
 
+type Risultato = { ok: true } | { ok: false; errore: string }
+
 // Stesso pattern di impostaGestito (contatti/actions.ts), senza nota: qui
 // serve solo sapere se la preiscrizione e' stata caricata su PerfectGym.
-export async function impostaCaricatoPgm(id: string, caricato: boolean) {
+// Risultato come valore di ritorno, non un throw: in produzione Next.js
+// oscura sempre il messaggio di un errore lanciato da una Server Action.
+export async function impostaCaricatoPgm(id: string, caricato: boolean): Promise<Risultato> {
   const email = headers().get('x-tca-user-email')
   const supabase = createSupabaseServiceClient()
 
@@ -21,7 +25,7 @@ export async function impostaCaricatoPgm(id: string, caricato: boolean) {
     .eq('id', id)
 
   if (error) {
-    throw new Error(error.message)
+    return { ok: false, errore: error.message }
   }
 
   await registraLog(email, 'scuola_tennis_caricato_pgm', {
@@ -31,4 +35,6 @@ export async function impostaCaricatoPgm(id: string, caricato: boolean) {
   })
 
   revalidatePath('/dashboard/scuola-tennis')
+
+  return { ok: true }
 }

@@ -5,10 +5,18 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { registraLog } from '@/lib/audit'
 
+type Risultato = { ok: true } | { ok: false; errore: string }
+
+// Risultato come valore di ritorno, non un throw: in produzione Next.js
+// oscura sempre il messaggio di un errore lanciato da una Server Action
+// (non distingue un messaggio "sicuro" da uno sensibile), quindi l'unico
+// modo per far arrivare un messaggio leggibile al client e' restituirlo
+// come dato normale (stesso criterio di app/dashboard/timbratura/actions.ts).
+//
 // Chi ha gestito il contatto viene letto dall'header impostato dal
 // middleware (gia' validato con Supabase Auth), mai da un valore passato
 // dal client: cosi' non si puo' falsificare "gestito da" via devtools.
-export async function impostaGestito(id: string, gestito: boolean) {
+export async function impostaGestito(id: string, gestito: boolean): Promise<Risultato> {
   const supabase = createSupabaseServiceClient()
 
   // Verifica lato server (non solo lato UI, altrimenti la Server Action
@@ -21,9 +29,9 @@ export async function impostaGestito(id: string, gestito: boolean) {
       .eq('id', id)
       .maybeSingle()
 
-    if (fetchError) throw new Error(fetchError.message)
+    if (fetchError) return { ok: false, errore: fetchError.message }
     if (!contatto?.note?.trim()) {
-      throw new Error('Aggiungi e salva una nota prima di segnare il contatto come gestito.')
+      return { ok: false, errore: 'Aggiungi e salva una nota prima di segnare il contatto come gestito.' }
     }
   }
 
@@ -39,7 +47,7 @@ export async function impostaGestito(id: string, gestito: boolean) {
     .eq('id', id)
 
   if (error) {
-    throw new Error(error.message)
+    return { ok: false, errore: error.message }
   }
 
   await registraLog(email, 'contatto_gestito', {
@@ -50,16 +58,18 @@ export async function impostaGestito(id: string, gestito: boolean) {
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
+
+  return { ok: true }
 }
 
-export async function salvaNote(id: string, note: string) {
+export async function salvaNote(id: string, note: string): Promise<Risultato> {
   const email = headers().get('x-tca-user-email')
   const supabase = createSupabaseServiceClient()
 
   const { error } = await supabase.from('form_contatti').update({ note }).eq('id', id)
 
   if (error) {
-    throw new Error(error.message)
+    return { ok: false, errore: error.message }
   }
 
   // Il testo della nota non entra nei "dettagli" del log: duplicherebbe
@@ -69,12 +79,14 @@ export async function salvaNote(id: string, note: string) {
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
+
+  return { ok: true }
 }
 
 // Verifica lato server (non solo lato UI, altrimenti la Server Action resta
 // chiamabile a mano bypassando il permesso): solo chi ha "puo_cancellare"
 // puo' cancellare definitivamente un contatto.
-export async function eliminaContatto(id: string) {
+export async function eliminaContatto(id: string): Promise<Risultato> {
   const email = headers().get('x-tca-user-email')
   const supabase = createSupabaseServiceClient()
 
@@ -85,17 +97,19 @@ export async function eliminaContatto(id: string) {
     .maybeSingle()
 
   if (!chiamante?.puo_cancellare) {
-    throw new Error('Non hai il permesso di cancellare i record.')
+    return { ok: false, errore: 'Non hai il permesso di cancellare i record.' }
   }
 
   const { error } = await supabase.from('form_contatti').delete().eq('id', id)
 
   if (error) {
-    throw new Error(error.message)
+    return { ok: false, errore: error.message }
   }
 
   await registraLog(email, 'contatto_cancellato', { entita: 'form_contatti', entitaId: id })
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
+
+  return { ok: true }
 }

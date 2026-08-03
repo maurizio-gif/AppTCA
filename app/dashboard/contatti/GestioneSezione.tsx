@@ -42,13 +42,10 @@ export function GestioneSezione({
 
     setIsGestito(nuovo)
     startTransition(async () => {
-      try {
-        await impostaGestito(id, nuovo)
-      } catch (err) {
+      const risultato = await impostaGestito(id, nuovo)
+      if (!risultato.ok) {
         setIsGestito(!nuovo)
-        setErroreGestito(
-          err instanceof Error ? err.message : 'Errore durante il salvataggio.'
-        )
+        setErroreGestito(risultato.errore)
       }
     })
   }
@@ -107,9 +104,13 @@ export function GestioneSezione({
         disabled={isPending || noteSalvata}
         onClick={() => {
           startTransition(async () => {
-            await salvaNote(id, note)
-            setNoteSalvata(true)
-            setErroreGestito(null)
+            const risultato = await salvaNote(id, note)
+            if (risultato.ok) {
+              setNoteSalvata(true)
+              setErroreGestito(null)
+            } else {
+              setErroreGestito(risultato.errore)
+            }
           })
         }}
       >

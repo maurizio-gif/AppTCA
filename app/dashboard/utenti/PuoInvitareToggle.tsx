@@ -23,11 +23,10 @@ export function PuoInvitareToggle({
           const nuovo = e.target.checked
           setValore(nuovo)
           startTransition(async () => {
-            try {
-              await impostaPuoInvitare(email, nuovo)
-            } catch (err) {
+            const risultato = await impostaPuoInvitare(email, nuovo)
+            if (!risultato.ok) {
               setValore(!nuovo)
-              alert(err instanceof Error ? err.message : 'Errore durante il salvataggio.')
+              alert(risultato.errore)
             }
           })
         }}

@@ -8,6 +8,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/serverClient'
 import { SEZIONI } from '@/lib/auth/sezioni'
 import { registraLog } from '@/lib/audit'
 
+type Risultato = { ok: true } | { ok: false; errore: string }
+
 // Solo chi ha "puo_invitare" puo' invitare o modificare i permessi altrui:
 // controllo lato server, non solo nascondere i controlli in UI, altrimenti
 // le Server Action restano chiamabili a mano bypassando il permesso.
@@ -111,11 +113,16 @@ export async function invitaStaff(formData: FormData) {
   redirect('/dashboard/utenti?ok=1')
 }
 
-export async function impostaPuoInvitare(email: string, puoInvitare: boolean) {
+// Risultato come valore di ritorno, non un throw: in produzione Next.js
+// oscura sempre il messaggio di un errore lanciato da una Server Action,
+// quindi l'unico modo per far arrivare un messaggio leggibile al client e'
+// restituirlo come dato normale (stesso criterio di
+// app/dashboard/timbratura/actions.ts).
+export async function impostaPuoInvitare(email: string, puoInvitare: boolean): Promise<Risultato> {
   const supabase = createSupabaseServiceClient()
 
   if (!(await chiamanteHaPermesso(supabase))) {
-    throw new Error('Non hai il permesso di modificare i permessi degli altri utenti.')
+    return { ok: false, errore: 'Non hai il permesso di modificare i permessi degli altri utenti.' }
   }
 
   const { error } = await supabase
@@ -123,7 +130,7 @@ export async function impostaPuoInvitare(email: string, puoInvitare: boolean) {
     .update({ puo_invitare: puoInvitare })
     .eq('email', email)
 
-  if (error) throw new Error(error.message)
+  if (error) return { ok: false, errore: error.message }
 
   await registraLog(headers().get('x-tca-user-email'), 'permesso_invitare_modificato', {
     entita: 'staff_users',
@@ -132,13 +139,15 @@ export async function impostaPuoInvitare(email: string, puoInvitare: boolean) {
   })
 
   revalidatePath('/dashboard/utenti')
+
+  return { ok: true }
 }
 
-export async function impostaPuoCancellare(email: string, puoCancellare: boolean) {
+export async function impostaPuoCancellare(email: string, puoCancellare: boolean): Promise<Risultato> {
   const supabase = createSupabaseServiceClient()
 
   if (!(await chiamanteHaPermesso(supabase))) {
-    throw new Error('Non hai il permesso di modificare i permessi degli altri utenti.')
+    return { ok: false, errore: 'Non hai il permesso di modificare i permessi degli altri utenti.' }
   }
 
   const { error } = await supabase
@@ -146,7 +155,7 @@ export async function impostaPuoCancellare(email: string, puoCancellare: boolean
     .update({ puo_cancellare: puoCancellare })
     .eq('email', email)
 
-  if (error) throw new Error(error.message)
+  if (error) return { ok: false, errore: error.message }
 
   await registraLog(headers().get('x-tca-user-email'), 'permesso_cancellare_modificato', {
     entita: 'staff_users',
@@ -155,13 +164,15 @@ export async function impostaPuoCancellare(email: string, puoCancellare: boolean
   })
 
   revalidatePath('/dashboard/utenti')
+
+  return { ok: true }
 }
 
-export async function impostaSezioni(email: string, sezioni: string[]) {
+export async function impostaSezioni(email: string, sezioni: string[]): Promise<Risultato> {
   const supabase = createSupabaseServiceClient()
 
   if (!(await chiamanteHaPermesso(supabase))) {
-    throw new Error('Non hai il permesso di modificare le sezioni visibili agli altri utenti.')
+    return { ok: false, errore: 'Non hai il permesso di modificare le sezioni visibili agli altri utenti.' }
   }
 
   const { error } = await supabase
@@ -169,7 +180,7 @@ export async function impostaSezioni(email: string, sezioni: string[]) {
     .update({ sezioni_consentite: sezioni })
     .eq('email', email)
 
-  if (error) throw new Error(error.message)
+  if (error) return { ok: false, errore: error.message }
 
   await registraLog(headers().get('x-tca-user-email'), 'sezioni_modificate', {
     entita: 'staff_users',
@@ -178,16 +189,18 @@ export async function impostaSezioni(email: string, sezioni: string[]) {
   })
 
   revalidatePath('/dashboard/utenti')
+
+  return { ok: true }
 }
 
-export async function rimuoviStaff(email: string) {
+export async function rimuoviStaff(email: string): Promise<Risultato> {
   const supabaseServer = createSupabaseServerClient()
   const {
     data: { user },
   } = await supabaseServer.auth.getUser()
 
   if (user?.email?.toLowerCase() === email.toLowerCase()) {
-    throw new Error('Non puoi rimuovere il tuo stesso account.')
+    return { ok: false, errore: 'Non puoi rimuovere il tuo stesso account.' }
   }
 
   const supabase = createSupabaseServiceClient()
@@ -199,16 +212,16 @@ export async function rimuoviStaff(email: string) {
     page: 1,
     perPage: 1000,
   })
-  if (elencoError) throw new Error(elencoError.message)
+  if (elencoError) return { ok: false, errore: elencoError.message }
 
   const utenteAuth = elenco.users.find((u) => u.email?.toLowerCase() === email.toLowerCase())
   if (utenteAuth) {
     const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(utenteAuth.id)
-    if (deleteAuthError) throw new Error(deleteAuthError.message)
+    if (deleteAuthError) return { ok: false, errore: deleteAuthError.message }
   }
 
   const { error } = await supabase.from('staff_users').delete().eq('email', email)
-  if (error) throw new Error(error.message)
+  if (error) return { ok: false, errore: error.message }
 
   await registraLog(user?.email, 'utente_rimosso', {
     entita: 'staff_users',
@@ -217,4 +230,6 @@ export async function rimuoviStaff(email: string) {
   })
 
   revalidatePath('/dashboard/utenti')
+
+  return { ok: true }
 }
