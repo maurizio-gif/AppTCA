@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { registraLog } from '@/lib/audit'
 import { BUCKET_ALLEGATI_NOTIFICHE, DIMENSIONE_MASSIMA_ALLEGATO, TIPI_ALLEGATO_CONSENTITI } from '@/lib/allegati'
 
@@ -23,13 +24,19 @@ export async function inviaNotifica(formData: FormData): Promise<Risultato> {
     return { ok: false, errore: 'Sessione non valida: ricarica la pagina e riprova.' }
   }
 
+  // Controllo lato server, non solo nella pagina: il permesso "Notifiche"
+  // puo' essere stato revocato dopo che il form era gia' aperto in un tab.
+  if (!(await utenteHaSezione('notifiche'))) {
+    return { ok: false, errore: 'Non hai il permesso di inviare notifiche.' }
+  }
+
   const testo = String(formData.get('messaggio') ?? '').trim()
   if (!testo) {
     return { ok: false, errore: 'Scrivi un messaggio prima di inviarlo.' }
   }
 
-  const destinatariUnici = [...new Set(formData.getAll('destinatari').map(String).filter(Boolean))]
-  if (destinatariUnici.length === 0) {
+  const destinatariRichiesti = [...new Set(formData.getAll('destinatari').map(String).filter(Boolean))]
+  if (destinatariRichiesti.length === 0) {
     return { ok: false, errore: 'Seleziona almeno un destinatario.' }
   }
 
@@ -46,6 +53,22 @@ export async function inviaNotifica(formData: FormData): Promise<Risultato> {
   }
 
   const supabase = createSupabaseServiceClient()
+
+  // Non basta che il mittente abbia scelto un indirizzo nel form: chi non ha
+  // (piu') il permesso "Notifiche" va escluso comunque, altrimenti scrivere
+  // a mano l'email nella richiesta scavalcherebbe la lista filtrata in pagina.
+  const { data: staffRichiesti } = await supabase
+    .from('staff_users')
+    .select('email, sezioni_consentite')
+    .in('email', destinatariRichiesti)
+
+  const destinatariUnici = (staffRichiesti ?? [])
+    .filter((s) => (s.sezioni_consentite ?? []).includes('notifiche'))
+    .map((s) => s.email)
+
+  if (destinatariUnici.length === 0) {
+    return { ok: false, errore: 'Nessuno dei destinatari selezionati ha il permesso di ricevere notifiche.' }
+  }
 
   let allegatoPath: string | null = null
   if (allegato) {
@@ -136,6 +159,10 @@ export type UltimaNotifica = {
 export async function getStatoNotifiche(): Promise<{ nonLette: number; ultima: UltimaNotifica | null }> {
   const email = headers().get('x-tca-user-email')
   if (!email) return { nonLette: 0, ultima: null }
+
+  // Chi non ha (piu') il permesso "Notifiche" non deve vedere badge/banner,
+  // anche se il polling del client fosse ancora in corso in un tab vecchio.
+  if (!(await utenteHaSezione('notifiche'))) return { nonLette: 0, ultima: null }
 
   const supabase = createSupabaseServiceClient()
 

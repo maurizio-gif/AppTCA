@@ -25,14 +25,19 @@ export default async function DashboardLayout({
     redirect('/login?error=non-autorizzato')
   }
 
-  const [sezioniConsentite, nomeUtente, statoNotifiche] = await Promise.all([
+  const [sezioniConsentite, nomeUtente] = await Promise.all([
     getSezioniConsentite(email),
     getNomeUtente(email),
-    getStatoNotifiche(),
   ])
 
+  // Chi non ha il permesso "Notifiche" non deve ricevere nulla: niente
+  // interrogazione iniziale, niente badge/banner, niente polling lato client
+  // (vedi NotificheProvider).
+  const puoRicevereNotifiche = sezioniConsentite.includes('notifiche')
+  const statoNotifiche = puoRicevereNotifiche ? await getStatoNotifiche() : { nonLette: 0, ultima: null }
+
   return (
-    <NotificheProvider nonLetteIniziali={statoNotifiche.nonLette}>
+    <NotificheProvider abilitato={puoRicevereNotifiche} nonLetteIniziali={statoNotifiche.nonLette}>
       <div className="app-shell">
         <LogoutInattivita />
         <Sidebar email={email} nomeUtente={nomeUtente} sezioniConsentite={sezioniConsentite} />
