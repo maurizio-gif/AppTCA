@@ -58,21 +58,22 @@ export function TimbraCartellino({
       (posizione) => {
         const { latitude, longitude } = posizione.coords
         startTransition(async () => {
-          try {
-            await registraTimbratura(tipo, latitude, longitude)
+          const risultato = await registraTimbratura(tipo, latitude, longitude)
+
+          if (risultato.ok) {
             setMessaggio({
               tipo: 'ok',
-              testo: `${tipo === 'entrata' ? 'Entrata' : 'Uscita'} registrata alle ${new Date().toLocaleTimeString('it-IT')}.`,
+              testo: `${tipo === 'entrata' ? 'Entrata' : 'Uscita'} registrata alle ${new Date().toLocaleTimeString('it-IT')} (${risultato.distanza}m dal circolo).`,
             })
             setStoricoLocale((prev) => [
-              { id: -Date.now(), quando: new Date().toLocaleString('it-IT'), tipo, distanza: 0 },
+              { id: -Date.now(), quando: new Date().toLocaleString('it-IT'), tipo, distanza: risultato.distanza },
               ...prev,
             ])
-          } catch (err) {
-            setMessaggio({ tipo: 'errore', testo: err instanceof Error ? err.message : 'Errore durante il timbro.' })
-          } finally {
-            setInCorso(null)
+          } else {
+            setMessaggio({ tipo: 'errore', testo: risultato.errore })
           }
+
+          setInCorso(null)
         })
       },
       (errore) => {
