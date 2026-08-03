@@ -7,6 +7,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { registraLog } from '@/lib/audit'
 import { BUCKET_ALLEGATI_NOTIFICHE, DIMENSIONE_MASSIMA_ALLEGATO, TIPI_ALLEGATO_CONSENTITI } from '@/lib/allegati'
+import { inviaPush } from '@/lib/push'
 
 type Risultato = { ok: true } | { ok: false; errore: string }
 
@@ -108,9 +109,49 @@ export async function inviaNotifica(formData: FormData): Promise<Risultato> {
     dettagli: { destinatari: destinatariUnici, allegato: allegato?.name ?? null },
   })
 
+  await provaInviaPush(supabase, email, destinatariUnici, testo)
+
   revalidatePath('/dashboard/notifiche')
 
   return { ok: true }
+}
+
+// Best-effort: il messaggio e' gia' salvato e visibile in "Notifiche" (badge,
+// banner, elenco) a prescindere da come va il push - un dispositivo senza
+// notifiche attive, senza rete, o con una sottoscrizione scaduta non deve
+// mai far fallire l'invio vero e proprio.
+async function provaInviaPush(
+  supabase: ReturnType<typeof createSupabaseServiceClient>,
+  daEmail: string,
+  destinatari: string[],
+  testo: string
+) {
+  try {
+    const [{ data: mittente }, { data: sottoscrizioni }] = await Promise.all([
+      supabase.from('staff_users').select('nome, cognome').eq('email', daEmail).maybeSingle(),
+      supabase.from('push_subscriptions').select('id, endpoint, p256dh, auth').in('email', destinatari),
+    ])
+
+    if (!sottoscrizioni || sottoscrizioni.length === 0) return
+
+    const nomeMittente = mittente ? `${mittente.nome ?? ''} ${mittente.cognome ?? ''}`.trim() : ''
+    const payload = {
+      titolo: `Messaggio da ${nomeMittente || daEmail}`,
+      corpo: testo.length > 140 ? `${testo.slice(0, 140)}…` : testo,
+      url: '/dashboard/notifiche',
+    }
+
+    const risultati = await Promise.all(
+      sottoscrizioni.map(async (s) => ({ id: s.id, ...(await inviaPush(s, payload)) }))
+    )
+
+    const scadute = risultati.filter((r) => !r.ok && r.scaduta).map((r) => r.id)
+    if (scadute.length > 0) {
+      await supabase.from('push_subscriptions').delete().in('id', scadute)
+    }
+  } catch {
+    // Nessuna gestione ulteriore: e' un extra rispetto a badge/banner/elenco.
+  }
 }
 
 // Verifica lato server che la notifica sia davvero indirizzata a chi

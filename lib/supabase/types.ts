@@ -594,6 +594,33 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          email: string
+          endpoint: string
+          id: number
+          p256dh: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          email: string
+          endpoint: string
+          id?: number
+          p256dh: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          email?: string
+          endpoint?: string
+          id?: number
+          p256dh?: string
+        }
+        Relationships: []
+      }
       staff_users: {
         Row: {
           cognome: string | null
