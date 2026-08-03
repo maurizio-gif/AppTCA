@@ -8,7 +8,8 @@
 // una voce senza gruppo finisce comunque in cima, non richiede di
 // aggiornare nient'altro per aggiungere una nuova sezione.
 export const SEZIONI = [
-  { chiave: 'contatti', label: 'Enquiries', href: '/dashboard/contatti', gruppo: 'Moduli' },
+  { chiave: 'contatti-adulti', label: 'Enquiries Adulti', href: '/dashboard/contatti/adulti', gruppo: 'Moduli' },
+  { chiave: 'contatti-junior', label: 'Enquiries Junior', href: '/dashboard/contatti/junior', gruppo: 'Moduli' },
   { chiave: 'scuola-tennis', label: 'Scuola tennis', href: '/dashboard/scuola-tennis', gruppo: 'Moduli' },
   { chiave: 'summer-camp', label: 'Summer Camp', href: '/dashboard/summer-camp', gruppo: 'Moduli' },
   { chiave: 'invita-amico', label: 'Invita un amico', href: '/dashboard/invita-amico', gruppo: 'Moduli' },

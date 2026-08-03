@@ -545,6 +545,19 @@ button {
   margin-bottom: 12px;
 }
 
+.riepilogo-sottosezione {
+  margin-bottom: 18px;
+}
+
+.riepilogo-sottosezione-titolo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 10px;
+}
+
 .stat-row {
   display: flex;
   gap: 20px;

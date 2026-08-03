@@ -11,7 +11,13 @@ const ICONE: Record<string, React.ReactNode> = {
       <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.2" />
     </>
   ),
-  contatti: (
+  'contatti-adulti': (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="1.5" />
+      <path d="M3.5 6.5 12 13l8.5-6.5" />
+    </>
+  ),
+  'contatti-junior': (
     <>
       <rect x="3" y="5" width="18" height="14" rx="1.5" />
       <path d="M3.5 6.5 12 13l8.5-6.5" />

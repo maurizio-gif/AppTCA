@@ -41,7 +41,8 @@ export async function impostaGestito(id: string, gestito: boolean) {
     throw new Error(error.message)
   }
 
-  revalidatePath('/dashboard/contatti')
+  revalidatePath('/dashboard/contatti/adulti')
+  revalidatePath('/dashboard/contatti/junior')
 }
 
 export async function salvaNote(id: string, note: string) {
@@ -53,7 +54,8 @@ export async function salvaNote(id: string, note: string) {
     throw new Error(error.message)
   }
 
-  revalidatePath('/dashboard/contatti')
+  revalidatePath('/dashboard/contatti/adulti')
+  revalidatePath('/dashboard/contatti/junior')
 }
 
 // Verifica lato server (non solo lato UI, altrimenti la Server Action resta
@@ -79,5 +81,6 @@ export async function eliminaContatto(id: string) {
     throw new Error(error.message)
   }
 
-  revalidatePath('/dashboard/contatti')
+  revalidatePath('/dashboard/contatti/adulti')
+  revalidatePath('/dashboard/contatti/junior')
 }

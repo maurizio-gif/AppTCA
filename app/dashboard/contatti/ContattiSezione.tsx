@@ -3,6 +3,8 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { formatDataConGiorno, formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
+import { apparteneAGruppo, type GruppoContatto } from '@/lib/contatti'
+import type { SezioneChiave } from '@/lib/auth/sezioni'
 import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
 import { FiltroSelect } from '@/components/FiltroSelect'
@@ -12,8 +14,6 @@ import { FiltroSelect } from '@/components/FiltroSelect'
 // mobile diventa la riga principale della lista (vedi CSS .row-clickable).
 // Contatti e stato di gestione restano un tap di distanza nel pannello espanso.
 const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Stato', 'Attività', 'Richiesta']
-
-export const dynamic = 'force-dynamic'
 
 const COLONNE_VISIBILI = [
   'id',
@@ -27,17 +27,13 @@ const COLONNE_VISIBILI = [
   'gestito_da',
   'gestito_il',
   'note',
+  'gruppo_attivita',
   // Mostrati in evidenza appena si apre la riga (vedi RichiestaEvidenza),
   // non nella griglia generica dei dettagli.
   'motivo',
   'data_richiesta',
   'ora_richiesta',
 ]
-
-const ETICHETTA_GRUPPO: Record<string, string> = {
-  adulti: 'Adulti',
-  junior: 'Junior',
-}
 
 const FILTRI_VALIDI = ['da_gestire', 'gestiti', 'tutti'] as const
 type Filtro = (typeof FILTRI_VALIDI)[number]
@@ -50,8 +46,8 @@ const OPZIONI_FILTRO = [
 
 type RigaContatto = Record<string, any>
 
-// Singola selezione: assente (es. dal link "Enquiries" nel menu) o non
-// valida = "da gestire", cosi' e' quello che si vede aprendo la pagina.
+// Singola selezione: assente (es. dal link nel menu) o non valida = "da
+// gestire", cosi' e' quello che si vede aprendo la pagina.
 function parseFiltro(raw: string | undefined): Filtro {
   if (raw && (FILTRI_VALIDI as readonly string[]).includes(raw)) return raw as Filtro
   return 'da_gestire'
@@ -64,7 +60,8 @@ function applicaFiltro(righe: RigaContatto[], filtro: Filtro): RigaContatto[] {
 }
 
 // La ricerca ignora il filtro Da gestire/Gestiti: cerca su tutti i
-// contatti, gestiti o meno, dentro nome, cognome, email e cellulare.
+// contatti della sezione, gestiti o meno, dentro nome, cognome, email e
+// cellulare.
 const CAMPI_RICERCA = ['nome', 'cognome', 'email', 'cellulare'] as const
 
 function corrispondeRicerca(riga: RigaContatto, query: string): boolean {
@@ -106,36 +103,24 @@ function RichiestaEvidenza({ riga }: { riga: RigaContatto }) {
   )
 }
 
-function raggruppaPerAttivita(righe: RigaContatto[]) {
-  const gruppi = new Map<string, RigaContatto[]>()
-
-  for (const riga of righe) {
-    const chiave = (riga.gruppo_attivita || '').toLowerCase() || 'altro'
-    if (!gruppi.has(chiave)) gruppi.set(chiave, [])
-    gruppi.get(chiave)!.push(riga)
-  }
-
-  const ordine = [
-    'adulti',
-    'junior',
-    ...[...gruppi.keys()].filter((k) => k !== 'adulti' && k !== 'junior'),
-  ]
-
-  return ordine
-    .filter((chiave) => gruppi.has(chiave))
-    .map((chiave) => ({
-      chiave,
-      label: ETICHETTA_GRUPPO[chiave] ?? 'Altro',
-      righe: gruppi.get(chiave)!,
-    }))
-}
-
-export default async function ContattiPage({
+// Pagina condivisa da /dashboard/contatti/adulti e /dashboard/contatti/junior:
+// stessa UI, filtrata sul gruppo assegnato a questa sezione (vedi
+// lib/contatti.ts) e gestita separatamente cosi' da poter dare il permesso
+// di accesso a operatori diversi per Adulti e per Junior.
+export async function ContattiSezione({
+  gruppo,
+  titolo,
+  permesso,
+  basePath,
   searchParams,
 }: {
+  gruppo: GruppoContatto
+  titolo: string
+  permesso: SezioneChiave
+  basePath: string
   searchParams: { filtro?: string; q?: string }
 }) {
-  if (!(await utenteHaSezione('contatti'))) {
+  if (!(await utenteHaSezione(permesso))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
   }
 
@@ -153,17 +138,18 @@ export default async function ContattiPage({
 
   const puoCancellare = !!viewer?.puo_cancellare
 
+  const righeSezione = (righe ?? []).filter((riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo))
+
   const query = (searchParams.q ?? '').trim().toLowerCase()
   const filtro = parseFiltro(searchParams.filtro)
   const righeFiltrate = query
-    ? (righe ?? []).filter((riga) => corrispondeRicerca(riga, query))
-    : applicaFiltro(righe ?? [], filtro)
-  const gruppi = raggruppaPerAttivita(righeFiltrate)
+    ? righeSezione.filter((riga) => corrispondeRicerca(riga, query))
+    : applicaFiltro(righeSezione, filtro)
 
   return (
     <div>
       <div className="page-header">
-        <h1>Enquiries</h1>
+        <h1>{titolo}</h1>
       </div>
 
       <div className="filtri-toolbar">
@@ -171,7 +157,7 @@ export default async function ContattiPage({
         {query ? (
           <p className="search-note">
             Ricerca su tutti i contatti, gestiti e da gestire —{' '}
-            <a href="/dashboard/contatti" className="link">
+            <a href={basePath} className="link">
               annulla ricerca
             </a>
           </p>
@@ -181,64 +167,56 @@ export default async function ContattiPage({
       </div>
 
       <div className="data-table-wrap">
-        <AccordionGroup>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Data e ora</th>
-                <th>Nome e cognome</th>
-                <th>Stato</th>
-                <th>Attività</th>
-                <th>Richiesta</th>
-              </tr>
-            </thead>
-            {gruppi.map((gruppo) => (
-              <tbody key={gruppo.chiave}>
-                <tr className="table-group-header">
-                  <td colSpan={6}>
-                    {gruppo.label}
-                    <span className="count">({gruppo.righe.length})</span>
-                  </td>
-                </tr>
-                {gruppo.righe.map((riga) => (
-                  <ExpandableRow
-                    key={riga.id}
-                    id={String(riga.id)}
-                    columnCount={6}
-                    columns={COLONNE_TABELLA}
-                    record={riga}
-                    hiddenKeys={COLONNE_VISIBILI}
-                    evidenza={<RichiestaEvidenza riga={riga} />}
-                    extra={
-                      <GestioneSezione
-                        id={riga.id}
-                        gestito={!!riga.gestito}
-                        gestitoDa={riga.gestito_da ?? null}
-                        gestitoIl={riga.gestito_il ?? null}
-                        noteIniziali={riga.note ?? null}
-                        puoCancellare={puoCancellare}
-                      />
-                    }
-                    cells={[
-                      formatDateOra(riga.created_at),
-                      <>{riga.nome} {riga.cognome}</>,
-                      riga.stato || '—',
-                      Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
-                      riga.tipo_richiesta ? (
-                        <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
-                          {riga.tipo_richiesta}
-                        </span>
-                      ) : (
-                        '—'
-                      ),
-                    ]}
-                  />
-                ))}
-              </tbody>
-            ))}
-          </table>
-        </AccordionGroup>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Data e ora</th>
+              <th>Nome e cognome</th>
+              <th>Stato</th>
+              <th>Attività</th>
+              <th>Richiesta</th>
+            </tr>
+          </thead>
+          <AccordionGroup>
+            <tbody>
+              {righeFiltrate.map((riga) => (
+                <ExpandableRow
+                  key={riga.id}
+                  id={String(riga.id)}
+                  columnCount={6}
+                  columns={COLONNE_TABELLA}
+                  record={riga}
+                  hiddenKeys={COLONNE_VISIBILI}
+                  evidenza={<RichiestaEvidenza riga={riga} />}
+                  extra={
+                    <GestioneSezione
+                      id={riga.id}
+                      gestito={!!riga.gestito}
+                      gestitoDa={riga.gestito_da ?? null}
+                      gestitoIl={riga.gestito_il ?? null}
+                      noteIniziali={riga.note ?? null}
+                      puoCancellare={puoCancellare}
+                    />
+                  }
+                  cells={[
+                    formatDateOra(riga.created_at),
+                    <>{riga.nome} {riga.cognome}</>,
+                    riga.stato || '—',
+                    Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
+                    riga.tipo_richiesta ? (
+                      <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
+                        {riga.tipo_richiesta}
+                      </span>
+                    ) : (
+                      '—'
+                    ),
+                  ]}
+                />
+              ))}
+            </tbody>
+          </AccordionGroup>
+        </table>
 
         {righeFiltrate.length === 0 && (
           <p className="empty-state">

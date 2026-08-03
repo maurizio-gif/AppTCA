@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
 import { EnquiriesChart } from '@/components/EnquiriesChart'
+import { apparteneAGruppo, type GruppoContatto } from '@/lib/contatti'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,9 +59,7 @@ export default async function DashboardHome() {
   const supabase = createSupabaseServiceClient()
 
   const [
-    contattiDaGestire,
-    contattiGestiti,
-    contattiPerGrafico,
+    contattiPerRiepilogo,
     scuolaTennisDaCaricare,
     scuolaTennisCaricato,
     summerCampDaCaricare,
@@ -68,9 +67,7 @@ export default async function DashboardHome() {
     invitaAmico,
     iscrizioniEventi,
   ] = await Promise.all([
-    supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', false),
-    supabase.from('form_contatti').select('*', { count: 'exact', head: true }).eq('gestito', true),
-    supabase.from('form_contatti').select('created_at, gruppo_attivita').order('created_at'),
+    supabase.from('form_contatti').select('created_at, gruppo_attivita, gestito').order('created_at'),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
@@ -79,7 +76,22 @@ export default async function DashboardHome() {
     supabase.from('iscrizioni_eventi').select('*', { count: 'exact', head: true }),
   ])
 
-  const serieGiornaliera = costruisciSerieGiornaliera(contattiPerGrafico.data ?? [])
+  const righeContatti = contattiPerRiepilogo.data ?? []
+  const serieGiornaliera = costruisciSerieGiornaliera(righeContatti)
+
+  // Stesso criterio Adulti/Junior usato dalle due sezioni Enquiries (vedi
+  // lib/contatti.ts): i contatori qui restano coerenti con cosa si trova
+  // aprendo /dashboard/contatti/adulti o /junior.
+  function contaContatti(gruppo: GruppoContatto, gestito: boolean) {
+    return righeContatti.filter(
+      (riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo) && !!riga.gestito === gestito
+    ).length
+  }
+
+  const contattiAdultiDaGestire = contaContatti('adulti', false)
+  const contattiAdultiGestiti = contaContatti('adulti', true)
+  const contattiJuniorDaGestire = contaContatti('junior', false)
+  const contattiJuniorGestiti = contaContatti('junior', true)
 
   return (
     <div>
@@ -87,22 +99,48 @@ export default async function DashboardHome() {
         <h1>Dashboard</h1>
       </div>
 
-      {puoVedere('contatti') && (
-        <SezioneRiepilogo
-          titolo="Enquiries"
-          extra={<EnquiriesChart giorni={serieGiornaliera} />}
-        >
-          <StatCard
-            href="/dashboard/contatti?filtro=da_gestire"
-            label="Da gestire"
-            value={contattiDaGestire.count ?? 0}
-          />
-          <StatCard
-            href="/dashboard/contatti?filtro=gestiti"
-            label="Gestiti"
-            value={contattiGestiti.count ?? 0}
-          />
-        </SezioneRiepilogo>
+      {(puoVedere('contatti-adulti') || puoVedere('contatti-junior')) && (
+        <section className="riepilogo-sezione">
+          <h2 className="riepilogo-sezione-titolo">Enquiries</h2>
+
+          {puoVedere('contatti-adulti') && (
+            <div className="riepilogo-sottosezione">
+              <h3 className="riepilogo-sottosezione-titolo">Adulti</h3>
+              <div className="stat-row">
+                <StatCard
+                  href="/dashboard/contatti/adulti?filtro=da_gestire"
+                  label="Da gestire"
+                  value={contattiAdultiDaGestire}
+                />
+                <StatCard
+                  href="/dashboard/contatti/adulti?filtro=gestiti"
+                  label="Gestiti"
+                  value={contattiAdultiGestiti}
+                />
+              </div>
+            </div>
+          )}
+
+          {puoVedere('contatti-junior') && (
+            <div className="riepilogo-sottosezione">
+              <h3 className="riepilogo-sottosezione-titolo">Junior</h3>
+              <div className="stat-row">
+                <StatCard
+                  href="/dashboard/contatti/junior?filtro=da_gestire"
+                  label="Da gestire"
+                  value={contattiJuniorDaGestire}
+                />
+                <StatCard
+                  href="/dashboard/contatti/junior?filtro=gestiti"
+                  label="Gestiti"
+                  value={contattiJuniorGestiti}
+                />
+              </div>
+            </div>
+          )}
+
+          <EnquiriesChart giorni={serieGiornaliera} />
+        </section>
       )}
 
       {puoVedere('scuola-tennis') && (
