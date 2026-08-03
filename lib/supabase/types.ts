@@ -558,6 +558,10 @@ export type Database = {
       notifiche: {
         Row: {
           a_email: string
+          allegato_dimensione: number | null
+          allegato_nome: string | null
+          allegato_path: string | null
+          allegato_tipo: string | null
           created_at: string
           da_email: string
           id: number
@@ -566,6 +570,10 @@ export type Database = {
         }
         Insert: {
           a_email: string
+          allegato_dimensione?: number | null
+          allegato_nome?: string | null
+          allegato_path?: string | null
+          allegato_tipo?: string | null
           created_at?: string
           da_email: string
           id?: number
@@ -574,6 +582,10 @@ export type Database = {
         }
         Update: {
           a_email?: string
+          allegato_dimensione?: number | null
+          allegato_nome?: string | null
+          allegato_path?: string | null
+          allegato_tipo?: string | null
           created_at?: string
           da_email?: string
           id?: number

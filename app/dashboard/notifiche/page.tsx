@@ -1,11 +1,17 @@
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { formatDateOra } from '@/lib/format'
+import { BUCKET_ALLEGATI_NOTIFICHE, formatDimensioneFile } from '@/lib/allegati'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { VistaTabs } from '@/components/VistaTabs'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { ComponiNotifica } from './ComponiNotifica'
 import { ConfermaLetturaButton } from './ConfermaLetturaButton'
+
+// Vita breve: basta il tempo di caricare la pagina e cliccare l'allegato,
+// non serve un link valido a lungo (la pagina e' comunque "force-dynamic",
+// ne genera uno nuovo a ogni caricamento).
+const DURATA_URL_ALLEGATO_SECONDI = 300
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +36,21 @@ export default async function NotifichePage({
 
   if (erroreRicevuti || erroreInviati) {
     return <p className="error-banner">Errore nel caricamento: {(erroreRicevuti ?? erroreInviati)!.message}</p>
+  }
+
+  const percorsiAllegati = [...(ricevuti ?? []), ...(inviati ?? [])]
+    .map((n) => n.allegato_path)
+    .filter((p): p is string => Boolean(p))
+
+  const urlAllegati = new Map<string, string>()
+  if (percorsiAllegati.length > 0) {
+    const { data: urlFirmati } = await supabase.storage
+      .from(BUCKET_ALLEGATI_NOTIFICHE)
+      .createSignedUrls(percorsiAllegati, DURATA_URL_ALLEGATO_SECONDI)
+
+    for (const u of urlFirmati ?? []) {
+      if (u.signedUrl) urlAllegati.set(u.path ?? '', u.signedUrl)
+    }
   }
 
   const mappaStaff = new Map((staffAll ?? []).map((s) => [s.email, s]))
@@ -60,6 +81,7 @@ export default async function NotifichePage({
           </li>
           <li>In «Ricevuti» apri un messaggio e premi «Confermo di aver letto»: registra data e ora di lettura.</li>
           <li>In «Inviati» controlli se e quando è stato letto ogni messaggio che hai inviato.</li>
+          <li>Puoi allegare un file (JPG, PNG, PDF, Word o Excel, massimo 5 MB) a ogni messaggio.</li>
         </ol>
       </BoxIstruzioni>
 
@@ -74,20 +96,42 @@ export default async function NotifichePage({
       />
 
       {vista === 'inviati' ? (
-        <ElencoInviati righe={inviati ?? []} nomeOperatore={nomeOperatore} />
+        <ElencoInviati righe={inviati ?? []} nomeOperatore={nomeOperatore} urlAllegati={urlAllegati} />
       ) : (
-        <ElencoRicevuti righe={ricevuti ?? []} nomeOperatore={nomeOperatore} />
+        <ElencoRicevuti righe={ricevuti ?? []} nomeOperatore={nomeOperatore} urlAllegati={urlAllegati} />
       )}
     </div>
+  )
+}
+
+const CHIAVI_ALLEGATO = ['allegato_path', 'allegato_nome', 'allegato_tipo', 'allegato_dimensione']
+
+function AllegatoNotifica({ riga, urlAllegati }: { riga: RigaNotifica; urlAllegati: Map<string, string> }) {
+  if (!riga.allegato_path) return null
+  const url = urlAllegati.get(riga.allegato_path)
+
+  return (
+    <p className="notifica-allegato">
+      {url ? (
+        <a href={url} target="_blank" rel="noopener noreferrer" download={riga.allegato_nome}>
+          {riga.allegato_nome}
+        </a>
+      ) : (
+        riga.allegato_nome
+      )}{' '}
+      <span className="muted">({formatDimensioneFile(riga.allegato_dimensione ?? 0)})</span>
+    </p>
   )
 }
 
 function ElencoRicevuti({
   righe,
   nomeOperatore,
+  urlAllegati,
 }: {
   righe: RigaNotifica[]
   nomeOperatore: (email: string) => string
+  urlAllegati: Map<string, string>
 }) {
   return (
     <div className="data-table-wrap">
@@ -109,8 +153,13 @@ function ElencoRicevuti({
                 columnCount={4}
                 columns={['Quando', 'Da', 'Stato']}
                 record={riga}
-                hiddenKeys={['id', 'created_at', 'da_email', 'a_email', 'messaggio', 'letta_il']}
-                evidenza={<p className="notifica-messaggio">{riga.messaggio}</p>}
+                hiddenKeys={['id', 'created_at', 'da_email', 'a_email', 'messaggio', 'letta_il', ...CHIAVI_ALLEGATO]}
+                evidenza={
+                  <>
+                    <p className="notifica-messaggio">{riga.messaggio}</p>
+                    <AllegatoNotifica riga={riga} urlAllegati={urlAllegati} />
+                  </>
+                }
                 extra={
                   riga.letta_il ? (
                     <p className="muted">Letta il {formatDateOra(riga.letta_il)}</p>
@@ -132,9 +181,11 @@ function ElencoRicevuti({
 function ElencoInviati({
   righe,
   nomeOperatore,
+  urlAllegati,
 }: {
   righe: RigaNotifica[]
   nomeOperatore: (email: string) => string
+  urlAllegati: Map<string, string>
 }) {
   return (
     <div className="data-table-wrap">
@@ -156,8 +207,13 @@ function ElencoInviati({
                 columnCount={4}
                 columns={['Quando', 'A', 'Stato']}
                 record={riga}
-                hiddenKeys={['id', 'created_at', 'da_email', 'a_email', 'messaggio', 'letta_il']}
-                evidenza={<p className="notifica-messaggio">{riga.messaggio}</p>}
+                hiddenKeys={['id', 'created_at', 'da_email', 'a_email', 'messaggio', 'letta_il', ...CHIAVI_ALLEGATO]}
+                evidenza={
+                  <>
+                    <p className="notifica-messaggio">{riga.messaggio}</p>
+                    <AllegatoNotifica riga={riga} urlAllegati={urlAllegati} />
+                  </>
+                }
                 cells={[
                   formatDateOra(riga.created_at),
                   nomeOperatore(riga.a_email),
