@@ -39,6 +39,12 @@ export function ComponiNotifica({ destinatari }: { destinatari: { email: string;
   }
 
   function invia() {
+    const nomiSelezionati = destinatari.filter((d) => selezionati.includes(d.email)).map((d) => d.nome)
+    const confermato = confirm(
+      `Invia questo messaggio a: ${nomiSelezionati.join(', ')}?\n\n"${messaggio.trim()}"`
+    )
+    if (!confermato) return
+
     setEsito(null)
     const formData = new FormData()
     selezionati.forEach((email) => formData.append('destinatari', email))
