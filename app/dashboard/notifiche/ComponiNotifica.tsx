@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { inviaNotifica } from './actions'
 import { ACCEPT_ALLEGATO, DIMENSIONE_MASSIMA_ALLEGATO, TIPI_ALLEGATO_CONSENTITI, formatDimensioneFile } from '@/lib/allegati'
 
@@ -10,7 +10,18 @@ export function ComponiNotifica({ destinatari }: { destinatari: { email: string;
   const [allegato, setAllegato] = useState<File | null>(null)
   const [esito, setEsito] = useState<{ tipo: 'ok' | 'errore'; testo: string } | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [menuAperto, setMenuAperto] = useState(false)
   const inputFileRef = useRef<HTMLInputElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuAperto) return
+    function onClickFuori(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuAperto(false)
+    }
+    document.addEventListener('mousedown', onClickFuori)
+    return () => document.removeEventListener('mousedown', onClickFuori)
+  }, [menuAperto])
 
   function toggleDestinatario(email: string) {
     setSelezionati((prev) => (prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]))
@@ -73,28 +84,67 @@ export function ComponiNotifica({ destinatari }: { destinatari: { email: string;
 
       {esito && <p className={`timbra-esito ${esito.tipo}`}>{esito.testo}</p>}
 
-      <div className="componi-notifica-destinatari">
-        {destinatari.map((d) => {
-          const attivo = selezionati.includes(d.email)
-          return (
-            <button
-              key={d.email}
-              type="button"
-              className={`chip-toggle${attivo ? ' is-attivo' : ''}`}
-              aria-pressed={attivo}
-              disabled={isPending}
-              onClick={() => toggleDestinatario(d.email)}
-            >
-              {d.nome}
-            </button>
-          )
-        })}
-        {destinatari.length === 0 && <p className="muted">Non ci sono altri operatori a cui scrivere.</p>}
+      <div className="destinatari-select" ref={menuRef}>
+        <button
+          type="button"
+          className="destinatari-select-trigger"
+          aria-haspopup="listbox"
+          aria-expanded={menuAperto}
+          disabled={isPending || destinatari.length === 0}
+          onClick={() => setMenuAperto((a) => !a)}
+        >
+          <span>
+            {destinatari.length === 0
+              ? 'Non ci sono altri operatori a cui scrivere'
+              : selezionati.length === 0
+                ? 'Seleziona destinatari…'
+                : `${selezionati.length} ${selezionati.length === 1 ? 'destinatario selezionato' : 'destinatari selezionati'}`}
+          </span>
+          <span className="destinatari-select-chevron" aria-hidden="true">
+            {menuAperto ? '▲' : '▼'}
+          </span>
+        </button>
+
+        {menuAperto && destinatari.length > 0 && (
+          <ul className="destinatari-select-menu" role="listbox" aria-multiselectable="true">
+            {destinatari.map((d) => {
+              const attivo = selezionati.includes(d.email)
+              return (
+                <li key={d.email}>
+                  <label className={`destinatari-select-opzione${attivo ? ' is-attivo' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={attivo}
+                      disabled={isPending}
+                      onChange={() => toggleDestinatario(d.email)}
+                    />
+                    {d.nome}
+                  </label>
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </div>
+
       {selezionati.length > 0 && (
-        <p className="muted componi-notifica-conteggio">
-          {selezionati.length} {selezionati.length === 1 ? 'destinatario selezionato' : 'destinatari selezionati'}.
-        </p>
+        <div className="destinatari-select-tag-lista">
+          {destinatari
+            .filter((d) => selezionati.includes(d.email))
+            .map((d) => (
+              <span key={d.email} className="destinatari-select-tag">
+                {d.nome}
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => toggleDestinatario(d.email)}
+                  aria-label={`Rimuovi ${d.nome} dai destinatari`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+        </div>
       )}
 
       <textarea
