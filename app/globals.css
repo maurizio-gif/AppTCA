@@ -2175,20 +2175,47 @@ table.data-table {
   padding: 12px 14px;
 }
 
-.push-toggle {
+/* Interruttore push nel menu: grafica volutamente diversa dai link di
+   navigazione (tratteggiato, non rosso accento) per segnalare che e' un
+   'azione sul posto', non una voce che porta a un'altra pagina. */
+.push-nav-item {
+  margin-bottom: 12px;
+}
+
+.push-nav-toggle {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.push-toggle-stato {
-  font-size: 13px;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  background: var(--color-off-white);
   color: var(--color-text-light);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.push-toggle-nota {
-  margin-bottom: 20px;
+.push-nav-toggle:hover {
+  border-color: var(--color-text-light);
+}
+
+.push-nav-toggle.is-attivo {
+  background: #eaf7ee;
+  border: 1px solid #2f9e57;
+  color: #1f7a41;
+}
+
+.push-nav-toggle:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.push-nav-errore {
+  margin: 4px 4px 0;
+  font-size: 11px;
+  color: var(--color-accent-dark);
 }
 
 .componi-notifica {

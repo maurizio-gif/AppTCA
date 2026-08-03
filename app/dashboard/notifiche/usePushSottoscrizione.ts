@@ -12,10 +12,13 @@ function chiaveComeUint8Array(base64Url: string): Uint8Array {
   return Uint8Array.from([...testoGrezzo].map((c) => c.charCodeAt(0)))
 }
 
-type Stato = 'verifica' | 'non-supportato' | 'attivo' | 'inattivo'
+export type StatoPush = 'verifica' | 'non-supportato' | 'attivo' | 'inattivo'
 
-export function AttivaNotifichePush() {
-  const [stato, setStato] = useState<Stato>('verifica')
+// Estratto dal componente (usato sia dalla voce nel menu, sempre visibile,
+// sia potenzialmente altrove): la logica di attivazione/disattivazione non
+// dipende da dove viene mostrato il pulsante.
+export function usePushSottoscrizione() {
+  const [stato, setStato] = useState<StatoPush>('verifica')
   const [isPending, setIsPending] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
 
@@ -37,7 +40,7 @@ export function AttivaNotifichePush() {
     try {
       const permesso = await Notification.requestPermission()
       if (permesso !== 'granted') {
-        setErrore('Permesso negato: per attivarle in seguito, consenti le notifiche per questo sito dalle impostazioni del browser.')
+        setErrore('Permesso negato: consenti le notifiche per questo sito dalle impostazioni del browser.')
         return
       }
 
@@ -99,32 +102,5 @@ export function AttivaNotifichePush() {
     }
   }
 
-  if (stato === 'verifica') return null
-
-  if (stato === 'non-supportato') {
-    return (
-      <p className="muted push-toggle-nota">
-        Le notifiche push non sono supportate su questo browser. Su iPhone/iPad serve prima aggiungere il pannello
-        alla schermata Home (Safari → Condividi → Aggiungi a Home), poi riprovare da lì.
-      </p>
-    )
-  }
-
-  return (
-    <div className="push-toggle">
-      {stato === 'attivo' ? (
-        <>
-          <span className="push-toggle-stato">Notifiche push attive su questo dispositivo.</span>
-          <button type="button" className="btn-ghost btn-small" disabled={isPending} onClick={disattiva}>
-            {isPending ? 'Disattivazione…' : 'Disattiva'}
-          </button>
-        </>
-      ) : (
-        <button type="button" className="btn btn-small" disabled={isPending} onClick={attiva}>
-          {isPending ? 'Attivazione…' : 'Attiva notifiche push su questo dispositivo'}
-        </button>
-      )}
-      {errore && <p className="gestione-errore">{errore}</p>}
-    </div>
-  )
+  return { stato, isPending, errore, attiva, disattiva }
 }

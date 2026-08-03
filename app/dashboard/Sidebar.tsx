@@ -7,6 +7,7 @@ import { logout } from '@/app/login/actions'
 import { SEZIONI } from '@/lib/auth/sezioni'
 import { NavIcon } from '@/components/NavIcon'
 import { useNotifiche } from './NotificheProvider'
+import { PushToggleNavItem } from './PushToggleNavItem'
 
 type VoceMenu = { href: string; label: string; chiave: string; gruppo?: string }
 
@@ -100,6 +101,9 @@ export function Sidebar({
 
       <div className="sidebar-drawer">
         <nav className="sidebar-nav">
+          {/* Chi non puo' ricevere notifiche (vedi lib/auth/sezioni.ts) non
+              vede l'interruttore push: non avrebbe nulla da ricevere. */}
+          {sezioniConsentite.includes('notifiche') && <PushToggleNavItem />}
           {gruppiMenu.map((gruppo) => (
             <div key={gruppo.chiave || '_root'} className="nav-group">
               {gruppo.chiave && <div className="nav-group-title">{gruppo.chiave}</div>}
