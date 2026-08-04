@@ -163,12 +163,16 @@ export async function ContattiSezione({
               {
                 chiave: 'messaggi',
                 etichetta: 'Messaggi',
-                contatore: messaggiSezione.filter((r) => !r.gestito).length,
+                // Durante una ricerca il numero e' quanti risultati ci sono
+                // in quel tab (cosi' si vede subito dove guardare se il
+                // contatto compare in entrambi), altrimenti e' il carico di
+                // lavoro (da gestire) di sempre.
+                contatore: query ? righeFiltrate.length : messaggiSezione.filter((r) => !r.gestito).length,
               },
               {
                 chiave: 'appuntamenti',
                 etichetta: 'Appuntamenti',
-                contatore: appuntamentiSezione.filter((r) => !r.gestito).length,
+                contatore: query ? appuntamentiFiltrati.length : appuntamentiSezione.filter((r) => !r.gestito).length,
               },
             ]}
           />
