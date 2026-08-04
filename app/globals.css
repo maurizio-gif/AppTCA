@@ -607,7 +607,7 @@ button {
 
 .fonti-lead-riga {
   display: grid;
-  grid-template-columns: 110px 1fr auto;
+  grid-template-columns: minmax(110px, 200px) 1fr auto;
   align-items: center;
   gap: 12px;
 }
@@ -615,9 +615,8 @@ button {
 .fonti-lead-nome {
   font-size: 13px;
   color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .fonti-lead-traccia {
@@ -644,7 +643,7 @@ button {
 
 @media (max-width: 860px) {
   .fonti-lead-riga {
-    grid-template-columns: 84px 1fr auto;
+    grid-template-columns: minmax(84px, 140px) 1fr auto;
     gap: 8px;
   }
 
@@ -694,6 +693,7 @@ button {
   --chart-junior: #eb6834;
   --chart-altro: #898781;
   margin-top: 16px;
+  margin-bottom: 32px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 10px;
@@ -702,6 +702,7 @@ button {
 
 .enquiries-chart-vuoto {
   margin-top: 16px;
+  margin-bottom: 32px;
 }
 
 .enquiries-chart-legenda {
