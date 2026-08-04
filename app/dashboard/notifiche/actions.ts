@@ -189,6 +189,7 @@ export async function confermaLettura(id: number): Promise<Risultato> {
 
 export type UltimaNotifica = {
   id: number
+  daEmail: string
   daNome: string
   messaggio: string
   quando: string
@@ -235,6 +236,7 @@ export async function getStatoNotifiche(): Promise<{ nonLette: number; ultima: U
     nonLette: count ?? 0,
     ultima: {
       id: ultimaRiga.id,
+      daEmail: ultimaRiga.da_email,
       daNome: nomeCompleto || ultimaRiga.da_email,
       messaggio: ultimaRiga.messaggio,
       quando: ultimaRiga.created_at,
