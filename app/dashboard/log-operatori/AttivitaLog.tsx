@@ -120,17 +120,30 @@ export async function AttivitaLog({
           </thead>
           <AccordionGroup>
             <tbody>
-              {(righe ?? []).map((riga) => (
-                <ExpandableRow
-                  key={riga.id}
-                  id={String(riga.id)}
-                  columnCount={COLONNE_TABELLA.length + 1}
-                  columns={COLONNE_TABELLA}
-                  record={riga}
-                  hiddenKeys={COLONNE_VISIBILI}
-                  cells={[formatDateOra(riga.created_at), nomeOperatore(riga.email), etichettaAzione(riga.azione)]}
-                />
-              ))}
+              {(righe ?? []).map((riga) => {
+                // "dettagli" e' un jsonb: mostrato cosi' com'e' finirebbe come
+                // un unico blob JSON grezzo (array con virgolette e parentesi
+                // comprese). Spacchettato nella riga, ogni campo passa dalla
+                // formattazione normale (array -> elenco leggibile, vedi
+                // formatValue) invece che da JSON.stringify.
+                const { messaggio, ...altriDettagli } = (riga.dettagli ?? {}) as Record<string, unknown>
+                return (
+                  <ExpandableRow
+                    key={riga.id}
+                    id={String(riga.id)}
+                    columnCount={COLONNE_TABELLA.length + 1}
+                    columns={COLONNE_TABELLA}
+                    record={{ ...riga, ...altriDettagli }}
+                    hiddenKeys={[...COLONNE_VISIBILI, 'dettagli']}
+                    evidenza={
+                      typeof messaggio === 'string' && messaggio ? (
+                        <p className="notifica-messaggio">{messaggio}</p>
+                      ) : undefined
+                    }
+                    cells={[formatDateOra(riga.created_at), nomeOperatore(riga.email), etichettaAzione(riga.azione)]}
+                  />
+                )
+              })}
             </tbody>
           </AccordionGroup>
         </table>
