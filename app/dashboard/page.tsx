@@ -3,7 +3,9 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
 import { EnquiriesChart } from '@/components/EnquiriesChart'
+import { FontiLead } from '@/components/FontiLead'
 import { apparteneAGruppo, type GruppoContatto } from '@/lib/contatti'
+import { prettifyKey } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,6 +53,19 @@ function costruisciSerieGiornaliera(righe: { created_at: string; gruppo_attivita
   return serie
 }
 
+// Chi arriva senza utm_source (link diretto, digitato a mano, passaparola
+// non tracciato) e' comunque una fonte a tutti gli effetti: "Organico".
+function classificaPerFonte(righe: { utm_source: string | null }[]): { fonte: string; conteggio: number }[] {
+  const conteggi = new Map<string, number>()
+  for (const riga of righe) {
+    const chiave = (riga.utm_source || '').trim().toLowerCase() || 'organico'
+    conteggi.set(chiave, (conteggi.get(chiave) ?? 0) + 1)
+  }
+  return [...conteggi.entries()]
+    .map(([chiave, conteggio]) => ({ fonte: chiave === 'organico' ? 'Organico' : prettifyKey(chiave), conteggio }))
+    .sort((a, b) => b.conteggio - a.conteggio)
+}
+
 export default async function DashboardHome() {
   const email = headers().get('x-tca-user-email')
   const sezioniConsentite = await getSezioniConsentite(email)
@@ -67,7 +82,7 @@ export default async function DashboardHome() {
     invitaAmico,
     iscrizioniEventi,
   ] = await Promise.all([
-    supabase.from('form_contatti').select('created_at, gruppo_attivita, gestito').order('created_at'),
+    supabase.from('form_contatti').select('created_at, gruppo_attivita, gestito, utm_source').order('created_at'),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
@@ -78,6 +93,7 @@ export default async function DashboardHome() {
 
   const righeContatti = contattiPerRiepilogo.data ?? []
   const serieGiornaliera = costruisciSerieGiornaliera(righeContatti)
+  const fontiLead = classificaPerFonte(righeContatti)
 
   // Stesso criterio Adulti/Junior usato dalle due sezioni Enquiries (vedi
   // lib/contatti.ts): i contatori qui restano coerenti con cosa si trova
@@ -140,6 +156,11 @@ export default async function DashboardHome() {
           )}
 
           <EnquiriesChart giorni={serieGiornaliera} />
+
+          <div className="riepilogo-sottosezione">
+            <h3 className="riepilogo-sottosezione-titolo">Lead per fonte</h3>
+            <FontiLead fonti={fontiLead} />
+          </div>
         </section>
       )}
 
