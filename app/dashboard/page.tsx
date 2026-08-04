@@ -150,6 +150,14 @@ function classificaPer(
     .map((v) => ({ fonte: v.etichetta, conteggio: v.conteggio }))
 }
 
+// L'esito PGM ha piu' varianti per lo stesso "e' un lead nuovo" (es. "NUOVO"
+// e "NUOVO Adulto" arrivano da rami diversi del flusso n8n): contano tutte
+// come un'unica categoria "Nuovo" invece di restare separate.
+function normalizzaEsitoPgm(valore: unknown): unknown {
+  if (typeof valore === 'string' && valore.trim().toLowerCase().startsWith('nuovo')) return 'Nuovo'
+  return valore
+}
+
 export default async function DashboardHome({
   searchParams,
 }: {
@@ -214,7 +222,11 @@ export default async function DashboardHome({
   const fontiLead = classificaPer(righeNelRange, 'utm_source', 'Organico', true)
   const ctaLead = classificaPer(righeNelRange, 'cta', 'Nessuna CTA')
   const paginaLead = classificaPer(righeNelRange, 'pagina', 'Pagina non rilevata')
-  const leadStatus = classificaPer(righeNelRange, 'esito_verifica_pgm', 'Non verificato')
+  const leadStatus = classificaPer(
+    righeNelRange.map((r) => ({ ...r, esito_verifica_pgm: normalizzaEsitoPgm(r.esito_verifica_pgm) })),
+    'esito_verifica_pgm',
+    'Non verificato'
+  )
 
   return (
     <div>
