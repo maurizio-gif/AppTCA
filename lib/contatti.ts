@@ -15,9 +15,10 @@ export function apparteneAGruppo(gruppoAttivita: string | null | undefined, grup
 
 // Il form non ha un campo dedicato "messaggio vs appuntamento": lo
 // deduciamo da tipo_richiesta (testo libero) e dalla presenza di una
-// data_richiesta. "sede" nel testo -> appuntamento in sede, altrimenti se
-// e' un appuntamento lo trattiamo come telefonico (il caso piu' comune per
-// una richiesta di richiamata).
+// data_richiesta. "sede"/"visita" nel testo -> appuntamento in sede (chi
+// scrive "visita" intende venire di persona a vedere la struttura),
+// altrimenti se e' un appuntamento lo trattiamo come telefonico (il caso
+// piu' comune per una richiesta di richiamata).
 export function classificaContatto(riga: {
   tipo_richiesta?: string | null
   data_richiesta?: string | null
@@ -26,5 +27,5 @@ export function classificaContatto(riga: {
   const tipo = (riga.tipo_richiesta || '').toLowerCase()
   const eAppuntamento = tipo.includes('appuntamento') || !!riga.data_richiesta || !!riga.ora_richiesta
   if (!eAppuntamento) return 'messaggio'
-  return tipo.includes('sede') ? 'appuntamento_in_sede' : 'appuntamento_telefonico'
+  return tipo.includes('sede') || tipo.includes('visita') ? 'appuntamento_in_sede' : 'appuntamento_telefonico'
 }
