@@ -29,9 +29,10 @@ function formatBreve(chiave: string): string {
 }
 
 const OPZIONI_RANGE = [
+  { valore: 'tutto', etichetta: 'Tutto' },
   { valore: 'mtd', etichetta: 'Da inizio mese' },
   { valore: 'mese_precedente', etichetta: 'Mese precedente' },
-  { valore: 'anno_precedente', etichetta: 'Anno precedente' },
+  { valore: 'anno_corrente', etichetta: 'Anno corrente' },
   { valore: 'custom', etichetta: 'Personalizzato' },
 ] as const
 type PresetRange = (typeof OPZIONI_RANGE)[number]['valore']
@@ -51,15 +52,21 @@ function dataValida(v: string | undefined): v is string {
 
 // Range effettivo (chiavi YYYY-MM-DD, incluse entrambe) per il preset
 // scelto. "custom" richiede due date valide con da <= a, altrimenti
-// ricade su "Da inizio mese" invece di rompere la pagina.
+// ricade su "Da inizio mese" invece di rompere la pagina. "tutto" copre
+// dal primo contatto registrato ad oggi, cioe' nessun filtro di data.
 function calcolaRange(
   preset: PresetRange,
   oggi: string,
   customDa: string | undefined,
-  customA: string | undefined
+  customA: string | undefined,
+  primoGiorno: string
 ): { da: string; a: string } {
   const anno = Number(oggi.slice(0, 4))
   const mese = Number(oggi.slice(5, 7))
+
+  if (preset === 'tutto') {
+    return { da: primoGiorno, a: oggi }
+  }
 
   if (preset === 'mese_precedente') {
     const meseScorso = mese === 1 ? 12 : mese - 1
@@ -69,12 +76,18 @@ function calcolaRange(
     return { da, a }
   }
 
-  if (preset === 'anno_precedente') {
-    return { da: `${anno - 1}-01-01`, a: `${anno - 1}-12-31` }
+  if (preset === 'anno_corrente') {
+    return { da: `${anno}-01-01`, a: oggi }
   }
 
-  if (preset === 'custom' && dataValida(customDa) && dataValida(customA) && customDa <= customA) {
-    return { da: customDa, a: customA }
+  // Basta una delle due date per applicare il filtro: l'altro estremo
+  // ricade sul primo contatto registrato / oggi, invece di scartare tutta
+  // la selezione finche' non sono valorizzate entrambe (prima causa per
+  // cui la data scelta sembrava "non salvarsi").
+  if (preset === 'custom') {
+    const validaDa = dataValida(customDa) ? customDa : primoGiorno
+    const validaA = dataValida(customA) ? customA : oggi
+    if (validaDa <= validaA) return { da: validaDa, a: validaA }
   }
 
   return { da: `${oggi.slice(0, 7)}-01`, a: oggi }
@@ -187,7 +200,11 @@ export default async function DashboardHome({
 
   const preset = parsePreset(searchParams.range)
   const oggi = chiaveGiorno(new Date().toISOString())
-  const { da, a } = calcolaRange(preset, oggi, searchParams.da, searchParams.a)
+  const primoGiorno = righeContatti.reduce<string | undefined>((min, riga) => {
+    const chiave = chiaveGiorno(riga.created_at)
+    return !min || chiave < min ? chiave : min
+  }, undefined) ?? oggi
+  const { da, a } = calcolaRange(preset, oggi, searchParams.da, searchParams.a, primoGiorno)
   const righeNelRange = righeContatti.filter((riga) => {
     const chiave = chiaveGiorno(riga.created_at)
     return chiave >= da && chiave <= a
