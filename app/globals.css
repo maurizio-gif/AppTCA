@@ -2278,54 +2278,63 @@ table.data-table {
 
 /* ---------- Notifiche ---------- */
 
-/* In cima al contenuto di qualunque pagina del pannello (vedi
-   app/dashboard/layout.tsx), non solo su /dashboard/notifiche: e' li' che
-   deve "risaltare" un messaggio nuovo, anche se si e' gia' su un'altra
-   pagina. Bordo pieno colorato invece del semplice riquadro di
-   .timbra-esito, per distinguerlo da un feedback momentaneo. */
-.notifiche-banner {
-  position: relative;
+/* Overlay a tutto schermo, sopra a qualunque altra cosa (sidebar inclusa,
+   vedi z-index): un messaggio nuovo deve risaltare subito ovunque ci si
+   trovi nel pannello (vedi app/dashboard/layout.tsx). La conferma di
+   lettura e' bloccante: niente chiusura cliccando fuori finche' non si
+   conferma (vedi NotificheBanner), solo dopo compare la x. */
+.notifiche-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(26, 26, 26, 0.55);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  justify-content: center;
+  padding: 24px;
+}
+
+.notifiche-modal {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--color-accent);
-  border-radius: 10px;
-  padding: 14px 40px 14px 18px;
-  margin-bottom: 24px;
+  border-radius: 12px;
+  padding: 22px 26px;
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.28);
 }
 
-/* Chiude solo la vista del banner: il messaggio resta "Da leggere" finche'
-   non si conferma davvero, va in Notifiche per farlo. */
-.notifiche-banner-chiudi {
+/* Compare solo dopo la conferma di lettura (vedi NotificheBanner): prima
+   non c'e' alcun modo di chiudere la vista senza confermare. */
+.notifiche-modal-chiudi {
   position: absolute;
   top: 10px;
   right: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: 50%;
   background: transparent;
   color: var(--color-grey-mid);
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
 }
 
-.notifiche-banner-chiudi:hover {
+.notifiche-modal-chiudi:hover {
   background: var(--color-off-white);
   color: var(--color-text);
 }
 
-.notifiche-banner-corpo {
-  flex: 1;
-  min-width: 200px;
+.notifiche-modal-nota {
+  margin: 10px 0 0;
 }
 
 .notifiche-banner-mittente {
@@ -2350,7 +2359,8 @@ table.data-table {
   display: flex;
   align-items: center;
   gap: 14px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  margin-top: 16px;
 }
 
 .notifica-messaggio {
