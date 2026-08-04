@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { logout } from '@/app/login/actions'
 
-const LIMITE_INATTIVITA_MS = 30 * 60 * 1000
+const LIMITE_INATTIVITA_MS = 60 * 60 * 1000
 
 // Stessa soglia del breakpoint mobile in CSS (vedi globals.css, @media
 // max-width: 860px): sotto, l'app diventa la versione mobile e il logout
@@ -12,13 +12,13 @@ const SOGLIA_DESKTOP_PX = 860
 
 // Non resettare il timeout ad ogni singolo evento (mousemove ne genera
 // decine al secondo): basta un controllo ogni pochi secondi, l'obiettivo e'
-// sapere se c'e' stata attivita' nell'ultima finestra di 30 minuti, non il
+// sapere se c'e' stata attivita' nell'ultima finestra di 60 minuti, non il
 // millisecondo esatto.
 const THROTTLE_MS = 5000
 
 const EVENTI_ATTIVITA = ['mousemove', 'mousedown', 'keydown', 'scroll', 'wheel', 'touchstart'] as const
 
-// Slogga automaticamente dopo 30 minuti senza attivita', solo su desktop:
+// Slogga automaticamente dopo 60 minuti senza attivita', solo su desktop:
 // su mobile la sessione resta attiva (si usa in modo piu' saltuario, un
 // logout automatico sarebbe solo fastidioso).
 export function LogoutInattivita() {
