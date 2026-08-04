@@ -172,7 +172,7 @@ export default async function DashboardHome({
   ] = await Promise.all([
     supabase
       .from('form_contatti')
-      .select('created_at, gruppo_attivita, gestito, utm_source, cta, pagina')
+      .select('created_at, gruppo_attivita, gestito, utm_source, cta, pagina, esito_verifica_pgm')
       .order('created_at'),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
@@ -214,6 +214,7 @@ export default async function DashboardHome({
   const fontiLead = classificaPer(righeNelRange, 'utm_source', 'Organico', true)
   const ctaLead = classificaPer(righeNelRange, 'cta', 'Nessuna CTA')
   const paginaLead = classificaPer(righeNelRange, 'pagina', 'Pagina non rilevata')
+  const leadStatus = classificaPer(righeNelRange, 'esito_verifica_pgm', 'Non verificato')
 
   return (
     <div>
@@ -284,6 +285,11 @@ export default async function DashboardHome({
           <div className="riepilogo-sottosezione">
             <h3 className="riepilogo-sottosezione-titolo">Lead per pagina</h3>
             <FontiLead fonti={paginaLead} />
+          </div>
+
+          <div className="riepilogo-sottosezione">
+            <h3 className="riepilogo-sottosezione-titolo">Lead Status</h3>
+            <FontiLead fonti={leadStatus} />
           </div>
         </section>
       )}
