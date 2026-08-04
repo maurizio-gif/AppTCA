@@ -32,7 +32,7 @@ const OPZIONI_RANGE = [
   { valore: 'tutto', etichetta: 'Tutto' },
   { valore: 'mtd', etichetta: 'Da inizio mese' },
   { valore: 'mese_precedente', etichetta: 'Mese precedente' },
-  { valore: 'anno_precedente', etichetta: 'Anno precedente' },
+  { valore: 'anno_corrente', etichetta: 'Anno corrente' },
   { valore: 'custom', etichetta: 'Personalizzato' },
 ] as const
 type PresetRange = (typeof OPZIONI_RANGE)[number]['valore']
@@ -76,12 +76,18 @@ function calcolaRange(
     return { da, a }
   }
 
-  if (preset === 'anno_precedente') {
-    return { da: `${anno - 1}-01-01`, a: `${anno - 1}-12-31` }
+  if (preset === 'anno_corrente') {
+    return { da: `${anno}-01-01`, a: oggi }
   }
 
-  if (preset === 'custom' && dataValida(customDa) && dataValida(customA) && customDa <= customA) {
-    return { da: customDa, a: customA }
+  // Basta una delle due date per applicare il filtro: l'altro estremo
+  // ricade sul primo contatto registrato / oggi, invece di scartare tutta
+  // la selezione finche' non sono valorizzate entrambe (prima causa per
+  // cui la data scelta sembrava "non salvarsi").
+  if (preset === 'custom') {
+    const validaDa = dataValida(customDa) ? customDa : primoGiorno
+    const validaA = dataValida(customA) ? customA : oggi
+    if (validaDa <= validaA) return { da: validaDa, a: validaA }
   }
 
   return { da: `${oggi.slice(0, 7)}-01`, a: oggi }
