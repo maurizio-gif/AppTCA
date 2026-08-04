@@ -115,7 +115,6 @@ function TabellaAppuntamenti({ righe, puoCancellare }: { righe: RigaContatto[]; 
                   columns={COLONNE_TABELLA}
                   record={riga}
                   hiddenKeys={COLONNE_VISIBILI}
-                  indicatore={riga.gestito ? 'verde' : 'rosso'}
                   evidenza={
                     <>
                       <RichiestaEvidenza riga={riga} />
@@ -133,7 +132,10 @@ function TabellaAppuntamenti({ righe, puoCancellare }: { righe: RigaContatto[]; 
                     />
                   }
                   cells={[
-                    riga.ora_richiesta || '—',
+                    <span className="ora-con-puntino">
+                      <span className={`puntino ${riga.gestito ? 'verde' : 'rosso'}`} />
+                      {riga.ora_richiesta || '—'}
+                    </span>,
                     <>
                       {riga.nome} {riga.cognome}
                       <br />

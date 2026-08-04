@@ -31,7 +31,6 @@ export function ExpandableRow({
   evidenza,
   extra,
   extraTitle = 'Gestione',
-  indicatore,
 }: {
   // Identificativo univoco della riga nella tabella (es. l'id del record):
   // serve al gruppo di accordion per sapere quale riga tenere aperta.
@@ -51,10 +50,6 @@ export function ExpandableRow({
   evidenza?: React.ReactNode
   extra?: React.ReactNode
   extraTitle?: string
-  // Colora il pulsante +/- come i pallini del calendario (rosso = da
-  // gestire, verde = gestito): si vede lo stato a colpo d'occhio senza
-  // dover aprire la riga. Omesso = colore neutro di sempre.
-  indicatore?: 'rosso' | 'verde'
 }) {
   const gruppo = useContext(AccordionContext)
   const [openLocale, setOpenLocale] = useState(false)
@@ -80,9 +75,7 @@ export function ExpandableRow({
         className={`row-clickable${open ? ' is-open' : ''}`}
         onClick={alternaOpen}
       >
-        <td className={`expand-indicator${indicatore ? ` expand-indicator-${indicatore}` : ''}`}>
-          {open ? '−' : '+'}
-        </td>
+        <td className="expand-indicator">{open ? '−' : '+'}</td>
         {cells.map((cell, i) => (
           <td key={i} data-label={columns?.[i]}>{cell}</td>
         ))}
