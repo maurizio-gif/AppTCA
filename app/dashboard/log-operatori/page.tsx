@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export default async function LogOperatoriPage({
   searchParams,
 }: {
-  searchParams: { vista?: string; operatore?: string; azione?: string; dal?: string; al?: string }
+  searchParams: { vista?: string; operatore?: string; azione?: string; periodo?: string; dal?: string; al?: string }
 }) {
   if (!(await utenteHaSezione('log-operatori'))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>

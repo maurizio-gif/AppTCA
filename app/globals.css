@@ -1553,6 +1553,98 @@ table.data-table {
   margin: 0;
 }
 
+.timbrature-riepilogo-azioni {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------- Anteprima report (Timbrature) ---------- */
+
+.report-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(26, 26, 26, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.report-preview-modal {
+  width: 100%;
+  max-width: 760px;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: 12px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.24);
+  overflow: hidden;
+}
+
+.report-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.report-preview-header h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.report-preview-header .muted {
+  margin: 0;
+}
+
+.report-preview-chiudi {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-grey-mid);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.report-preview-chiudi:hover {
+  background: var(--color-off-white);
+  color: var(--color-text);
+}
+
+.report-preview-body {
+  overflow: auto;
+  padding: 0 24px;
+}
+
+.report-preview-body .data-table {
+  min-width: 0;
+}
+
+.report-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.report-preview-footer .muted {
+  margin: 0;
+}
+
 /* ---------- Ricerca contatti ---------- */
 
 .search-box {
