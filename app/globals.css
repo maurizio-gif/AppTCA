@@ -2370,6 +2370,22 @@ table.data-table {
   margin: 4px 0 0;
 }
 
+.risposta-notifica {
+  margin-top: 8px;
+  min-width: 220px;
+}
+
+.risposta-notifica textarea {
+  margin-bottom: 8px;
+  max-width: none;
+}
+
+.risposta-notifica-azioni {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .notifica-allegato {
   margin: 8px 0 0;
   font-size: 14px;

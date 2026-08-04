@@ -9,6 +9,7 @@ type StatoNotifiche = {
   nonLette: number
   ultima: UltimaNotifica | null
   segnaLettaLocale: (id: number) => void
+  chiudiUltima: (id: number) => void
 }
 
 const NotificheContext = createContext<StatoNotifiche | null>(null)
@@ -52,13 +53,19 @@ export function NotificheProvider({
     return () => clearInterval(id)
   }, [abilitato, aggiorna])
 
+  // Solo il conteggio: il banner resta visibile dopo la conferma di lettura,
+  // cosi' puo' proporre "Rispondi ora" invece di sparire subito (vedi
+  // NotificheBanner). Si chiude solo con chiudiUltima, non da qui.
   function segnaLettaLocale(idNotifica: number) {
-    setUltima((u) => (u?.id === idNotifica ? null : u))
     setNonLette((n) => Math.max(0, n - 1))
   }
 
+  function chiudiUltima(idNotifica: number) {
+    setUltima((u) => (u?.id === idNotifica ? null : u))
+  }
+
   return (
-    <NotificheContext.Provider value={{ nonLette, ultima, segnaLettaLocale }}>
+    <NotificheContext.Provider value={{ nonLette, ultima, segnaLettaLocale, chiudiUltima }}>
       {children}
     </NotificheContext.Provider>
   )

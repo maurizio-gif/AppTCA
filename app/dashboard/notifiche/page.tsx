@@ -8,6 +8,7 @@ import { VistaTabs } from '@/components/VistaTabs'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { ComponiNotifica } from './ComponiNotifica'
 import { ConfermaLetturaButton } from './ConfermaLetturaButton'
+import { RispondiNotifica } from './RispondiNotifica'
 
 // Vita breve: basta il tempo di caricare la pagina e cliccare l'allegato,
 // non serve un link valido a lungo (la pagina e' comunque "force-dynamic",
@@ -174,7 +175,10 @@ function ElencoRicevuti({
                 }
                 extra={
                   riga.letta_il ? (
-                    <p className="muted">Letta il {formatDateOra(riga.letta_il)}</p>
+                    <>
+                      <p className="muted">Letta il {formatDateOra(riga.letta_il)}</p>
+                      <RispondiNotifica aEmail={riga.da_email} nomeDestinatario={nomeOperatore(riga.da_email)} />
+                    </>
                   ) : (
                     <ConfermaLetturaButton id={riga.id} />
                   )
