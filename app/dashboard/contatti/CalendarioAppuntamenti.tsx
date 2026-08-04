@@ -115,6 +115,7 @@ function TabellaAppuntamenti({ righe, puoCancellare }: { righe: RigaContatto[]; 
                   columns={COLONNE_TABELLA}
                   record={riga}
                   hiddenKeys={COLONNE_VISIBILI}
+                  indicatore={riga.gestito ? 'verde' : 'rosso'}
                   evidenza={
                     <>
                       <RichiestaEvidenza riga={riga} />

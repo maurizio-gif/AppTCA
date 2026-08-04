@@ -928,6 +928,17 @@ table.data-table {
   background: var(--color-off-white);
 }
 
+/* Stesso rosso/verde della legenda del calendario (.puntino), sul pulsante
+   +/- invece che su un pallino separato: si vede gestito/da gestire anche
+   a riga chiusa, senza doverla aprire. */
+.expand-indicator-rosso {
+  color: #8a2a2a;
+}
+
+.expand-indicator-verde {
+  color: #1c7c46;
+}
+
 .data-table th:first-child {
   position: sticky;
   left: 0;
@@ -1388,6 +1399,16 @@ table.data-table {
     background: var(--color-accent);
     border-color: var(--color-accent);
     color: #fff;
+  }
+
+  .data-table tr.row-clickable .expand-indicator-rosso {
+    border-color: #8a2a2a;
+    color: #8a2a2a;
+  }
+
+  .data-table tr.row-clickable .expand-indicator-verde {
+    border-color: #1c7c46;
+    color: #1c7c46;
   }
 
   /* Area di tocco piu' generosa per dita su schermo piccolo */
