@@ -3,7 +3,11 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
 import { EnquiriesChart } from '@/components/EnquiriesChart'
+import { FontiLead } from '@/components/FontiLead'
+import { FiltroData } from '@/components/FiltroData'
+import { FiltroSelect } from '@/components/FiltroSelect'
 import { apparteneAGruppo, type GruppoContatto } from '@/lib/contatti'
+import { prettifyKey } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,14 +23,73 @@ function aggiungiGiorni(chiave: string, giorni: number): string {
   return d.toISOString().slice(0, 10)
 }
 
+function formatBreve(chiave: string): string {
+  const [anno, mese, giorno] = chiave.split('-')
+  return `${giorno}/${mese}/${anno}`
+}
+
+const OPZIONI_RANGE = [
+  { valore: 'mtd', etichetta: 'Da inizio mese' },
+  { valore: 'mese_precedente', etichetta: 'Mese precedente' },
+  { valore: 'anno_precedente', etichetta: 'Anno precedente' },
+  { valore: 'custom', etichetta: 'Personalizzato' },
+] as const
+type PresetRange = (typeof OPZIONI_RANGE)[number]['valore']
+const VALORI_RANGE = OPZIONI_RANGE.map((o) => o.valore) as readonly string[]
+
+// Assente o non valido = "Da inizio mese", cosi' e' quello che si vede
+// aprendo la pagina senza parametri (comportamento di sempre finora).
+function parsePreset(raw: string | undefined): PresetRange {
+  if (raw && VALORI_RANGE.includes(raw)) return raw as PresetRange
+  return 'mtd'
+}
+
+const RE_DATA = /^\d{4}-\d{2}-\d{2}$/
+function dataValida(v: string | undefined): v is string {
+  return !!v && RE_DATA.test(v)
+}
+
+// Range effettivo (chiavi YYYY-MM-DD, incluse entrambe) per il preset
+// scelto. "custom" richiede due date valide con da <= a, altrimenti
+// ricade su "Da inizio mese" invece di rompere la pagina.
+function calcolaRange(
+  preset: PresetRange,
+  oggi: string,
+  customDa: string | undefined,
+  customA: string | undefined
+): { da: string; a: string } {
+  const anno = Number(oggi.slice(0, 4))
+  const mese = Number(oggi.slice(5, 7))
+
+  if (preset === 'mese_precedente') {
+    const meseScorso = mese === 1 ? 12 : mese - 1
+    const annoMeseScorso = mese === 1 ? anno - 1 : anno
+    const da = `${annoMeseScorso}-${String(meseScorso).padStart(2, '0')}-01`
+    const a = aggiungiGiorni(`${oggi.slice(0, 7)}-01`, -1)
+    return { da, a }
+  }
+
+  if (preset === 'anno_precedente') {
+    return { da: `${anno - 1}-01-01`, a: `${anno - 1}-12-31` }
+  }
+
+  if (preset === 'custom' && dataValida(customDa) && dataValida(customA) && customDa <= customA) {
+    return { da: customDa, a: customA }
+  }
+
+  return { da: `${oggi.slice(0, 7)}-01`, a: oggi }
+}
+
 type PuntoGiorno = { data: string; adulti: number; junior: number; altro: number }
 
-// Serie continua giorno per giorno dalla prima enquiry ad oggi (fuso Roma),
-// riempita a zero dove manca - cosi' il grafico ha una scala temporale
-// reale invece di "saltare" i giorni senza enquiry.
-function costruisciSerieGiornaliera(righe: { created_at: string; gruppo_attivita: string | null }[]): PuntoGiorno[] {
-  if (righe.length === 0) return []
-
+// Serie continua giorno per giorno per tutto il range scelto (anche i
+// giorni senza enquiry, a zero) - cosi' il grafico ha una scala temporale
+// reale invece di "saltare" i giorni vuoti.
+function costruisciSerieGiornaliera(
+  righe: { created_at: string; gruppo_attivita: string | null }[],
+  da: string,
+  a: string
+): PuntoGiorno[] {
   const conteggi = new Map<string, { adulti: number; junior: number; altro: number }>()
 
   for (const riga of righe) {
@@ -39,19 +102,46 @@ function costruisciSerieGiornaliera(righe: { created_at: string; gruppo_attivita
     conteggi.set(chiave, bucket)
   }
 
-  const chiavi = [...conteggi.keys()].sort()
-  const primoGiorno = chiavi[0]
-  const oggi = chiaveGiorno(new Date().toISOString())
-
   const serie: PuntoGiorno[] = []
-  for (let giorno = primoGiorno; giorno <= oggi; giorno = aggiungiGiorni(giorno, 1)) {
+  for (let giorno = da; giorno <= a; giorno = aggiungiGiorni(giorno, 1)) {
     const bucket = conteggi.get(giorno) ?? { adulti: 0, junior: 0, altro: 0 }
     serie.push({ data: giorno, ...bucket })
   }
   return serie
 }
 
-export default async function DashboardHome() {
+// Classifica generica per un campo testuale (fonte/cta/pagina): raggruppa
+// senza distinguere maiuscole/minuscole ma mostra l'etichetta cosi' come
+// arrivata la prima volta (es. "Richiedi Informazioni" resta tale, non
+// diventa "Richiedi informazioni"). "prettifica" e' per i soli slug tipo
+// utm_source (google -> Google), non per CTA/pagina gia' leggibili.
+function classificaPer(
+  righe: Record<string, unknown>[],
+  campo: string,
+  etichettaVuoto: string,
+  prettifica = false
+): { fonte: string; conteggio: number }[] {
+  const conteggi = new Map<string, { etichetta: string; conteggio: number }>()
+
+  for (const riga of righe) {
+    const grezzo = String(riga[campo] ?? '').trim()
+    const chiave = grezzo ? grezzo.toLowerCase() : '__vuoto__'
+    const etichetta = grezzo ? (prettifica ? prettifyKey(grezzo.toLowerCase()) : grezzo) : etichettaVuoto
+    const voce = conteggi.get(chiave)
+    if (voce) voce.conteggio += 1
+    else conteggi.set(chiave, { etichetta, conteggio: 1 })
+  }
+
+  return [...conteggi.values()]
+    .sort((a, b) => b.conteggio - a.conteggio)
+    .map((v) => ({ fonte: v.etichetta, conteggio: v.conteggio }))
+}
+
+export default async function DashboardHome({
+  searchParams,
+}: {
+  searchParams: { range?: string; da?: string; a?: string }
+}) {
   const email = headers().get('x-tca-user-email')
   const sezioniConsentite = await getSezioniConsentite(email)
   const puoVedere = (chiave: string) => sezioniConsentite.includes(chiave)
@@ -67,7 +157,10 @@ export default async function DashboardHome() {
     invitaAmico,
     iscrizioniEventi,
   ] = await Promise.all([
-    supabase.from('form_contatti').select('created_at, gruppo_attivita, gestito').order('created_at'),
+    supabase
+      .from('form_contatti')
+      .select('created_at, gruppo_attivita, gestito, utm_source, cta, pagina')
+      .order('created_at'),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
@@ -77,11 +170,10 @@ export default async function DashboardHome() {
   ])
 
   const righeContatti = contattiPerRiepilogo.data ?? []
-  const serieGiornaliera = costruisciSerieGiornaliera(righeContatti)
 
   // Stesso criterio Adulti/Junior usato dalle due sezioni Enquiries (vedi
-  // lib/contatti.ts): i contatori qui restano coerenti con cosa si trova
-  // aprendo /dashboard/contatti/adulti o /junior.
+  // lib/contatti.ts): i contatori "da gestire" restano il carico di lavoro
+  // attuale, non risentono del periodo scelto per il report sotto.
   function contaContatti(gruppo: GruppoContatto, gestito: boolean) {
     return righeContatti.filter(
       (riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo) && !!riga.gestito === gestito
@@ -92,6 +184,19 @@ export default async function DashboardHome() {
   const contattiAdultiGestiti = contaContatti('adulti', true)
   const contattiJuniorDaGestire = contaContatti('junior', false)
   const contattiJuniorGestiti = contaContatti('junior', true)
+
+  const preset = parsePreset(searchParams.range)
+  const oggi = chiaveGiorno(new Date().toISOString())
+  const { da, a } = calcolaRange(preset, oggi, searchParams.da, searchParams.a)
+  const righeNelRange = righeContatti.filter((riga) => {
+    const chiave = chiaveGiorno(riga.created_at)
+    return chiave >= da && chiave <= a
+  })
+
+  const serieGiornaliera = costruisciSerieGiornaliera(righeNelRange, da, a)
+  const fontiLead = classificaPer(righeNelRange, 'utm_source', 'Organico', true)
+  const ctaLead = classificaPer(righeNelRange, 'cta', 'Nessuna CTA')
+  const paginaLead = classificaPer(righeNelRange, 'pagina', 'Pagina non rilevata')
 
   return (
     <div>
@@ -139,7 +244,30 @@ export default async function DashboardHome() {
             </div>
           )}
 
+          <div className="report-range-toolbar">
+            <FiltroSelect valore={preset} opzioni={[...OPZIONI_RANGE]} paramName="range" ariaLabel="Periodo report" />
+            {preset === 'custom' && <FiltroData dal={da} al={a} paramDal="da" paramAl="a" />}
+            <p className="muted">
+              Dal {formatBreve(da)} al {formatBreve(a)}
+            </p>
+          </div>
+
           <EnquiriesChart giorni={serieGiornaliera} />
+
+          <div className="riepilogo-sottosezione">
+            <h3 className="riepilogo-sottosezione-titolo">Lead per fonte</h3>
+            <FontiLead fonti={fontiLead} />
+          </div>
+
+          <div className="riepilogo-sottosezione">
+            <h3 className="riepilogo-sottosezione-titolo">Lead per CTA</h3>
+            <FontiLead fonti={ctaLead} />
+          </div>
+
+          <div className="riepilogo-sottosezione">
+            <h3 className="riepilogo-sottosezione-titolo">Lead per pagina</h3>
+            <FontiLead fonti={paginaLead} />
+          </div>
         </section>
       )}
 
