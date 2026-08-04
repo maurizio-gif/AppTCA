@@ -24,6 +24,14 @@ export function NotificheBanner() {
 
   return (
     <div className="notifiche-banner">
+      <button
+        type="button"
+        className="notifiche-banner-chiudi"
+        aria-label="Rimuovi dalla vista"
+        onClick={() => chiudiUltima(ultima.id)}
+      >
+        ×
+      </button>
       <div className="notifiche-banner-corpo">
         <span className="notifiche-banner-mittente">Messaggio da {ultima.daNome}</span>
         <p className="notifiche-banner-testo">{ultima.messaggio}</p>
