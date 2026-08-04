@@ -42,6 +42,28 @@ export default async function NotifichePage({
     return <p className="error-banner">Errore nel caricamento: {(erroreRicevuti ?? erroreInviati)!.message}</p>
   }
 
+  // Un messaggio a piu' destinatari condivide un batch_id (vedi actions.ts):
+  // per ogni messaggio ricevuto con un batch, recuperiamo chi altro l'ha
+  // ricevuto, cosi' non sembra un messaggio "privato" a chi lo apre.
+  const batchId = (r: RigaNotifica) => (typeof r.batch_id === 'string' ? r.batch_id : null)
+  const batchIds = [...new Set((ricevuti ?? []).map(batchId).filter((b): b is string => !!b))]
+
+  const mappaBatch = new Map<string, string[]>()
+  if (batchIds.length > 0) {
+    const { data: righeBatch } = await supabase.from('notifiche').select('batch_id, a_email').in('batch_id', batchIds)
+    for (const r of righeBatch ?? []) {
+      const b = batchId(r)
+      if (!b) continue
+      if (!mappaBatch.has(b)) mappaBatch.set(b, [])
+      mappaBatch.get(b)!.push(r.a_email)
+    }
+  }
+
+  const ricevutiConAltri = (ricevuti ?? []).map((r) => {
+    const b = batchId(r)
+    return { ...r, altriDestinatari: b ? (mappaBatch.get(b) ?? []).filter((a) => a !== r.a_email) : [] }
+  })
+
   const percorsiAllegati = [...(ricevuti ?? []), ...(inviati ?? [])]
     .map((n) => n.allegato_path)
     .filter((p): p is string => Boolean(p))
@@ -111,7 +133,7 @@ export default async function NotifichePage({
       {vista === 'inviati' ? (
         <ElencoInviati righe={inviati ?? []} nomeOperatore={nomeOperatore} urlAllegati={urlAllegati} />
       ) : (
-        <ElencoRicevuti righe={ricevuti ?? []} nomeOperatore={nomeOperatore} urlAllegati={urlAllegati} />
+        <ElencoRicevuti righe={ricevutiConAltri} nomeOperatore={nomeOperatore} urlAllegati={urlAllegati} />
       )}
     </div>
   )
@@ -166,11 +188,26 @@ function ElencoRicevuti({
                 columnCount={4}
                 columns={['Quando', 'Da', 'Stato']}
                 record={riga}
-                hiddenKeys={['id', 'created_at', 'da_email', 'a_email', 'messaggio', 'letta_il', ...CHIAVI_ALLEGATO]}
+                hiddenKeys={[
+                  'id',
+                  'created_at',
+                  'da_email',
+                  'a_email',
+                  'messaggio',
+                  'letta_il',
+                  'batch_id',
+                  'altriDestinatari',
+                  ...CHIAVI_ALLEGATO,
+                ]}
                 evidenza={
                   <>
                     <p className="notifica-messaggio">{riga.messaggio}</p>
                     <AllegatoNotifica riga={riga} urlAllegati={urlAllegati} />
+                    {riga.altriDestinatari?.length > 0 && (
+                      <p className="muted">
+                        Inviato anche a: {riga.altriDestinatari.map((e: string) => nomeOperatore(e)).join(', ')}
+                      </p>
+                    )}
                   </>
                 }
                 extra={
@@ -223,7 +260,16 @@ function ElencoInviati({
                 columnCount={4}
                 columns={['Quando', 'A', 'Stato']}
                 record={riga}
-                hiddenKeys={['id', 'created_at', 'da_email', 'a_email', 'messaggio', 'letta_il', ...CHIAVI_ALLEGATO]}
+                hiddenKeys={[
+                  'id',
+                  'created_at',
+                  'da_email',
+                  'a_email',
+                  'messaggio',
+                  'letta_il',
+                  'batch_id',
+                  ...CHIAVI_ALLEGATO,
+                ]}
                 evidenza={
                   <>
                     <p className="notifica-messaggio">{riga.messaggio}</p>
