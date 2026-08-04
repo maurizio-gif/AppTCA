@@ -52,6 +52,18 @@ function chiaveData(anno: number, mese: number, giorno: number): string {
   return `${anno}-${String(mese + 1).padStart(2, '0')}-${String(giorno).padStart(2, '0')}`
 }
 
+// Piu' presto prima, piu' tardi dopo: gli orari sono testo "HH:MM" quindi
+// l'ordine alfabetico coincide con quello cronologico. Chi non ha un orario
+// finisce in fondo invece di rompere l'ordinamento degli altri.
+function confrontaOraRichiesta(a: RigaContatto, b: RigaContatto): number {
+  const oraA = a.ora_richiesta || ''
+  const oraB = b.ora_richiesta || ''
+  if (!oraA && !oraB) return 0
+  if (!oraA) return 1
+  if (!oraB) return -1
+  return oraA.localeCompare(oraB)
+}
+
 // Raggruppa per data_richiesta (giorno dell'appuntamento), non per
 // created_at (giorno di arrivo dell'enquiry): e' proprio il punto di
 // questo calendario.
@@ -67,6 +79,10 @@ function raggruppaPerData(righe: RigaContatto[]) {
     const chiave = String(riga.data_richiesta).slice(0, 10)
     if (!gruppi.has(chiave)) gruppi.set(chiave, [])
     gruppi.get(chiave)!.push(riga)
+  }
+
+  for (const lista of gruppi.values()) {
+    lista.sort(confrontaOraRichiesta)
   }
 
   return { gruppi, senzaData }
