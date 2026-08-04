@@ -102,11 +102,9 @@ export async function inviaNotifica(formData: FormData): Promise<Risultato> {
     return { ok: false, errore: error.message }
   }
 
-  // Il testo del messaggio non entra nei "dettagli" del log: stesso criterio
-  // delle note dei contatti, non serve duplicarlo in un'altra tabella.
   await registraLog(email, 'notifica_inviata', {
     entita: 'notifiche',
-    dettagli: { destinatari: destinatariUnici, allegato: allegato?.name ?? null },
+    dettagli: { destinatari: destinatariUnici, messaggio: testo, allegato: allegato?.name ?? null },
   })
 
   await provaInviaPush(supabase, email, destinatariUnici, testo)
