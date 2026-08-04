@@ -562,6 +562,7 @@ export type Database = {
           allegato_nome: string | null
           allegato_path: string | null
           allegato_tipo: string | null
+          batch_id: string | null
           created_at: string
           da_email: string
           id: number
@@ -574,6 +575,7 @@ export type Database = {
           allegato_nome?: string | null
           allegato_path?: string | null
           allegato_tipo?: string | null
+          batch_id?: string | null
           created_at?: string
           da_email: string
           id?: number
@@ -586,6 +588,7 @@ export type Database = {
           allegato_nome?: string | null
           allegato_path?: string | null
           allegato_tipo?: string | null
+          batch_id?: string | null
           created_at?: string
           da_email?: string
           id?: number

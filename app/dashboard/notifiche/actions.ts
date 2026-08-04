@@ -83,6 +83,11 @@ export async function inviaNotifica(formData: FormData): Promise<Risultato> {
     }
   }
 
+  // Stesso batch_id su tutte le righe solo se il messaggio va a piu' di un
+  // destinatario: serve a mostrare a ciascuno "inviato anche a" senza dover
+  // toccare le righe singole di sempre (batch_id resta null per quelle).
+  const batchId = destinatariUnici.length > 1 ? randomUUID() : null
+
   const { error } = await supabase.from('notifiche').insert(
     destinatariUnici.map((a_email) => ({
       da_email: email,
@@ -92,6 +97,7 @@ export async function inviaNotifica(formData: FormData): Promise<Risultato> {
       allegato_nome: allegato?.name ?? null,
       allegato_tipo: allegato?.type ?? null,
       allegato_dimensione: allegato?.size ?? null,
+      batch_id: batchId,
     }))
   )
 
