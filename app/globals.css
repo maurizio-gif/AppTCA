@@ -589,6 +589,14 @@ button {
   margin-bottom: 8px;
 }
 
+.report-range-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 4px 0 18px;
+}
+
 /* Classifica a barre orizzontali: un solo colore (magnitudine per fonte,
    non identita' tra poche categorie fisse come nel grafico giornaliero). */
 .fonti-lead {
