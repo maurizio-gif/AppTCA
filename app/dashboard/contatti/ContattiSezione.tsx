@@ -133,6 +133,12 @@ export async function ContattiSezione({
   const righeFiltrate = query
     ? messaggiSezione.filter((riga) => corrispondeRicerca(riga, query))
     : applicaFiltro(messaggiSezione, filtro)
+  // Stessa ricerca del tab Messaggi, applicata anche agli appuntamenti: un
+  // contatto si trova a prescindere da dove sia finito, senza dover
+  // indovinare in quale dei due tab guardare.
+  const appuntamentiFiltrati = query
+    ? appuntamentiSezione.filter((riga) => corrispondeRicerca(riga, query))
+    : appuntamentiSezione
 
   return (
     <div>
@@ -141,17 +147,32 @@ export async function ContattiSezione({
       </div>
 
       {conDivisioneViste && (
-        <VistaTabs
-          vista={vista}
-          tabs={[
-            { chiave: 'messaggi', etichetta: 'Messaggi', contatore: messaggiSezione.filter((r) => !r.gestito).length },
-            {
-              chiave: 'appuntamenti',
-              etichetta: 'Appuntamenti',
-              contatore: appuntamentiSezione.filter((r) => !r.gestito).length,
-            },
-          ]}
-        />
+        <>
+          <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
+          {query && (
+            <p className="search-note">
+              Ricerca su Messaggi e Appuntamenti —{' '}
+              <a href={basePath} className="link">
+                annulla ricerca
+              </a>
+            </p>
+          )}
+          <VistaTabs
+            vista={vista}
+            tabs={[
+              {
+                chiave: 'messaggi',
+                etichetta: 'Messaggi',
+                contatore: messaggiSezione.filter((r) => !r.gestito).length,
+              },
+              {
+                chiave: 'appuntamenti',
+                etichetta: 'Appuntamenti',
+                contatore: appuntamentiSezione.filter((r) => !r.gestito).length,
+              },
+            ]}
+          />
+        </>
       )}
 
       {vista === 'appuntamenti' ? (
@@ -175,13 +196,19 @@ export async function ContattiSezione({
               così non resta invisibile.
             </p>
           </BoxIstruzioni>
-          <CalendarioAppuntamenti righe={appuntamentiSezione} puoCancellare={puoCancellare} />
+          <CalendarioAppuntamenti righe={appuntamentiFiltrati} puoCancellare={puoCancellare} />
+          {query && appuntamentiFiltrati.length === 0 && (
+            <p className="empty-state">Nessun risultato per la ricerca negli appuntamenti.</p>
+          )}
         </>
       ) : (
         <>
           <BoxIstruzioni titolo="Come funziona">
             <ol>
-              <li>Cerca per nome, cognome, email o cellulare, oppure filtra tra Da gestire/Gestiti/Tutti.</li>
+              <li>
+                Cerca per nome, cognome, email o cellulare{conDivisioneViste ? ' (trova sia Messaggi che Appuntamenti)' : ''},
+                oppure filtra tra Da gestire/Gestiti/Tutti.
+              </li>
               <li>Apri una riga per vedere tutti i dettagli e aggiungere una nota interna.</li>
               <li>
                 Per segnare un contatto come «Gestito» devi prima scrivere e salvare una nota: è il modo per
@@ -200,19 +227,23 @@ export async function ContattiSezione({
             </p>
           </BoxIstruzioni>
 
-          <div className="filtri-toolbar">
-            <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
-            {query ? (
-              <p className="search-note">
-                Ricerca su tutti i contatti, gestiti e da gestire —{' '}
-                <a href={basePath} className="link">
-                  annulla ricerca
-                </a>
-              </p>
-            ) : (
-              <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
-            )}
-          </div>
+          {(!conDivisioneViste || !query) && (
+            <div className="filtri-toolbar">
+              {!conDivisioneViste && <RicercaContatti valoreIniziale={searchParams.q ?? ''} />}
+              {query ? (
+                !conDivisioneViste && (
+                  <p className="search-note">
+                    Ricerca su tutti i contatti, gestiti e da gestire —{' '}
+                    <a href={basePath} className="link">
+                      annulla ricerca
+                    </a>
+                  </p>
+                )
+              ) : (
+                <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
+              )}
+            </div>
+          )}
 
           <div className="data-table-wrap">
             <table className="data-table">
