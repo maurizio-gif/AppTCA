@@ -1795,6 +1795,14 @@ table.data-table {
   display: inline-block;
 }
 
+/* Stesso pallino della legenda del calendario, accanto all'orario di ogni
+   appuntamento: gestito/da gestire si vede senza aprire la riga. */
+.ora-con-puntino {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .puntino.rosso {
   background: #8a2a2a;
 }

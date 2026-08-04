@@ -132,7 +132,10 @@ function TabellaAppuntamenti({ righe, puoCancellare }: { righe: RigaContatto[]; 
                     />
                   }
                   cells={[
-                    riga.ora_richiesta || '—',
+                    <span className="ora-con-puntino">
+                      <span className={`puntino ${riga.gestito ? 'verde' : 'rosso'}`} />
+                      {riga.ora_richiesta || '—'}
+                    </span>,
                     <>
                       {riga.nome} {riga.cognome}
                       <br />
