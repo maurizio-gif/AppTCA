@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { inviaNotifica } from './actions'
 import { ACCEPT_ALLEGATO, DIMENSIONE_MASSIMA_ALLEGATO, TIPI_ALLEGATO_CONSENTITI, formatDimensioneFile } from '@/lib/allegati'
+import { DestinatariSelect } from './DestinatariSelect'
 
 export function ComponiNotifica({ destinatari }: { destinatari: { email: string; nome: string }[] }) {
   const [selezionati, setSelezionati] = useState<string[]>([])
@@ -73,29 +74,12 @@ export function ComponiNotifica({ destinatari }: { destinatari: { email: string;
 
       {esito && <p className={`timbra-esito ${esito.tipo}`}>{esito.testo}</p>}
 
-      <div className="componi-notifica-destinatari">
-        {destinatari.map((d) => {
-          const attivo = selezionati.includes(d.email)
-          return (
-            <button
-              key={d.email}
-              type="button"
-              className={`chip-toggle${attivo ? ' is-attivo' : ''}`}
-              aria-pressed={attivo}
-              disabled={isPending}
-              onClick={() => toggleDestinatario(d.email)}
-            >
-              {d.nome}
-            </button>
-          )
-        })}
-        {destinatari.length === 0 && <p className="muted">Non ci sono altri operatori a cui scrivere.</p>}
-      </div>
-      {selezionati.length > 0 && (
-        <p className="muted componi-notifica-conteggio">
-          {selezionati.length} {selezionati.length === 1 ? 'destinatario selezionato' : 'destinatari selezionati'}.
-        </p>
-      )}
+      <DestinatariSelect
+        destinatari={destinatari}
+        selezionati={selezionati}
+        onToggle={toggleDestinatario}
+        disabled={isPending}
+      />
 
       <textarea
         className="gestione-note componi-notifica-testo"

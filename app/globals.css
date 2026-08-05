@@ -2231,47 +2231,88 @@ table.data-table {
   margin-bottom: 12px;
 }
 
-.componi-notifica-destinatari {
+/* Tendina a selezione multipla per i destinatari: stesso linguaggio visivo
+   delle altre tendine filtro dell'app (.filter-select), ma con un pannello
+   di checkbox invece di un <select> nativo - piu' leggibile quando si deve
+   scegliere piu' di un nome insieme. */
+.destinatari-select {
+  position: relative;
+  margin-bottom: 16px;
+  max-width: 360px;
+}
+
+.destinatari-select-trigger {
+  width: 100%;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.componi-notifica-conteggio {
-  margin: 0 0 12px;
-  font-size: 13px;
-}
-
-/* Pillola cliccabile per scegliere uno o piu' destinatari: piu' leggibile
-   di una lista di checkbox quando lo staff e' numeroso, lo stato scelto si
-   vede a colpo d'occhio dal colore invece di dover leggere ogni casella. */
-.chip-toggle {
-  display: inline-flex;
   align-items: center;
-  padding: 6px 14px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 32px 10px 14px;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-bg);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--color-text);
-  font-size: 13px;
+  background: var(--color-bg)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  background-size: 14px;
+  text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
-.chip-toggle:hover {
+.destinatari-select-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destinatari-select-trigger:hover,
+.destinatari-select-trigger:focus {
   border-color: var(--color-accent);
+  outline: none;
 }
 
-.chip-toggle.is-attivo {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: #fff;
-}
-
-.chip-toggle:disabled {
+.destinatari-select-trigger:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.destinatari-select-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+}
+
+.destinatari-select-opzione {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.destinatari-select-opzione:hover {
+  background: var(--color-off-white);
+}
+
+.destinatari-select-opzione input {
+  accent-color: var(--color-accent);
+  width: 15px;
+  height: 15px;
 }
 
 .componi-notifica-testo {
