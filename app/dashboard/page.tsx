@@ -180,7 +180,7 @@ export default async function DashboardHome({
   ] = await Promise.all([
     supabase
       .from('form_contatti')
-      .select('created_at, gruppo_attivita, gestito, utm_source, cta, pagina, esito_verifica_pgm')
+      .select('created_at, gruppo_attivita, gestito, utm_source, utm_campaign, cta, pagina, esito_verifica_pgm')
       .order('created_at'),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
@@ -220,6 +220,7 @@ export default async function DashboardHome({
 
   const serieGiornaliera = costruisciSerieGiornaliera(righeNelRange, da, a)
   const fontiLead = classificaPer(righeNelRange, 'utm_source', 'Organico', true)
+  const campagnaLead = classificaPer(righeNelRange, 'utm_campaign', 'Nessuna campagna', true)
   const ctaLead = classificaPer(righeNelRange, 'cta', 'Nessuna CTA')
   const paginaLead = classificaPer(righeNelRange, 'pagina', 'Pagina non rilevata')
   const leadStatus = classificaPer(
@@ -287,6 +288,11 @@ export default async function DashboardHome({
           <div className="riepilogo-sottosezione">
             <h3 className="riepilogo-sottosezione-titolo">Lead per fonte</h3>
             <FontiLead fonti={fontiLead} />
+          </div>
+
+          <div className="riepilogo-sottosezione">
+            <h3 className="riepilogo-sottosezione-titolo">Lead per campagna</h3>
+            <FontiLead fonti={campagnaLead} />
           </div>
 
           <div className="riepilogo-sottosezione">
