@@ -36,6 +36,12 @@ const ICONE: Record<string, React.ReactNode> = {
       <path d="M3.5 6.5 12 13l8.5-6.5" />
     </>
   ),
+  analytics: (
+    <>
+      <path d="M4 20V10M11 20V4M18 20v-7" />
+      <path d="M2.5 20h19" />
+    </>
+  ),
   'scuola-tennis': (
     <>
       <circle cx="12" cy="12" r="8.5" />
