@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatDataConGiorno } from '@/lib/format'
 
 type PuntoGiorno = { data: string; adulti: number; junior: number; altro: number }
@@ -18,6 +18,7 @@ type Attivo = { indice: number; x: number; y: number }
 // lateralmente dal primo giorno con enquiry (a sinistra) a oggi (a destra,
 // posizione iniziale) anche per centinaia di giorni, senza paginazione.
 export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
+  const router = useRouter()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [attivo, setAttivo] = useState<Attivo | null>(null)
 
@@ -40,7 +41,7 @@ export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
   useEffect(() => {
     function suPointerDownFuori(e: PointerEvent) {
       const target = e.target as Element | null
-      if (!target?.closest('.enquiries-chart-colonna') && !target?.closest('.enquiries-chart-tooltip')) {
+      if (!target?.closest('.enquiries-chart-colonna')) {
         setAttivo(null)
       }
     }
@@ -103,7 +104,19 @@ export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
                 onMouseLeave={() => setAttivo(null)}
                 onFocus={(e) => mostraTooltip(indice, e.currentTarget)}
                 onBlur={() => setAttivo(null)}
-                onClick={(e) => mostraTooltip(indice, e.currentTarget)}
+                onClick={(e) => {
+                  // Su desktop l'hover ha gia' mostrato il conteggio: il
+                  // click va dritto al dettaglio invece di riaprire lo
+                  // stesso tooltip. Su mobile (niente hover) e' anche
+                  // l'unico tap che serve - un secondo tap su un link
+                  // minuscolo dentro un tooltip a position:fixed era
+                  // troppo fragile per funzionare in modo affidabile.
+                  if (totale > 0) {
+                    router.push(`/dashboard/analytics/lista?giorno=${giorno.data}`)
+                    return
+                  }
+                  mostraTooltip(indice, e.currentTarget)
+                }}
               >
                 <div className="enquiries-chart-barra" style={{ height: ALTEZZA_BARRA }}>
                   {totale === 0 ? (
@@ -167,20 +180,8 @@ export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
             <span>Totale</span>
             <strong>{giornoAttivo.adulti + giornoAttivo.junior + giornoAttivo.altro}</strong>
           </div>
-          {/* Percorso fisso invece di una prop-funzione passata dal Server
-              Component chiamante (es. hrefGiorno): React Server Components
-              non puo' serializzare funzioni attraverso il confine
-              server/client, e crasha a runtime (non lo segnala tsc/build,
-              solo la richiesta vera in produzione). Questo componente e'
-              usato solo da app/dashboard/analytics/page.tsx, quindi il
-              percorso hardcoded qui non e' un problema di riuso. */}
           {giornoAttivo.adulti + giornoAttivo.junior + giornoAttivo.altro > 0 && (
-            <Link
-              href={`/dashboard/analytics/lista?giorno=${giornoAttivo.data}`}
-              className="enquiries-chart-tooltip-link"
-            >
-              Vedi il dettaglio →
-            </Link>
+            <div className="enquiries-chart-tooltip-hint">Clicca per il dettaglio</div>
           )}
         </div>
       )}
