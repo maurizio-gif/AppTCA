@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
-import { SEZIONI } from '@/lib/auth/sezioni'
+import { SEZIONI, SEZIONI_SENZA_VOCE_MENU } from '@/lib/auth/sezioni'
 import { NavIcon } from '@/components/NavIcon'
 import { useNotifiche } from './NotificheProvider'
 import { PushToggleNavItem } from './PushToggleNavItem'
@@ -49,7 +49,9 @@ export function Sidebar({
   // delle sezioni assegnabili per utente (vedi lib/auth/sezioni.ts).
   const navItems: VoceMenu[] = [
     { href: '/dashboard', label: 'Dashboard', chiave: 'riepilogo' },
-    ...SEZIONI.filter((s) => sezioniConsentite.includes(s.chiave)),
+    ...SEZIONI.filter(
+      (s) => sezioniConsentite.includes(s.chiave) && !SEZIONI_SENZA_VOCE_MENU.includes(s.chiave)
+    ),
   ]
   const gruppiMenu = raggruppaVoci(navItems)
 

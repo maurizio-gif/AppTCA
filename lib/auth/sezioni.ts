@@ -14,6 +14,11 @@ export const SEZIONI = [
   { chiave: 'summer-camp', label: 'Summer Camp', href: '/dashboard/summer-camp', gruppo: 'Moduli' },
   { chiave: 'invita-amico', label: 'Invita un amico', href: '/dashboard/invita-amico', gruppo: 'Moduli' },
   { chiave: 'iscrizioni-eventi', label: 'Iscrizioni eventi', href: '/dashboard/iscrizioni-eventi', gruppo: 'Moduli' },
+  // Non e' una pagina propria (vive dentro /dashboard): niente voce nel
+  // menu, vedi SEZIONI_SENZA_VOCE_MENU sotto. Controlla solo se il blocco
+  // "Enquiries" compare nel Riepilogo, a prescindere dai permessi Adulti/
+  // Junior (che restano a controllare le singole card dentro il blocco).
+  { chiave: 'dashboard-enquiries', label: 'Riepilogo Enquiries (Dashboard)', href: '/dashboard', gruppo: 'Moduli' },
   { chiave: 'analytics', label: 'Analytics', href: '/dashboard/analytics', gruppo: 'Amministrazione' },
   { chiave: 'timbratura', label: 'Timbra cartellino', href: '/dashboard/timbratura', gruppo: 'Amministrazione' },
   { chiave: 'utenti', label: 'Gestione utenti', href: '/dashboard/utenti', gruppo: 'Amministrazione' },
@@ -22,3 +27,8 @@ export const SEZIONI = [
 ] as const
 
 export type SezioneChiave = (typeof SEZIONI)[number]['chiave']
+
+// Sezioni assegnabili in Gestione utenti che NON hanno una pagina propria
+// e quindi non devono comparire come voce nel menu laterale (vedi
+// Sidebar.tsx): restano un permesso puro, gestito solo qui.
+export const SEZIONI_SENZA_VOCE_MENU: readonly SezioneChiave[] = ['dashboard-enquiries']

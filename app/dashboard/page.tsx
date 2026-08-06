@@ -53,7 +53,7 @@ export default async function DashboardHome() {
         <h1>Dashboard</h1>
       </div>
 
-      {(puoVedere('contatti-adulti') || puoVedere('contatti-junior')) && (
+      {puoVedere('dashboard-enquiries') && (
         <section className="riepilogo-sezione">
           <h2 className="riepilogo-sezione-titolo">Enquiries</h2>
 
@@ -91,12 +91,6 @@ export default async function DashboardHome() {
                 />
               </div>
             </div>
-          )}
-
-          {puoVedere('analytics') && (
-            <Link href="/dashboard/analytics" className="link">
-              Vedi grafici e statistiche →
-            </Link>
           )}
         </section>
       )}
