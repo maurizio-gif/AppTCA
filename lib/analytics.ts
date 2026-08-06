@@ -29,11 +29,11 @@ export const OPZIONI_RANGE = [
 export type PresetRange = (typeof OPZIONI_RANGE)[number]['valore']
 const VALORI_RANGE = OPZIONI_RANGE.map((o) => o.valore) as readonly string[]
 
-// Assente o non valido = "Da inizio mese", cosi' e' quello che si vede
-// aprendo la pagina senza parametri (comportamento di sempre finora).
+// Assente o non valido = "Tutto", cosi' e' quello che si vede aprendo
+// Analytics senza parametri.
 export function parsePreset(raw: string | undefined): PresetRange {
   if (raw && VALORI_RANGE.includes(raw)) return raw as PresetRange
-  return 'mtd'
+  return 'tutto'
 }
 
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/
