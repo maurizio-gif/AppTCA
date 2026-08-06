@@ -64,7 +64,6 @@ export default async function AnalyticsPage({
   // restare coerente col conteggio mostrato (che e' gia' filtrato sul
   // periodo scelto qui).
   const parametriPeriodo = `da=${da}&a=${a}`
-  const hrefGiorno = (giorno: string) => `/dashboard/analytics/lista?giorno=${giorno}`
   const hrefDimensione = (dimensione: DimensioneLead, chiave: string) =>
     `/dashboard/analytics/lista?dimensione=${dimensione}&chiave=${encodeURIComponent(chiave)}&${parametriPeriodo}`
 
@@ -83,7 +82,7 @@ export default async function AnalyticsPage({
           </p>
         </div>
 
-        <EnquiriesChart giorni={serieGiornaliera} hrefGiorno={hrefGiorno} />
+        <EnquiriesChart giorni={serieGiornaliera} />
 
         {SEZIONI_LEAD.map(({ dimensione, titolo }) => (
           <div key={dimensione} className="riepilogo-sottosezione">

@@ -17,15 +17,7 @@ type Attivo = { indice: number; x: number; y: number }
 // di piu' - stessa logica, nessun breakpoint dedicato. La corsia scorre
 // lateralmente dal primo giorno con enquiry (a sinistra) a oggi (a destra,
 // posizione iniziale) anche per centinaia di giorni, senza paginazione.
-export function EnquiriesChart({
-  giorni,
-  hrefGiorno,
-}: {
-  giorni: PuntoGiorno[]
-  // Se passato, la colonna attiva mostra un link alla lista delle
-  // anagrafiche di quel giorno (vedi app/dashboard/analytics/page.tsx).
-  hrefGiorno?: (giorno: string) => string
-}) {
+export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [attivo, setAttivo] = useState<Attivo | null>(null)
 
@@ -175,8 +167,18 @@ export function EnquiriesChart({
             <span>Totale</span>
             <strong>{giornoAttivo.adulti + giornoAttivo.junior + giornoAttivo.altro}</strong>
           </div>
-          {hrefGiorno && giornoAttivo.adulti + giornoAttivo.junior + giornoAttivo.altro > 0 && (
-            <Link href={hrefGiorno(giornoAttivo.data)} className="enquiries-chart-tooltip-link">
+          {/* Percorso fisso invece di una prop-funzione passata dal Server
+              Component chiamante (es. hrefGiorno): React Server Components
+              non puo' serializzare funzioni attraverso il confine
+              server/client, e crasha a runtime (non lo segnala tsc/build,
+              solo la richiesta vera in produzione). Questo componente e'
+              usato solo da app/dashboard/analytics/page.tsx, quindi il
+              percorso hardcoded qui non e' un problema di riuso. */}
+          {giornoAttivo.adulti + giornoAttivo.junior + giornoAttivo.altro > 0 && (
+            <Link
+              href={`/dashboard/analytics/lista?giorno=${giornoAttivo.data}`}
+              className="enquiries-chart-tooltip-link"
+            >
               Vedi il dettaglio →
             </Link>
           )}
