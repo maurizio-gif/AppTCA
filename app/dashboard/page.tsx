@@ -275,40 +275,44 @@ export default async function DashboardHome({
             </div>
           )}
 
-          <div className="report-range-toolbar">
-            <FiltroSelect valore={preset} opzioni={[...OPZIONI_RANGE]} paramName="range" ariaLabel="Periodo report" />
-            {preset === 'custom' && <FiltroData dal={da} al={a} paramDal="da" paramAl="a" />}
-            <p className="muted">
-              Dal {formatBreve(da)} al {formatBreve(a)}
-            </p>
-          </div>
+          <details className="analytics-toggle">
+            <summary className="analytics-toggle-titolo">Analytics</summary>
 
-          <EnquiriesChart giorni={serieGiornaliera} />
+            <div className="report-range-toolbar">
+              <FiltroSelect valore={preset} opzioni={[...OPZIONI_RANGE]} paramName="range" ariaLabel="Periodo report" />
+              {preset === 'custom' && <FiltroData dal={da} al={a} paramDal="da" paramAl="a" />}
+              <p className="muted">
+                Dal {formatBreve(da)} al {formatBreve(a)}
+              </p>
+            </div>
 
-          <div className="riepilogo-sottosezione">
-            <h3 className="riepilogo-sottosezione-titolo">Lead per fonte</h3>
-            <FontiLead fonti={fontiLead} />
-          </div>
+            <EnquiriesChart giorni={serieGiornaliera} />
 
-          <div className="riepilogo-sottosezione">
-            <h3 className="riepilogo-sottosezione-titolo">Lead per campagna</h3>
-            <FontiLead fonti={campagnaLead} />
-          </div>
+            <div className="riepilogo-sottosezione">
+              <h3 className="riepilogo-sottosezione-titolo">Lead per fonte</h3>
+              <FontiLead fonti={fontiLead} />
+            </div>
 
-          <div className="riepilogo-sottosezione">
-            <h3 className="riepilogo-sottosezione-titolo">Lead per CTA</h3>
-            <FontiLead fonti={ctaLead} />
-          </div>
+            <div className="riepilogo-sottosezione">
+              <h3 className="riepilogo-sottosezione-titolo">Lead per campagna</h3>
+              <FontiLead fonti={campagnaLead} />
+            </div>
 
-          <div className="riepilogo-sottosezione">
-            <h3 className="riepilogo-sottosezione-titolo">Lead per pagina</h3>
-            <FontiLead fonti={paginaLead} />
-          </div>
+            <div className="riepilogo-sottosezione">
+              <h3 className="riepilogo-sottosezione-titolo">Lead per CTA</h3>
+              <FontiLead fonti={ctaLead} />
+            </div>
 
-          <div className="riepilogo-sottosezione">
-            <h3 className="riepilogo-sottosezione-titolo">Lead Status</h3>
-            <FontiLead fonti={leadStatus} />
-          </div>
+            <div className="riepilogo-sottosezione">
+              <h3 className="riepilogo-sottosezione-titolo">Lead per pagina</h3>
+              <FontiLead fonti={paginaLead} />
+            </div>
+
+            <div className="riepilogo-sottosezione">
+              <h3 className="riepilogo-sottosezione-titolo">Lead Status</h3>
+              <FontiLead fonti={leadStatus} />
+            </div>
+          </details>
         </section>
       )}
 
