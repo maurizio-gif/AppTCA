@@ -597,6 +597,42 @@ button {
   margin: 4px 0 18px;
 }
 
+/* Sezione grafici/statistiche del report, chiusa di default: e' contenuto
+   secondario rispetto ai contatori "da gestire" sempre visibili sopra. */
+.analytics-toggle-titolo {
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.analytics-toggle-titolo::-webkit-details-marker {
+  display: none;
+}
+
+.analytics-toggle-titolo::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--color-text-light);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.analytics-toggle[open] > .analytics-toggle-titolo::before {
+  transform: rotate(90deg);
+}
+
+.analytics-toggle > *:not(.analytics-toggle-titolo) {
+  margin-top: 14px;
+}
+
 /* Classifica a barre orizzontali: un solo colore (magnitudine per fonte,
    non identita' tra poche categorie fisse come nel grafico giornaliero). */
 .fonti-lead {
