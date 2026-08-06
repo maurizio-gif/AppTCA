@@ -925,22 +925,12 @@ button {
   font-weight: 700;
 }
 
-/* Il tooltip ha pointer-events:none (non deve intercettare hover/tap
-   destinati alle colonne sotto): il link riabilita solo per se' stesso. */
-.enquiries-chart-tooltip-link {
-  display: block;
+.enquiries-chart-tooltip-hint {
   margin-top: 8px;
   padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  font-weight: 600;
-  text-decoration: none;
-  pointer-events: auto;
-}
-
-.enquiries-chart-tooltip-link:hover,
-.enquiries-chart-tooltip-link:focus-visible {
-  text-decoration: underline;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
 }
 
 /* ---------- Data table ---------- */
