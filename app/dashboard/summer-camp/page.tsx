@@ -5,6 +5,8 @@ import { FiltroSelect } from '@/components/FiltroSelect'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
+import { raggruppaAccessiPerVid } from '@/lib/visite'
+import { VisiteContatto } from '@/components/VisiteContatto'
 import { CaricatoPgmToggle } from './CaricatoPgmToggle'
 
 export const dynamic = 'force-dynamic'
@@ -85,6 +87,12 @@ export default async function SummerCampPage({
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
+  // Visite al sito di ciascun genitore (per vid), per capire quanto e'
+  // "caldo" il lead - vedi VisiteContatto.
+  const vids = [...new Set((righe ?? []).map((riga) => riga.vid).filter((v): v is string => !!v))]
+  const { data: accessi } = vids.length > 0 ? await supabase.from('accessi').select('*').in('vid', vids) : { data: [] }
+  const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
+
   const filtro = parseFiltro(searchParams.filtro)
   const righeFiltrate = applicaFiltro(righe ?? [], filtro)
 
@@ -133,6 +141,7 @@ export default async function SummerCampPage({
                   columns={COLONNE_TABELLA}
                   record={riga}
                   hiddenKeys={COLONNE_VISIBILI}
+                  evidenza={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
                   extraTitle="Caricato su Perfect Gym"
                   extra={
                     <CaricatoPgmToggle

@@ -3,6 +3,8 @@ import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
+import { raggruppaAccessiPerVid } from '@/lib/visite'
+import { VisiteContatto } from '@/components/VisiteContatto'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +34,12 @@ export default async function InvitaAmicoPage() {
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
+
+  // Visite al sito di ciascun socio (per vid), per capire quanto e' "caldo"
+  // l'invito - vedi VisiteContatto.
+  const vids = [...new Set((righe ?? []).map((riga) => riga.vid).filter((v): v is string => !!v))]
+  const { data: accessi } = vids.length > 0 ? await supabase.from('accessi').select('*').in('vid', vids) : { data: [] }
+  const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
 
   return (
     <div>
@@ -65,6 +73,7 @@ export default async function InvitaAmicoPage() {
                   columnCount={4}
                   record={riga}
                   hiddenKeys={COLONNE_VISIBILI}
+                  evidenza={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
                   cells={[
                     formatDateOra(riga.created_at),
                     riga.email_socio,

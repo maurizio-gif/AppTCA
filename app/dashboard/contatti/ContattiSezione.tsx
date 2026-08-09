@@ -4,7 +4,9 @@ import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { apparteneAGruppo, classificaContatto, type GruppoContatto } from '@/lib/contatti'
+import { raggruppaAccessiPerVid } from '@/lib/visite'
 import type { SezioneChiave } from '@/lib/auth/sezioni'
+import { VisiteContatto } from '@/components/VisiteContatto'
 import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
@@ -116,6 +118,13 @@ export async function ContattiSezione({
 
   const puoCancellare = !!viewer?.puo_cancellare
 
+  // Visite al sito di ciascun contatto (per vid), per capire quanto e'
+  // "caldo" il lead prima di richiamarlo - vedi VisiteContatto. Interrogata
+  // dopo i contatti perche' serve l'elenco dei vid da cercare.
+  const vids = [...new Set((righe ?? []).map((riga) => riga.vid).filter((v): v is string => !!v))]
+  const { data: accessi } = vids.length > 0 ? await supabase.from('accessi').select('*').in('vid', vids) : { data: [] }
+  const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
+
   const righeSezione = (righe ?? []).filter((riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo))
 
   const conDivisioneViste = gruppo === 'adulti'
@@ -200,7 +209,11 @@ export async function ContattiSezione({
               così non resta invisibile.
             </p>
           </BoxIstruzioni>
-          <CalendarioAppuntamenti righe={appuntamentiFiltrati} puoCancellare={puoCancellare} />
+          <CalendarioAppuntamenti
+            righe={appuntamentiFiltrati}
+            puoCancellare={puoCancellare}
+            accessiPerVid={accessiPerVid}
+          />
           {query && appuntamentiFiltrati.length === 0 && (
             <p className="empty-state">Nessun risultato per la ricerca negli appuntamenti.</p>
           )}
@@ -271,7 +284,12 @@ export async function ContattiSezione({
                       columns={COLONNE_TABELLA}
                       record={riga}
                       hiddenKeys={COLONNE_VISIBILI}
-                      evidenza={<RichiestaEvidenza riga={riga} />}
+                      evidenza={
+                        <>
+                          <RichiestaEvidenza riga={riga} />
+                          <VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />
+                        </>
+                      }
                       extra={
                         <GestioneSezione
                           id={riga.id}

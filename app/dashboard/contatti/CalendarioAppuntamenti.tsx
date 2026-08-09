@@ -5,6 +5,8 @@ import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
 import { formatDateOra } from '@/lib/format'
 import { classificaContatto } from '@/lib/contatti'
+import type { RigaAccesso } from '@/lib/visite'
+import { VisiteContatto } from '@/components/VisiteContatto'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
 import { GestioneSezione } from './GestioneSezione'
 
@@ -91,7 +93,15 @@ function raggruppaPerData(righe: RigaContatto[]) {
 // Tabella di appuntamenti (di un giorno, o quelli senza data): stessa
 // struttura di ExpandableRow usata per i Messaggi, con Ora+Tipo al posto
 // di Data e ora+Richiesta e i contatti gia' visibili nella cella nome.
-function TabellaAppuntamenti({ righe, puoCancellare }: { righe: RigaContatto[]; puoCancellare: boolean }) {
+function TabellaAppuntamenti({
+  righe,
+  puoCancellare,
+  accessiPerVid,
+}: {
+  righe: RigaContatto[]
+  puoCancellare: boolean
+  accessiPerVid: Record<string, RigaAccesso[]>
+}) {
   return (
     <div className="data-table-wrap">
       <table className="data-table">
@@ -119,6 +129,7 @@ function TabellaAppuntamenti({ righe, puoCancellare }: { righe: RigaContatto[]; 
                     <>
                       <RichiestaEvidenza riga={riga} />
                       <ArrivoRichiesta riga={riga} />
+                      <VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />
                     </>
                   }
                   extra={
@@ -162,9 +173,11 @@ function TabellaAppuntamenti({ righe, puoCancellare }: { righe: RigaContatto[]; 
 export function CalendarioAppuntamenti({
   righe,
   puoCancellare,
+  accessiPerVid,
 }: {
   righe: RigaContatto[]
   puoCancellare: boolean
+  accessiPerVid: Record<string, RigaAccesso[]>
 }) {
   const oggi = useMemo(() => new Date(), [])
   const [anno, setAnno] = useState(oggi.getFullYear())
@@ -283,7 +296,7 @@ export function CalendarioAppuntamenti({
                 ({righeGiorno.length} {righeGiorno.length === 1 ? 'appuntamento' : 'appuntamenti'})
               </span>
             </h3>
-            <TabellaAppuntamenti righe={righeGiorno} puoCancellare={puoCancellare} />
+            <TabellaAppuntamenti righe={righeGiorno} puoCancellare={puoCancellare} accessiPerVid={accessiPerVid} />
           </>
         )}
       </div>
@@ -296,7 +309,7 @@ export function CalendarioAppuntamenti({
           <p className="muted">
             Appuntamenti senza una data richiesta registrata: non possono comparire nel calendario.
           </p>
-          <TabellaAppuntamenti righe={senzaData} puoCancellare={puoCancellare} />
+          <TabellaAppuntamenti righe={senzaData} puoCancellare={puoCancellare} accessiPerVid={accessiPerVid} />
         </div>
       )}
     </div>
