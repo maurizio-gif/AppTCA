@@ -4,6 +4,29 @@ export function prettifyKey(key: string): string {
     .replace(/^./, (c) => c.toUpperCase())
 }
 
+type Operatore = { email: string; nome?: string | null; cognome?: string | null }
+
+// Ordine alfabetico di cognome (fallback nome, poi email grezza per un
+// tentativo di accesso non autorizzato che non ha un record in staff_users):
+// stesso criterio in ogni elenco di operatori dell'app.
+export function confrontaOperatori(a: Operatore, b: Operatore): number {
+  const chiave = (o: Operatore) => (o.cognome || o.nome || o.email).toLowerCase()
+  return chiave(a).localeCompare(chiave(b), 'it')
+}
+
+// Durata breve tra due timestamp ISO (es. tra due pageview consecutive di
+// uno stesso visitatore): secondi sotto il minuto, altrimenti minuti, poi
+// ore+minuti.
+export function formatDurataBreve(daISO: string, aISO: string): string {
+  const secondi = Math.max(0, Math.round((new Date(aISO).getTime() - new Date(daISO).getTime()) / 1000))
+  if (secondi < 60) return `${secondi}s`
+  const minuti = Math.round(secondi / 60)
+  if (minuti < 60) return `${minuti} min`
+  const ore = Math.floor(minuti / 60)
+  const minutiResto = minuti % 60
+  return minutiResto > 0 ? `${ore}h ${minutiResto}min` : `${ore}h`
+}
+
 export function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'boolean') return value ? 'Sì' : 'No'
