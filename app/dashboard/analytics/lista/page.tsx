@@ -21,8 +21,11 @@ const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Gruppo', 'Stato', 'Att
 const CAMPI_IN_EVIDENZA = ['id', 'created_at', 'nome', 'cognome', 'gruppo_attivita', 'tipo_richiesta', 'attivita', 'stato', 'motivo', 'data_richiesta', 'ora_richiesta']
 
 const TITOLI_DIMENSIONE: Record<DimensioneLead, string> = {
+  canale: 'Canale',
   fonte: 'Fonte',
+  medium: 'Medium',
   campagna: 'Campagna',
+  term: 'Termine di ricerca',
   cta: 'CTA',
   pagina: 'Pagina',
   status: 'Lead Status',

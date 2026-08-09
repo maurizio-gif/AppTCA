@@ -13,6 +13,16 @@ export function formatValue(value: unknown): string {
   return String(value)
 }
 
+// null da deltaPercentuale = si passa da 0 a un valore positivo: "nuovo"
+// comunica meglio di una percentuale (che sarebbe infinita) il fatto che
+// prima non c'era nulla da confrontare.
+export function formatDelta(delta: number | null): string {
+  if (delta === null) return 'nuovo'
+  if (delta === 0) return '0%'
+  const segno = delta > 0 ? '+' : ''
+  return `${segno}${delta}%`
+}
+
 export function isUrl(value: unknown): value is string {
   return typeof value === 'string' && /^https?:\/\//i.test(value)
 }
@@ -72,6 +82,13 @@ export function formatDataRichiesta(value: string | null | undefined): string | 
   })
   return testo.charAt(0).toUpperCase() + testo.slice(1)
 }
+
+// Alias storico: alcuni punti (grafici Analytics, evidenza Richiesta) sono
+// stati rinominati in formatDataConGiorno ma la funzione restava esportata
+// solo come formatDataRichiesta (residuo di un merge non concluso, vedi
+// app/dashboard/contatti/page.tsx). Stessa funzione, due nomi finche' non
+// si uniforma anche l'ultimo chiamante (RichiestaSezione.tsx).
+export const formatDataConGiorno = formatDataRichiesta
 
 type Voce = [string, unknown]
 

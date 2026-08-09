@@ -1,6 +1,16 @@
 import Link from 'next/link'
+import { formatDelta } from '@/lib/format'
 
-type FonteConteggio = { fonte: string; conteggio: number; href?: string }
+type FonteConteggio = {
+  fonte: string
+  conteggio: number
+  href?: string
+  // Presenti solo quando in Analytics e' attivo un periodo di confronto
+  // (vedi unisciConDelta in lib/analytics.ts): confronto=null significa
+  // "nessun confronto", non "zero nel periodo precedente".
+  confronto?: number | null
+  delta?: number | null
+}
 
 // Classifica a barre orizzontali, un solo colore (magnitudine per fonte,
 // non identita' tra poche categorie fisse: le fonti sono quelle che
@@ -17,12 +27,15 @@ export function FontiLead({ fonti }: { fonti: FonteConteggio[] }) {
 
   const totale = fonti.reduce((somma, f) => somma + f.conteggio, 0)
   const massimo = Math.max(...fonti.map((f) => f.conteggio))
+  const conConfronto = fonti.some((f) => f.confronto !== undefined && f.confronto !== null)
 
   return (
     <div className="fonti-lead">
       {fonti.map((f) => {
         const percentuale = totale > 0 ? Math.round((f.conteggio / totale) * 100) : 0
         const larghezzaBarra = massimo > 0 ? Math.max((f.conteggio / massimo) * 100, 4) : 0
+        const delta = f.delta ?? null
+        const classeDelta = delta === null || delta === 0 ? '' : delta > 0 ? 'is-positivo' : 'is-negativo'
         const contenuto = (
           <>
             <span className="fonti-lead-nome">{f.fonte}</span>
@@ -31,6 +44,11 @@ export function FontiLead({ fonti }: { fonti: FonteConteggio[] }) {
             </div>
             <span className="fonti-lead-valore">
               {f.conteggio} <span className="muted">({percentuale}%)</span>
+              {conConfronto && (
+                <span className={`fonti-lead-delta ${classeDelta}`}>
+                  {f.confronto} → {f.conteggio} ({formatDelta(delta)})
+                </span>
+              )}
             </span>
           </>
         )
