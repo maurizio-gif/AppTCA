@@ -21,11 +21,10 @@ export function SezioniToggle({
 
     setAttive(prossime)
     startTransition(async () => {
-      try {
-        await impostaSezioni(email, prossime)
-      } catch (err) {
+      const risultato = await impostaSezioni(email, prossime)
+      if (!risultato.ok) {
         setAttive(attive)
-        alert(err instanceof Error ? err.message : 'Errore durante il salvataggio.')
+        alert(risultato.errore)
       }
     })
   }

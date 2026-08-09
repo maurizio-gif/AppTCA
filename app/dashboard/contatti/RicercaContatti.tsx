@@ -8,7 +8,13 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 // resta nell'URL ma viene ignorato lato server finche' c'e' una ricerca
 // attiva (vedi ContattiPage): qui serve solo a non perderlo quando si
 // cancella il testo.
-export function RicercaContatti({ valoreIniziale }: { valoreIniziale: string }) {
+export function RicercaContatti({
+  valoreIniziale,
+  placeholder = 'Cerca per nome, cognome, email o cellulare',
+}: {
+  valoreIniziale: string
+  placeholder?: string
+}) {
   const [valore, setValore] = useState(valoreIniziale)
   const primoRender = useRef(true)
   const router = useRouter()
@@ -54,7 +60,7 @@ export function RicercaContatti({ valoreIniziale }: { valoreIniziale: string }) 
         type="search"
         value={valore}
         onChange={(e) => setValore(e.target.value)}
-        placeholder="Cerca per nome, cognome, email o cellulare"
+        placeholder={placeholder}
         aria-label="Cerca contatto"
       />
     </div>

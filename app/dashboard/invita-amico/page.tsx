@@ -1,7 +1,10 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
+import { raggruppaAccessiPerVid } from '@/lib/visite'
+import { VisiteContatto } from '@/components/VisiteContatto'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,11 +35,25 @@ export default async function InvitaAmicoPage() {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
+  // Visite al sito di ciascun socio (per vid), per capire quanto e' "caldo"
+  // l'invito - vedi VisiteContatto.
+  const vids = [...new Set((righe ?? []).map((riga) => riga.vid).filter((v): v is string => !!v))]
+  const { data: accessi } = vids.length > 0 ? await supabase.from('accessi').select('*').in('vid', vids) : { data: [] }
+  const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
+
   return (
     <div>
       <div className="page-header">
         <h1>Inviti "Invita un amico"</h1>
       </div>
+
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>Elenco di sola lettura: ogni riga è un invito compilato dal sito, un socio che invita un amico.</li>
+          <li>Apri una riga per vedere tutti i dettagli (contatti dell'amico invitato, dati di provenienza).</li>
+        </ol>
+      </BoxIstruzioni>
+
       <div className="data-table-wrap">
         <table className="data-table">
           <thead>
@@ -56,6 +73,7 @@ export default async function InvitaAmicoPage() {
                   columnCount={4}
                   record={riga}
                   hiddenKeys={COLONNE_VISIBILI}
+                  evidenza={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
                   cells={[
                     formatDateOra(riga.created_at),
                     riga.email_socio,

@@ -8,11 +8,28 @@
 // una voce senza gruppo finisce comunque in cima, non richiede di
 // aggiornare nient'altro per aggiungere una nuova sezione.
 export const SEZIONI = [
-  { chiave: 'contatti', label: 'Enquiries', href: '/dashboard/contatti', gruppo: 'Moduli' },
+  { chiave: 'contatti-adulti', label: 'Enquiries Adulti', href: '/dashboard/contatti/adulti', gruppo: 'Moduli' },
+  { chiave: 'contatti-junior', label: 'Enquiries Junior', href: '/dashboard/contatti/junior', gruppo: 'Moduli' },
   { chiave: 'scuola-tennis', label: 'Scuola tennis', href: '/dashboard/scuola-tennis', gruppo: 'Moduli' },
+  { chiave: 'summer-camp', label: 'Summer Camp', href: '/dashboard/summer-camp', gruppo: 'Moduli' },
   { chiave: 'invita-amico', label: 'Invita un amico', href: '/dashboard/invita-amico', gruppo: 'Moduli' },
   { chiave: 'iscrizioni-eventi', label: 'Iscrizioni eventi', href: '/dashboard/iscrizioni-eventi', gruppo: 'Moduli' },
+  // Non e' una pagina propria (vive dentro /dashboard): niente voce nel
+  // menu, vedi SEZIONI_SENZA_VOCE_MENU sotto. Controlla solo se il blocco
+  // "Enquiries" compare nel Riepilogo, a prescindere dai permessi Adulti/
+  // Junior (che restano a controllare le singole card dentro il blocco).
+  { chiave: 'dashboard-enquiries', label: 'Riepilogo Enquiries (Dashboard)', href: '/dashboard', gruppo: 'Moduli' },
+  { chiave: 'analytics', label: 'Analytics', href: '/dashboard/analytics', gruppo: 'Amministrazione' },
+  { chiave: 'visite-sito', label: 'Visite al sito', href: '/dashboard/visite', gruppo: 'Amministrazione' },
+  { chiave: 'timbratura', label: 'Timbra cartellino', href: '/dashboard/timbratura', gruppo: 'Amministrazione' },
   { chiave: 'utenti', label: 'Gestione utenti', href: '/dashboard/utenti', gruppo: 'Amministrazione' },
+  { chiave: 'notifiche', label: 'Notifiche', href: '/dashboard/notifiche', gruppo: 'Amministrazione' },
+  { chiave: 'log-operatori', label: 'Controllo Operatori', href: '/dashboard/log-operatori', gruppo: 'Amministrazione' },
 ] as const
 
 export type SezioneChiave = (typeof SEZIONI)[number]['chiave']
+
+// Sezioni assegnabili in Gestione utenti che NON hanno una pagina propria
+// e quindi non devono comparire come voce nel menu laterale (vedi
+// Sidebar.tsx): restano un permesso puro, gestito solo qui.
+export const SEZIONI_SENZA_VOCE_MENU: readonly SezioneChiave[] = ['dashboard-enquiries']

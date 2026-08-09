@@ -1,4 +1,5 @@
 import { login } from './actions'
+import { LoginButton } from './LoginButton'
 
 export default function LoginPage({
   searchParams,
@@ -34,9 +35,7 @@ export default function LoginPage({
               autoComplete="current-password"
             />
           </div>
-          <button type="submit" className="btn btn-block">
-            Accedi
-          </button>
+          <LoginButton />
         </form>
       </div>
     </main>

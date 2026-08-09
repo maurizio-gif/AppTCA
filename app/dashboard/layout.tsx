@@ -1,8 +1,12 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { isSegreteriaEmail } from '@/lib/auth/allowlist'
-import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
+import { getNomeUtente, getSezioniConsentite } from '@/lib/auth/sezioni-server'
+import { getStatoNotifiche } from './notifiche/actions'
+import { NotificheProvider } from './NotificheProvider'
+import { NotificheBanner } from './NotificheBanner'
 import { Sidebar } from './Sidebar'
+import { LogoutInattivita } from './LogoutInattivita'
 
 // Il middleware ha gia' verificato la sessione con getUser() (chiamata di
 // rete a Supabase Auth) e ci passa l'email gia' validata via header: non la
@@ -21,12 +25,27 @@ export default async function DashboardLayout({
     redirect('/login?error=non-autorizzato')
   }
 
-  const sezioniConsentite = await getSezioniConsentite(email)
+  const [sezioniConsentite, nomeUtente] = await Promise.all([
+    getSezioniConsentite(email),
+    getNomeUtente(email),
+  ])
+
+  // Chi non ha il permesso "Notifiche" non deve ricevere nulla: niente
+  // interrogazione iniziale, niente badge/banner, niente polling lato client
+  // (vedi NotificheProvider).
+  const puoRicevereNotifiche = sezioniConsentite.includes('notifiche')
+  const statoNotifiche = puoRicevereNotifiche ? await getStatoNotifiche() : { nonLette: 0, ultima: null }
 
   return (
-    <div className="app-shell">
-      <Sidebar email={email} sezioniConsentite={sezioniConsentite} />
-      <main className="main-content">{children}</main>
-    </div>
+    <NotificheProvider abilitato={puoRicevereNotifiche} nonLetteIniziali={statoNotifiche.nonLette}>
+      <div className="app-shell">
+        <LogoutInattivita />
+        <Sidebar email={email} nomeUtente={nomeUtente} sezioniConsentite={sezioniConsentite} />
+        <main className="main-content">
+          <NotificheBanner />
+          {children}
+        </main>
+      </div>
+    </NotificheProvider>
   )
 }

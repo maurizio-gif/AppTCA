@@ -7,6 +7,11 @@ const nextConfig = {
     staleTimes: {
       dynamic: 0,
     },
+    // Default 1 MB: troppo poco per l'allegato delle notifiche (fino a 5 MB
+    // di file + i campi del form nello stesso multipart).
+    serverActions: {
+      bodySizeLimit: '8mb',
+    },
   },
 }
 

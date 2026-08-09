@@ -1,6 +1,8 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
+import { ExternalLink } from '@/components/ExternalLink'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 
@@ -46,6 +48,17 @@ export default async function IscrizioniEventiPage() {
       <div className="page-header">
         <h1>Iscrizioni Eventi</h1>
       </div>
+
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>Elenco di sola lettura delle iscrizioni agli eventi del circolo.</li>
+          <li>
+            Apri una riga per vedere i contatti del partecipante e tutti i dettagli; nella colonna «Contratto PGM»
+            trovi anche il link diretto al contratto su PerfectGym, quando presente.
+          </li>
+        </ol>
+      </BoxIstruzioni>
+
       <div className="data-table-wrap">
         <table className="data-table">
           <thead>
@@ -84,9 +97,9 @@ export default async function IscrizioniEventiPage() {
                       {riga.link_pgm && (
                         <>
                           {' · '}
-                          <a href={riga.link_pgm} target="_blank" rel="noreferrer" className="link">
+                          <ExternalLink href={riga.link_pgm} className="link">
                             apri
-                          </a>
+                          </ExternalLink>
                         </>
                       )}
                     </>,

@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/serverClient'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { registraLog } from '@/lib/audit'
 
 export async function impostaPassword(formData: FormData) {
   const nome = String(formData.get('nome') ?? '').trim()
@@ -45,6 +46,8 @@ export async function impostaPassword(formData: FormData) {
   if (staffError) {
     redirect(`/imposta-password?error=${encodeURIComponent(staffError.message)}`)
   }
+
+  await registraLog(user!.email, 'password_impostata')
 
   redirect('/dashboard')
 }

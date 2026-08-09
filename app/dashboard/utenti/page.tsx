@@ -5,13 +5,23 @@ import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { invitaStaff } from './actions'
 import { RimuoviButton } from './RimuoviButton'
 import { PuoInvitareToggle } from './PuoInvitareToggle'
+import { PuoCancellareToggle } from './PuoCancellareToggle'
 import { SezioniToggle } from './SezioniToggle'
+import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
 const COLONNE_TABELLA = ['Nome e cognome', 'Email']
-const COLONNE_VISIBILI = ['email', 'nome', 'cognome', 'puo_invitare', 'sezioni_consentite', 'created_at']
+const COLONNE_VISIBILI = [
+  'email',
+  'nome',
+  'cognome',
+  'puo_invitare',
+  'puo_cancellare',
+  'sezioni_consentite',
+  'created_at',
+]
 
 export default async function UtentiPage({
   searchParams,
@@ -28,8 +38,10 @@ export default async function UtentiPage({
   const [{ data: staff, error }, { data: viewer }] = await Promise.all([
     supabase
       .from('staff_users')
-      .select('email, nome, cognome, puo_invitare, sezioni_consentite, created_at')
-      .order('created_at', { ascending: true }),
+      .select('email, nome, cognome, puo_invitare, puo_cancellare, sezioni_consentite, created_at')
+      // Sempre in ordine alfabetico di cognome, come ogni altro elenco di operatori.
+      .order('cognome', { ascending: true })
+      .order('nome', { ascending: true }),
     supabase
       .from('staff_users')
       .select('puo_invitare')
@@ -44,6 +56,25 @@ export default async function UtentiPage({
       <div className="page-header">
         <h1>Gestione utenti</h1>
       </div>
+
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>Chi ha il permesso «Può invitare» può invitare nuovi operatori e modificare i permessi altrui.</li>
+          <li>
+            Chi viene invitato parte con tutti i diritti (vede tutte le sezioni, può invitare); le restrizioni si
+            impostano dopo, apri la sua scheda per togliere sezioni o permessi.
+          </li>
+          <li>
+            «Sezioni visibili» decide quali voci compaiono nel menu di quella persona: sono le stesse chiavi
+            elencate in questa pagina (Enquiries, Scuola tennis, Timbra cartellino, ecc.).
+          </li>
+          <li>«Può cancellare record» dà il diritto di cancellare definitivamente le Enquiries.</li>
+        </ol>
+        <p className="box-istruzioni-nota">
+          Non puoi rimuovere il tuo stesso account, e senza il permesso «Può invitare» puoi solo consultare
+          l'elenco.
+        </p>
+      </BoxIstruzioni>
 
       {puoInvitare ? (
         <div className="login-card" style={{ maxWidth: 480, margin: '0 0 28px' }}>
@@ -113,6 +144,18 @@ export default async function UtentiPage({
                             {puoInvitare ? (
                               <PuoInvitareToggle email={s.email} puoInvitare={s.puo_invitare} />
                             ) : s.puo_invitare ? (
+                              'Sì'
+                            ) : (
+                              '—'
+                            )}
+                          </span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Può cancellare record</span>
+                          <span className="detail-value">
+                            {puoInvitare ? (
+                              <PuoCancellareToggle email={s.email} puoCancellare={s.puo_cancellare} />
+                            ) : s.puo_cancellare ? (
                               'Sì'
                             ) : (
                               '—'

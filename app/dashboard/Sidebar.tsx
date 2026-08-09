@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
-import { SEZIONI } from '@/lib/auth/sezioni'
+import { SEZIONI, SEZIONI_SENZA_VOCE_MENU } from '@/lib/auth/sezioni'
 import { NavIcon } from '@/components/NavIcon'
+import { useNotifiche } from './NotificheProvider'
+import { PushToggleNavItem } from './PushToggleNavItem'
 
 type VoceMenu = { href: string; label: string; chiave: string; gruppo?: string }
 
@@ -32,17 +34,24 @@ function raggruppaVoci(voci: VoceMenu[]) {
 
 export function Sidebar({
   email,
+  nomeUtente,
   sezioniConsentite,
 }: {
   email: string
+  nomeUtente: string | null
   sezioniConsentite: string[]
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const { nonLette } = useNotifiche()
 
+  // Dashboard e' sempre visibile a chiunque sia autenticato, non fa parte
+  // delle sezioni assegnabili per utente (vedi lib/auth/sezioni.ts).
   const navItems: VoceMenu[] = [
-    { href: '/dashboard', label: 'Riepilogo', chiave: 'riepilogo' },
-    ...SEZIONI.filter((s) => sezioniConsentite.includes(s.chiave)),
+    { href: '/dashboard', label: 'Dashboard', chiave: 'riepilogo' },
+    ...SEZIONI.filter(
+      (s) => sezioniConsentite.includes(s.chiave) && !SEZIONI_SENZA_VOCE_MENU.includes(s.chiave)
+    ),
   ]
   const gruppiMenu = raggruppaVoci(navItems)
 
@@ -56,6 +65,26 @@ export function Sidebar({
     <aside className={`sidebar${open ? ' is-open' : ''}`}>
       <div className="sidebar-brand">
         <img src="/logo-tca.png" alt="TCA CRM" className="brand-logo" />
+        <div className="user-row">
+          <UserBadge nomeUtente={nomeUtente} email={email} />
+          <form action={logout}>
+            <button type="submit" className="logout-btn" title="Esci" aria-label="Esci">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="M16 17l5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+            </button>
+          </form>
+        </div>
       </div>
 
       <button
@@ -74,6 +103,9 @@ export function Sidebar({
 
       <div className="sidebar-drawer">
         <nav className="sidebar-nav">
+          {/* Chi non puo' ricevere notifiche (vedi lib/auth/sezioni.ts) non
+              vede l'interruttore push: non avrebbe nulla da ricevere. */}
+          {sezioniConsentite.includes('notifiche') && <PushToggleNavItem />}
           {gruppiMenu.map((gruppo) => (
             <div key={gruppo.chiave || '_root'} className="nav-group">
               {gruppo.chiave && <div className="nav-group-title">{gruppo.chiave}</div>}
@@ -85,6 +117,9 @@ export function Sidebar({
                 >
                   <NavIcon name={item.chiave} />
                   <span>{item.label}</span>
+                  {item.chiave === 'notifiche' && nonLette > 0 && (
+                    <span className="nav-badge">{nonLette}</span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -99,5 +134,21 @@ export function Sidebar({
         </div>
       </div>
     </aside>
+  )
+}
+
+// Sempre visibile (nella barra logo, non nel drawer che su mobile resta
+// chiuso finche' non si apre il menu): cosi' si sa sempre con quale utente
+// si e' collegati senza dover aprire il menu per leggere l'email in fondo.
+function UserBadge({ nomeUtente, email }: { nomeUtente: string | null; email: string }) {
+  const visualizzato = nomeUtente || email
+  const iniziale = visualizzato.trim().charAt(0).toUpperCase()
+  const primoNome = nomeUtente ? nomeUtente.split(' ')[0] : email
+
+  return (
+    <span className="user-badge" title={visualizzato}>
+      <span className="user-badge-avatar">{iniziale}</span>
+      <span className="user-badge-nome">{primoNome}</span>
+    </span>
   )
 }
