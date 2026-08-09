@@ -1,3 +1,5 @@
+import { apparteneAGruppo } from './contatti'
+
 // Il tracciamento (webhook n8n ping-tca -> tabella "accessi") registra un
 // pageview per riga, con lo stesso "vid" del form_contatti/form_scuola_tennis/
 // ecc.: e' l'id del visitatore lato browser, generato e riletto dal sito
@@ -31,6 +33,9 @@ export type ContattoAnagrafica = {
   nome: string | null
   cognome: string | null
   email: string | null
+  // Solo form_contatti: serve a capire se linkare a Enquiries Adulti o
+  // Junior (vedi hrefContatto).
+  gruppo?: string | null
 }
 
 export type SessioneVisita = {
@@ -106,6 +111,17 @@ export function raggruppaAccessiPerVid(accessi: RigaAccesso[]): Record<string, R
     risultato[accesso.vid].push(accesso)
   }
   return risultato
+}
+
+// Link alla scheda del contatto nella sua sezione, per chi clicca "Enquiry"
+// nel report Visite al sito: riusa la ricerca gia' esistente in Enquiries
+// (per email) invece di inventare un deep-link diretto al record. Solo
+// form_contatti per ora: le altre sezioni (Scuola tennis, Summer Camp,
+// Invita un amico) non hanno una ricerca da poter riusare allo stesso modo.
+export function hrefContatto(contatto: ContattoAnagrafica): string | null {
+  if (contatto.origine !== 'form_contatti' || !contatto.email) return null
+  const sottosezione = apparteneAGruppo(contatto.gruppo, 'junior') ? 'junior' : 'adulti'
+  return `/dashboard/contatti/${sottosezione}?q=${encodeURIComponent(contatto.email)}`
 }
 
 export function corrispondeRicercaVisita(sessione: SessioneVisita, query: string): boolean {

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
@@ -10,6 +11,7 @@ import {
   ETICHETTA_ORIGINE,
   corrispondeRicercaVisita,
   costruisciSessioni,
+  hrefContatto,
   type ContattoAnagrafica,
   type SessioneVisita,
 } from '@/lib/visite'
@@ -39,6 +41,26 @@ function applicaFiltro(sessioni: SessioneVisita[], filtro: Filtro): SessioneVisi
   return sessioni
 }
 
+// Badge Origine: cliccabile solo quando esiste una sezione con una ricerca
+// da riusare per ritrovare il contatto (per ora solo Enquiry - vedi
+// lib/visite.ts hrefContatto). stopPropagation perche' il badge sta dentro
+// la riga cliccabile della tabella (accordion ExpandableRow).
+function BadgeOrigine({ contatto }: { contatto: ContattoAnagrafica }) {
+  const badge = (
+    <span className={`richiesta-badge richiesta-${variantePillola(contatto.origine)}`}>
+      {ETICHETTA_ORIGINE[contatto.origine]}
+    </span>
+  )
+  const href = hrefContatto(contatto)
+  if (!href) return badge
+
+  return (
+    <Link href={href} className="link" onClick={(e) => e.stopPropagation()}>
+      {badge}
+    </Link>
+  )
+}
+
 // Sezione di sola lettura: incrocia gli accessi al sito (tabella "accessi",
 // alimentata dal webhook n8n ping-tca) con l'anagrafica dei form gia'
 // compilati, abbinandoli tramite "vid" (l'id del visitatore lato browser,
@@ -58,7 +80,10 @@ export default async function VisiteSitoPage({
 
   const [accessiRes, contattiRes, scuolaRes, summerRes, amicoRes] = await Promise.all([
     supabase.from('accessi').select('*').order('created_at', { ascending: false }),
-    supabase.from('form_contatti').select('vid, created_at, nome, cognome, email').not('vid', 'is', null),
+    supabase
+      .from('form_contatti')
+      .select('vid, created_at, nome, cognome, email, gruppo_attivita')
+      .not('vid', 'is', null),
     supabase
       .from('form_scuola_tennis')
       .select('vid, created_at, genitore_nome, genitore_cognome, genitore_email')
@@ -87,6 +112,7 @@ export default async function VisiteSitoPage({
       nome: r.nome,
       cognome: r.cognome,
       email: r.email,
+      gruppo: r.gruppo_attivita,
     })),
     ...(scuolaRes.data ?? []).map((r) => ({
       origine: 'form_scuola_tennis' as const,
@@ -190,13 +216,7 @@ export default async function VisiteSitoPage({
                         <span className="muted">{sessione.vid.slice(0, 8)}…</span>
                       </>
                     ),
-                    sessione.contatto ? (
-                      <span className={`richiesta-badge richiesta-${variantePillola(sessione.contatto.origine)}`}>
-                        {ETICHETTA_ORIGINE[sessione.contatto.origine]}
-                      </span>
-                    ) : (
-                      '—'
-                    ),
+                    sessione.contatto ? <BadgeOrigine contatto={sessione.contatto} /> : '—',
                     sessione.pagine.length,
                   ]}
                 />
