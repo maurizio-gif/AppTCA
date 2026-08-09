@@ -151,7 +151,11 @@ export default async function AnalyticsPage({
   }, undefined)
   const primoGiorno = [primoGiornoSito, primoGiornoStorico].filter((v): v is string => !!v).sort()[0] ?? oggi
 
-  const preset = parsePreset(searchParams.range)
+  // Il confronto tra sorgenti nasce per rispondere a "come sta andando
+  // questo mese rispetto allo stesso periodo dell'anno scorso": parte gia'
+  // cosi' invece di "Tutto" + nessun confronto, che li' non direbbe nulla
+  // (le due fonti non si sovrappongono quasi mai).
+  const preset = parsePreset(searchParams.range, fonte === 'entrambi' ? 'mtd' : 'tutto')
   const { da, a } = calcolaRange(preset, oggi, searchParams.da, searchParams.a, primoGiorno)
 
   // Il periodo di confronto esiste solo per fonte="entrambi": storico e
@@ -161,7 +165,8 @@ export default async function AnalyticsPage({
   // di confronto allo storico (es. "agosto 2026" sul sito vs "agosto 2025"
   // su HubSpot). Sulle altre fonti il confronto periodo su periodo non ha
   // dato risultati leggibili, quindi non e' piu' esposto in UI.
-  const presetConfronto = fonte === 'entrambi' ? parsePresetConfronto(searchParams.confronto) : 'nessuno'
+  const presetConfronto =
+    fonte === 'entrambi' ? parsePresetConfronto(searchParams.confronto, 'anno_precedente') : 'nessuno'
   const rangeConfronto = calcolaConfronto(presetConfronto, da, a, searchParams.cda, searchParams.ca)
 
   const righeSitoPeriodo = filtraPerRangeGenerico(righeSito, (r) => r.created_at, da, a)
@@ -187,7 +192,13 @@ export default async function AnalyticsPage({
         <div className="report-range-toolbar">
           <label className="report-range-campo">
             <span>Fonte dati</span>
-            <FiltroSelect valore={fonte} opzioni={[...OPZIONI_FONTE]} paramName="fonte" ariaLabel="Fonte dati" />
+            <FiltroSelect
+              valore={fonte}
+              opzioni={[...OPZIONI_FONTE]}
+              paramName="fonte"
+              ariaLabel="Fonte dati"
+              azzera={['range', 'da', 'a', 'confronto', 'cda', 'ca']}
+            />
           </label>
           <label className="report-range-campo">
             <span>Periodo</span>

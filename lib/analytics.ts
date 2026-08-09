@@ -30,10 +30,12 @@ export type PresetRange = (typeof OPZIONI_RANGE)[number]['valore']
 const VALORI_RANGE = OPZIONI_RANGE.map((o) => o.valore) as readonly string[]
 
 // Assente o non valido = "Tutto", cosi' e' quello che si vede aprendo
-// Analytics senza parametri.
-export function parsePreset(raw: string | undefined): PresetRange {
+// Analytics senza parametri. Il predefinito e' sovrascrivibile perche'
+// cambia con la fonte dati (vedi Analytics: il confronto tra sorgenti
+// parte da inizio mese, non da tutto lo storico).
+export function parsePreset(raw: string | undefined, predefinito: PresetRange = 'tutto'): PresetRange {
   if (raw && VALORI_RANGE.includes(raw)) return raw as PresetRange
-  return 'tutto'
+  return predefinito
 }
 
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/
@@ -109,9 +111,12 @@ export const OPZIONI_CONFRONTO = [
 export type PresetConfronto = (typeof OPZIONI_CONFRONTO)[number]['valore']
 const VALORI_CONFRONTO = OPZIONI_CONFRONTO.map((o) => o.valore) as readonly string[]
 
-export function parsePresetConfronto(raw: string | undefined): PresetConfronto {
+export function parsePresetConfronto(
+  raw: string | undefined,
+  predefinito: PresetConfronto = 'nessuno'
+): PresetConfronto {
   if (raw && VALORI_CONFRONTO.includes(raw)) return raw as PresetConfronto
-  return 'nessuno'
+  return predefinito
 }
 
 // Periodo di confronto per il preset scelto, calcolato sugli estremi del
