@@ -167,6 +167,17 @@ button {
   color: var(--color-text);
 }
 
+.btn-danger {
+  background: transparent;
+  color: var(--color-accent-dark);
+  border: 1px solid var(--color-accent-dark);
+}
+
+.btn-danger:hover {
+  background: var(--color-accent-dark);
+  color: #fff;
+}
+
 .error-banner {
   background: #fbeaea;
   color: var(--color-accent-dark);
@@ -200,11 +211,89 @@ button {
   height: 100vh;
 }
 
+/* Da desktop c'e' spazio solo per un elemento a riga nella colonna
+   stretta della sidebar (220px): logo e badge utente impilati invece che
+   affiancati, altrimenti il nome verrebbe troncato subito. Su mobile la
+   barra e' orizzontale e piu' larga: qui sotto (@media max-width: 860px)
+   torna una riga sola. */
 .sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+/* Badge utente sempre visibile (barra logo, non nel drawer): iniziale su
+   sfondo accento + nome, cosi' si legge subito con chi si e' collegati
+   senza dover aprire il menu mobile. */
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-off-white);
+  min-width: 0;
+}
+
+.user-badge-avatar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.user-badge-nome {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+.user-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 32px;
+  min-width: 0;
+}
+
+/* Logout in evidenza accanto al nome, non solo in fondo al drawer: cosi'
+   si esce con un tap in piu' senza dover apire il menu su mobile. */
+.logout-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-bg);
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.logout-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.logout-btn:hover {
+  background: var(--color-off-white);
+  border-color: var(--color-accent);
 }
 
 .brand-logo {
@@ -257,6 +346,30 @@ button {
 .sidebar-nav a.active {
   background: var(--color-accent);
   color: #fff;
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sul link attivo lo sfondo e' gia' lo stesso rosso del badge: senza
+   invertire i colori qui il numero diventerebbe invisibile. */
+.sidebar-nav a.active .nav-badge {
+  background: #fff;
+  color: var(--color-accent);
 }
 
 .nav-icon {
@@ -333,6 +446,13 @@ button {
   .sidebar-brand {
     margin-bottom: 0;
     flex: 1;
+  }
+
+  /* Nome e logout in evidenza solo da desktop: su mobile restano solo
+     nel drawer (email + "Esci" in fondo al menu), altrimenti si accavallano
+     con logo e hamburger nella barra stretta. */
+  .user-row {
+    display: none;
   }
 
   .sidebar-toggle {
@@ -449,11 +569,100 @@ button {
   margin-bottom: 12px;
 }
 
+.riepilogo-sottosezione {
+  margin-bottom: 18px;
+}
+
+.riepilogo-sottosezione-titolo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 10px;
+}
+
 .stat-row {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
   margin-bottom: 8px;
+}
+
+.report-range-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 4px 0 18px;
+}
+
+/* Classifica a barre orizzontali: un solo colore (magnitudine per fonte,
+   non identita' tra poche categorie fisse come nel grafico giornaliero). */
+.fonti-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fonti-lead-riga {
+  display: grid;
+  grid-template-columns: minmax(110px, 200px) 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.fonti-lead-riga-link {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 6px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+}
+
+.fonti-lead-riga-link:hover,
+.fonti-lead-riga-link:focus-visible {
+  background: var(--color-off-white);
+}
+
+.fonti-lead-nome {
+  font-size: 13px;
+  color: var(--color-text);
+  white-space: normal;
+  word-break: break-word;
+}
+
+.fonti-lead-traccia {
+  height: 10px;
+  background: var(--color-off-white);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fonti-lead-barra {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 6px;
+}
+
+.fonti-lead-valore {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  min-width: 78px;
+  text-align: right;
+}
+
+@media (max-width: 860px) {
+  .fonti-lead-riga {
+    grid-template-columns: minmax(84px, 140px) 1fr auto;
+    gap: 8px;
+  }
+
+  .fonti-lead-nome {
+    font-size: 12px;
+  }
 }
 
 .stat-card {
@@ -488,6 +697,240 @@ button {
   margin-top: 8px;
   color: var(--color-text-light);
   font-size: 14px;
+}
+
+/* ---------- Grafico enquiries per giorno ---------- */
+
+.enquiries-chart {
+  --chart-adulti: #2a78d6;
+  --chart-junior: #eb6834;
+  --chart-altro: #898781;
+  margin-top: 16px;
+  margin-bottom: 32px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px 0 16px 16px;
+}
+
+.enquiries-chart-vuoto {
+  margin-top: 16px;
+  margin-bottom: 32px;
+}
+
+.enquiries-chart-legenda {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-right: 16px;
+  margin-bottom: 14px;
+}
+
+.enquiries-chart-legenda-voce {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-light);
+}
+
+.enquiries-chart-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.enquiries-chart-swatch-adulti {
+  background: var(--chart-adulti);
+}
+
+.enquiries-chart-swatch-junior {
+  background: var(--chart-junior);
+}
+
+.enquiries-chart-swatch-altro {
+  background: var(--chart-altro);
+}
+
+.enquiries-chart-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-light);
+  font-style: italic;
+}
+
+.enquiries-chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.enquiries-chart-track {
+  display: flex;
+  align-items: flex-end;
+  padding-right: 16px;
+}
+
+.enquiries-chart-colonna {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 8px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+}
+
+.enquiries-chart-colonna:hover,
+.enquiries-chart-colonna.is-attiva {
+  background: var(--color-off-white);
+}
+
+.enquiries-chart-colonna:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.enquiries-chart-barra {
+  width: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.enquiries-chart-segmento {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+}
+
+.enquiries-chart-segmento:not(:last-child) {
+  margin-bottom: 2px;
+}
+
+.enquiries-chart-segmento-adulti {
+  background: var(--chart-adulti);
+}
+
+.enquiries-chart-segmento-junior {
+  background: var(--chart-junior);
+}
+
+.enquiries-chart-segmento-altro {
+  background: var(--chart-altro);
+}
+
+.enquiries-chart-segmento-vuoto {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+
+.enquiries-chart-etichetta {
+  font-size: 10px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+/* Totale del giorno sempre visibile, non solo nel tooltip: un riquadro
+   piccolo cosi' si legge come dato a se', non come testo che scorre via. */
+.enquiries-chart-totale-tag {
+  min-width: 20px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-off-white);
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.enquiries-chart-totale-tag.is-zero {
+  color: var(--color-text-light);
+  font-weight: 600;
+  border-style: dashed;
+}
+
+.enquiries-chart-tooltip {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 10px));
+  z-index: 60;
+  background: var(--color-text);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  min-width: 140px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+.enquiries-chart-tooltip-data {
+  font-weight: 700;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.enquiries-chart-tooltip-riga,
+.enquiries-chart-tooltip-totale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.enquiries-chart-tooltip-riga span:nth-child(2),
+.enquiries-chart-tooltip-totale span {
+  flex: 1;
+}
+
+.enquiries-chart-tooltip-riga strong,
+.enquiries-chart-tooltip-totale strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.enquiries-chart-tooltip-chiave {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.enquiries-chart-tooltip-chiave-adulti {
+  background: var(--chart-adulti);
+}
+
+.enquiries-chart-tooltip-chiave-junior {
+  background: var(--chart-junior);
+}
+
+.enquiries-chart-tooltip-chiave-altro {
+  background: var(--chart-altro);
+}
+
+.enquiries-chart-tooltip-totale {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 700;
+}
+
+.enquiries-chart-tooltip-hint {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
 }
 
 /* ---------- Data table ---------- */
@@ -644,6 +1087,104 @@ table.data-table {
   color: var(--color-text);
 }
 
+/* ---------- Istruzioni d'uso pieghevoli ---------- */
+
+.box-istruzioni {
+  margin-bottom: 20px;
+}
+
+.box-istruzioni-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.box-istruzioni-toggle:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.box-istruzioni-corpo {
+  margin-top: 10px;
+  background: var(--color-off-white);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 13.5px;
+  color: var(--color-text);
+}
+
+.box-istruzioni-corpo ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.box-istruzioni-corpo ol li::marker {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.box-istruzioni-corpo p.box-istruzioni-nota {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--color-text-light);
+}
+
+/* Richiesta in evidenza (Enquiries): appuntamento e motivo scritti dal
+   cliente, appena si apre la riga. A tutta larghezza e sfondo proprio
+   invece della griglia stretta dei dettagli, dove un testo libero lungo
+   andrebbe a capo parola per parola invece di leggersi come un paragrafo. */
+.richiesta-evidenza {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.richiesta-evidenza .richiesta-badge {
+  font-size: 13px;
+  padding: 4px 12px;
+}
+
+.richiesta-appuntamento {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-accent-dark);
+}
+
+.richiesta-arrivo {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--color-text-light);
+}
+
+.richiesta-motivo {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Ogni campo e' una "cella" con bordo, non testo che scorre libero: cosi'
    si legge come una tabella/griglia di dati anche a colpo d'occhio. */
 .detail-grid {
@@ -685,6 +1226,88 @@ table.data-table {
 
 .detail-value a:hover {
   color: var(--color-accent-dark);
+}
+
+/* Percorso di navigazione di un visitatore (VisitePagine): timeline
+   verticale in stile "flow", una tappa per pagina vista dalla prima
+   all'ultima, unita da una linea con un pallino per tappa. */
+.percorso-sorgente {
+  margin: 0 0 12px;
+}
+
+.percorso-visite {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.percorso-tappa {
+  display: flex;
+  gap: 12px;
+}
+
+.percorso-tappa-indicatore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 3px;
+}
+
+.percorso-tappa-pallino {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.percorso-tappa-pallino.e-ultima {
+  width: 12px;
+  height: 12px;
+  background: var(--color-bg);
+  border: 3px solid var(--color-accent);
+}
+
+.percorso-tappa-linea {
+  flex: 1;
+  width: 2px;
+  min-height: 24px;
+  background: var(--color-border);
+  margin: 3px 0;
+}
+
+.percorso-tappa-contenuto {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 18px;
+}
+
+.percorso-tappa-riga {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.percorso-tappa-pagina {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.percorso-tappa-ora {
+  font-size: 12px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.percorso-tappa-delta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
 }
 
 @media (max-width: 700px) {
@@ -935,9 +1558,9 @@ table.data-table {
     color: #fff;
   }
 
-  /* Aree di tocco piu' generose per dita su schermo piccolo */
-  .filter-pill {
-    padding: 9px 16px;
+  /* Area di tocco piu' generosa per dita su schermo piccolo */
+  .filter-select {
+    padding: 10px 32px 10px 14px;
     font-size: 14px;
   }
 
@@ -953,40 +1576,176 @@ table.data-table {
 }
 
 
-/* ---------- Filtri (multi-selezione OR) ---------- */
+/* ---------- Filtro stato (select singola) ---------- */
 
-.contatti-toolbar {
+.filtri-toolbar {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-bottom: 20px;
 }
 
-.filter-row {
+.filter-select {
+  align-self: flex-start;
+  padding: 8px 32px 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  background-size: 14px;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.filter-select:hover,
+.filter-select:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+/* ---------- Filtro date (Timbrature) ---------- */
+
+.filtro-date {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.filter-pill {
-  padding: 6px 14px;
+.filtro-date-campo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-light);
+}
+
+.filtro-date-campo input {
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  text-decoration: none;
+  padding: 7px 14px;
   font-size: 13px;
+  font-weight: 600;
   color: var(--color-text);
   background: var(--color-bg);
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.filter-pill:hover {
-  background: var(--color-off-white);
-}
-
-.filter-pill.active {
-  background: var(--color-accent);
+.filtro-date-campo input:hover,
+.filtro-date-campo input:focus {
   border-color: var(--color-accent);
-  color: #fff;
+  outline: none;
+}
+
+/* ---------- Riepilogo Timbrature ---------- */
+
+.timbrature-riepilogo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.timbrature-riepilogo .muted {
+  margin: 0;
+}
+
+.timbrature-riepilogo-azioni {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------- Anteprima report (Timbrature) ---------- */
+
+.report-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(26, 26, 26, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.report-preview-modal {
+  width: 100%;
+  max-width: 760px;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: 12px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.24);
+  overflow: hidden;
+}
+
+.report-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.report-preview-header h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.report-preview-header .muted {
+  margin: 0;
+}
+
+.report-preview-chiudi {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-grey-mid);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.report-preview-chiudi:hover {
+  background: var(--color-off-white);
+  color: var(--color-text);
+}
+
+.report-preview-body {
+  overflow: auto;
+  padding: 0 24px;
+}
+
+.report-preview-body .data-table {
+  min-width: 0;
+}
+
+.report-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.report-preview-footer .muted {
+  margin: 0;
 }
 
 /* ---------- Ricerca contatti ---------- */
@@ -1189,6 +1948,804 @@ table.data-table {
   border-color: var(--color-border);
 }
 
+.gestione-errore {
+  font-size: 13px;
+  color: var(--color-accent-dark);
+  background: #fbeaea;
+  border: 1px solid #f0cccc;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+}
+
+/* ---------- Tab Messaggi/Appuntamenti (solo Enquiries Adulti) ---------- */
+
+.vista-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 20px;
+}
+
+.vista-tab {
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--color-text-light);
+  padding: 10px 4px 12px;
+  margin-right: 22px;
+  border-bottom: 2.5px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.vista-tab:hover {
+  color: var(--color-text);
+}
+
+.vista-tab.attivo {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.vista-tab-contatore {
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Calendario appuntamenti ---------- */
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.cal-mese {
+  margin: 0;
+}
+
+.cal-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.cal-nav button {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-light);
+  border-radius: 7px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cal-legenda {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--color-text-light);
+  margin-bottom: 14px;
+}
+
+.cal-legenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.puntino {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Stesso pallino della legenda del calendario, accanto all'orario di ogni
+   appuntamento: gestito/da gestire si vede senza aprire la riga. */
+.ora-con-puntino {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.puntino.rosso {
+  background: #8a2a2a;
+}
+
+.puntino.verde {
+  background: #1c7c46;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.cal-dow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+  text-align: center;
+  padding-bottom: 4px;
+}
+
+.cal-cella {
+  position: relative;
+  min-height: 52px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-bg);
+  padding: 6px 7px;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+.cal-cella.vuota {
+  border: none;
+  background: none;
+}
+
+.cal-cella.selezionabile {
+  cursor: pointer;
+}
+
+.cal-cella.selezionabile:hover {
+  border-color: var(--color-accent);
+}
+
+.cal-cella.selezionata {
+  background: #f3e3e3;
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.cal-giorno-num {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "Oggi" e' solo il numero sottolineato: un bordo pieno come quello della
+   cella selezionata (vedi sopra) le farebbe sembrare la stessa cosa. */
+.cal-cella.oggi .cal-giorno-num {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.cal-puntini {
+  display: flex;
+  gap: 3px;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.giorno-dettaglio h3,
+.cal-senza-data h3 {
+  font-size: 15px;
+  margin-bottom: 14px;
+}
+
+.giorno-dettaglio h3 .count,
+.cal-senza-data h3 .count {
+  margin-left: 6px;
+  color: var(--color-text-light);
+  font-weight: 400;
+}
+
+.cal-senza-data {
+  margin-top: 32px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 20px;
+}
+
+@media (max-width: 560px) {
+  .cal-cella {
+    font-size: 11.5px;
+    padding: 4px 5px;
+    min-height: 42px;
+  }
+  .cal-dow {
+    font-size: 9.5px;
+  }
+}
+
+.gestione-note-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-light);
+}
+
+.gestione-note {
+  width: 100%;
+  max-width: 480px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+}
+
+.gestione-note:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.gestione-box .btn-ghost {
+  align-self: flex-start;
+}
+
+.elimina-record-box {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* ---------- Toggle permessi (Gestione utenti) ---------- */
+
+.toggle-puo-invitare {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-light);
+  cursor: pointer;
+}
+
+.toggle-puo-invitare input {
+  accent-color: var(--color-accent);
+  width: 15px;
+  height: 15px;
+}
+
+.sezioni-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.sezioni-toggle-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-light);
+  cursor: pointer;
+}
+
+.sezioni-toggle-item input {
+  accent-color: var(--color-accent);
+  width: 13px;
+  height: 13px;
+}
+
+.page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+/* ---------- Timbra cartellino ---------- */
+
+/* Banner persistente: resta visibile finche' non si timbra l'uscita
+   (a differenza di .timbra-esito, che e' il riscontro momentaneo
+   dell'ultima azione e viene sostituito dal messaggio successivo). */
+.timbra-stato {
+  display: inline-block;
+  background: #e3f3ea;
+  color: #1f7a4d;
+  border: 1px solid #c3e6d3;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.timbra-azioni {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.timbra-azione {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timbra-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--color-text-light);
+  text-align: center;
+}
+
+.timbra-btn {
+  width: 100%;
+  padding: 26px 20px;
+  border-radius: 14px;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-light);
+  cursor: pointer;
+  font-family: var(--font-display), sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.timbra-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+}
+
+.timbra-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+/* L'unico pulsante attivo in questo momento (l'altro e' disabilitato,
+   vedi TimbraCartellino) e' pieno invece che solo col bordo, cosi' si
+   nota a colpo d'occhio qual e' il prossimo passo possibile. */
+.timbra-btn.suggerita {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.timbra-btn.suggerita:hover:not(:disabled) {
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+}
+
+.timbra-esito {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.timbra-esito.ok {
+  background: #e3f3ea;
+  color: #1f7a4d;
+  border: 1px solid #c3e6d3;
+}
+
+.timbra-esito.errore {
+  background: #fbeaea;
+  color: var(--color-accent-dark);
+  border: 1px solid #f0cccc;
+}
+
+/* ---------- Loading state ---------- */
+
+.page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Notifiche ---------- */
+
+/* Overlay a tutto schermo, sopra a qualunque altra cosa (sidebar inclusa,
+   vedi z-index): un messaggio nuovo deve risaltare subito ovunque ci si
+   trovi nel pannello (vedi app/dashboard/layout.tsx). La conferma di
+   lettura e' bloccante: niente chiusura cliccando fuori finche' non si
+   conferma (vedi NotificheBanner), solo dopo compare la x. */
+.notifiche-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(26, 26, 26, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.notifiche-modal {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: 12px;
+  padding: 22px 26px;
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.28);
+}
+
+/* Compare solo dopo la conferma di lettura (vedi NotificheBanner): prima
+   non c'e' alcun modo di chiudere la vista senza confermare. */
+.notifiche-modal-chiudi {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-grey-mid);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.notifiche-modal-chiudi:hover {
+  background: var(--color-off-white);
+  color: var(--color-text);
+}
+
+.notifiche-modal-nota {
+  margin: 10px 0 0;
+}
+
+.notifiche-banner-mittente {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+  margin-bottom: 4px;
+}
+
+.notifiche-banner-testo {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.notifiche-banner-azioni {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.notifica-messaggio {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+/* Interruttore push nel menu: grafica volutamente diversa dai link di
+   navigazione (tratteggiato, non rosso accento) per segnalare che e' un
+   'azione sul posto', non una voce che porta a un'altra pagina. */
+.push-nav-item {
+  margin-bottom: 12px;
+}
+
+.push-nav-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  background: var(--color-off-white);
+  color: var(--color-text-light);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.push-nav-toggle:hover {
+  border-color: var(--color-text-light);
+}
+
+.push-nav-toggle.is-attivo {
+  background: #eaf7ee;
+  border: 1px solid #2f9e57;
+  color: #1f7a41;
+}
+
+.push-nav-toggle:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.push-nav-errore {
+  margin: 4px 4px 0;
+  font-size: 11px;
+  color: var(--color-accent-dark);
+}
+
+.componi-notifica {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.componi-notifica-titolo {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+/* Menu a tendina con checkbox per scegliere uno o piu' destinatari: il
+   pulsante mostra sempre quanti sono selezionati, l'elenco si apre solo
+   quando serve invece di occupare spazio con una lista lunga di pillole. */
+.destinatari-select {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.destinatari-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.destinatari-select-trigger:hover {
+  border-color: var(--color-accent);
+}
+
+.destinatari-select-trigger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.destinatari-select-chevron {
+  font-size: 10px;
+  color: var(--color-grey-mid);
+  flex-shrink: 0;
+}
+
+.destinatari-select-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.destinatari-select-opzione {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.destinatari-select-opzione:hover {
+  background: var(--color-off-white);
+}
+
+.destinatari-select-opzione.is-attivo {
+  color: var(--color-accent-dark);
+  font-weight: 600;
+}
+
+.destinatari-select-opzione input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.destinatari-select-tag-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.destinatari-select-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 13px;
+}
+
+.destinatari-select-tag button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.destinatari-select-tag button:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.destinatari-select-tag button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.componi-notifica-testo {
+  margin-bottom: 12px;
+  max-width: none;
+}
+
+.componi-notifica-allegato {
+  margin-bottom: 12px;
+}
+
+.componi-notifica-allegato p {
+  margin: 4px 0 0;
+}
+
+.risposta-notifica {
+  margin-top: 8px;
+  min-width: 220px;
+}
+
+.risposta-notifica textarea {
+  margin-bottom: 8px;
+  max-width: none;
+}
+
+.risposta-notifica-azioni {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notifica-allegato {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-size: inherit;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: var(--color-accent-dark);
+}
+
+/* ---------- Filtri (multi-selezione OR) ---------- */
+
+.contatti-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.filter-pill:hover {
+  background: var(--color-off-white);
+}
+
+.filter-pill.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+
 /* ---------- Sezione "Richiesta" nel pannello espanso (Enquiries) ---------- */
 
 /* Non e' un .detail-grid: cosi' il messaggio (spesso lungo) occupa tutta
@@ -1269,115 +2826,11 @@ table.data-table {
   word-break: break-word;
 }
 
-.gestione-note-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-light);
-}
 
-.gestione-note {
-  width: 100%;
-  max-width: 480px;
-  resize: vertical;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-body), sans-serif;
-  font-size: 13px;
-}
+/* ---------- Analytics: selettori con etichetta, confronto storico/sito ---------- */
 
-.gestione-note:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-}
-
-.gestione-box .btn-ghost {
-  align-self: flex-start;
-}
-
-/* ---------- Toggle permessi (Gestione utenti) ---------- */
-
-.toggle-puo-invitare {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--color-text-light);
-  cursor: pointer;
-}
-
-.toggle-puo-invitare input {
-  accent-color: var(--color-accent);
-  width: 15px;
-  height: 15px;
-}
-
-.sezioni-toggle {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 160px;
-}
-
-.sezioni-toggle-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--color-text-light);
-  cursor: pointer;
-}
-
-.sezioni-toggle-item input {
-  accent-color: var(--color-accent);
-  width: 13px;
-  height: 13px;
-}
-
-.page-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-/* ---------- Loading state ---------- */
-
-.page-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 100px 24px;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ---------- Analytics: toolbar periodo/confronto ---------- */
-
-.report-range-toolbar {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
+/* La toolbar ha tre selettori (fonte dati, periodo, confronto): senza
+   un'etichetta sopra ciascuno non si capisce quale sia quale. */
 .report-range-campo {
   display: flex;
   flex-direction: column;
@@ -1392,67 +2845,25 @@ table.data-table {
   color: var(--color-text-light);
 }
 
-.filter-select {
-  padding: 9px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
-.filter-select:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-}
-
-.filtro-date {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.filtro-date-campo {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-light);
-}
-
-.filtro-date-campo input {
-  padding: 8px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-bg);
-  color: var(--color-text);
-  text-transform: none;
-  font-weight: 400;
-  letter-spacing: normal;
-}
-
-.filtro-date-campo input:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
+.report-range-toolbar {
+  align-items: flex-end;
 }
 
 @media (max-width: 700px) {
   .report-range-toolbar {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
   }
 }
 
-/* ---------- Analytics: card statiche (non link) e delta di confronto ---------- */
-
+/* Card di solo totale (non e' un link a una lista, a differenza di quelle
+   del Riepilogo): niente effetto hover che ne suggerisca il click. */
 .stat-card-static {
   cursor: default;
 }
 
-.stat-card-static:hover {
+.stat-card-static:hover,
+.stat-card-static:focus-visible {
   transform: none;
   box-shadow: none;
   border-color: var(--color-border);
@@ -1464,81 +2875,6 @@ table.data-table {
   color: var(--color-text-light);
 }
 
-.stat-card-delta.is-positivo {
-  color: #1c7c46;
-}
-
-.stat-card-delta.is-negativo {
-  color: #8a2a2a;
-}
-
-/* ---------- Analytics: classifiche "Lead per ..." ---------- */
-
-.riepilogo-sottosezione {
-  margin-top: 28px;
-}
-
-.riepilogo-sottosezione-titolo {
-  font-family: var(--font-body), sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: normal;
-  line-height: 1.3;
-  color: var(--color-text);
-  margin: 0 0 10px;
-}
-
-.fonti-lead {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fonti-lead-riga {
-  display: grid;
-  grid-template-columns: minmax(120px, 220px) 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  color: inherit;
-  text-decoration: none;
-}
-
-.fonti-lead-riga-link:hover {
-  background: var(--color-off-white);
-}
-
-.fonti-lead-nome {
-  font-size: 14px;
-  font-weight: 600;
-  overflow-wrap: break-word;
-}
-
-.fonti-lead-traccia {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--color-off-white);
-  overflow: hidden;
-}
-
-.fonti-lead-barra {
-  height: 100%;
-  background: var(--color-accent);
-  border-radius: 999px;
-}
-
-.fonti-lead-valore {
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  text-align: right;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .fonti-lead-delta {
   font-size: 12px;
   font-weight: 600;
@@ -1546,225 +2882,20 @@ table.data-table {
   white-space: nowrap;
 }
 
+/* Verde in crescita, rosso in calo: gli stessi colori gia' usati dal
+   toggle Gestito/Da gestire, non una nuova coppia. */
+.stat-card-delta.is-positivo,
 .fonti-lead-delta.is-positivo {
   color: #1c7c46;
 }
 
+.stat-card-delta.is-negativo,
 .fonti-lead-delta.is-negativo {
   color: #8a2a2a;
 }
 
-@media (max-width: 700px) {
-  .fonti-lead-riga {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .fonti-lead-valore {
-    justify-content: flex-start;
-  }
-}
-
-/* ---------- Analytics: grafico giornaliero (Enquiries sito / totale storico) ---------- */
-
-.enquiries-chart {
-  position: relative;
-  margin: 16px 0 8px;
-}
-
-.enquiries-chart-legenda {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-  font-size: 12px;
-  color: var(--color-text-light);
-}
-
-.enquiries-chart-legenda-voce {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.enquiries-chart-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-
-.enquiries-chart-swatch-adulti {
-  background: var(--color-accent);
-}
-
-.enquiries-chart-swatch-junior {
-  background: #2c5aa0;
-}
-
-.enquiries-chart-swatch-altro {
-  background: var(--color-grey-mid);
-}
-
-.enquiries-chart-hint {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--color-grey-mid);
-}
-
-.enquiries-chart-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
-}
-
-.enquiries-chart-track {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  min-width: min-content;
-}
-
-.enquiries-chart-colonna {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 4px 6px;
-  border: none;
-  border-radius: 8px;
-  background: none;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.enquiries-chart-colonna:hover,
-.enquiries-chart-colonna.is-attiva {
-  background: var(--color-off-white);
-}
-
-.enquiries-chart-barra {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: stretch;
-}
-
-.enquiries-chart-segmento {
-  width: 100%;
-  border-radius: 3px 3px 0 0;
-}
-
-.enquiries-chart-segmento-adulti {
-  background: var(--color-accent);
-  border-radius: 0;
-}
-
-.enquiries-chart-segmento-junior {
-  background: #2c5aa0;
-}
-
-.enquiries-chart-segmento-altro {
-  background: var(--color-grey-mid);
-  border-radius: 0;
-}
-
+/* Lo storico HubSpot non ha un equivalente di gruppo_attivita: barra a
+   colore unico (vedi TotaleChart), distinta dal rosso delle enquiries. */
 .enquiries-chart-segmento-storico {
   background: #2c5aa0;
-}
-
-.enquiries-chart-segmento-vuoto {
-  width: 100%;
-  height: 2px;
-  background: var(--color-border);
-  align-self: flex-end;
-}
-
-.enquiries-chart-etichetta {
-  font-size: 11px;
-  color: var(--color-text-light);
-  white-space: nowrap;
-}
-
-.enquiries-chart-totale-tag {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.enquiries-chart-totale-tag.is-zero {
-  color: var(--color-grey-mid);
-  font-weight: 400;
-}
-
-.enquiries-chart-vuoto {
-  padding: 24px 0;
-}
-
-.enquiries-chart-tooltip {
-  position: fixed;
-  transform: translate(-50%, calc(-100% - 10px));
-  background: var(--color-text);
-  color: #fff;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-  z-index: 50;
-  pointer-events: none;
-  min-width: 140px;
-}
-
-.enquiries-chart-tooltip-data {
-  font-weight: 700;
-  margin-bottom: 6px;
-  text-transform: capitalize;
-}
-
-.enquiries-chart-tooltip-riga {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 0;
-}
-
-.enquiries-chart-tooltip-riga span:not([class]) {
-  flex: 1;
-}
-
-.enquiries-chart-tooltip-chiave {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.enquiries-chart-tooltip-chiave-adulti {
-  background: var(--color-accent);
-}
-
-.enquiries-chart-tooltip-chiave-junior {
-  background: #2c5aa0;
-}
-
-.enquiries-chart-tooltip-chiave-altro {
-  background: var(--color-grey-mid);
-}
-
-.enquiries-chart-tooltip-totale {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  font-weight: 700;
-}
-
-.enquiries-chart-tooltip-hint {
-  margin-top: 6px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
 }
