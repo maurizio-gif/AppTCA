@@ -28,11 +28,19 @@ export function contactHrefFor(key: string, value: unknown): string | null {
 
 const VARIANTI_RICHIESTA = ['blu', 'ambra', 'verde', 'viola', 'ciano'] as const
 
-// Colore stabile per tipo di richiesta, senza dover elencare a mano i
-// valori possibili (restano liberi lato form): stessa stringa -> stesso
-// colore ad ogni render.
+// I 3 tipi noti (form contatti) hanno un colore fisso e riconoscibile a
+// colpo d'occhio; un tipo futuro non ancora previsto qui ottiene comunque
+// un colore stabile via hash, invece di cadere tutto sul grigio neutro.
+const VARIANTE_RICHIESTA_NOTA: Record<string, string> = {
+  messaggio: 'blu',
+  richiamami: 'ambra',
+  'appuntamento in sede': 'verde',
+}
+
 export function variantePillola(testo: string | null | undefined): string {
   if (!testo) return 'neutro'
+  const nota = VARIANTE_RICHIESTA_NOTA[testo.trim().toLowerCase()]
+  if (nota) return nota
   let hash = 0
   for (let i = 0; i < testo.length; i++) {
     hash = (hash * 31 + testo.charCodeAt(i)) >>> 0
@@ -46,6 +54,23 @@ export function variantePillola(testo: string | null | undefined): string {
 export function formatDateOra(value: string | null | undefined): string {
   if (!value) return '—'
   return new Date(value).toLocaleString('it-IT', { timeZone: 'Europe/Rome' })
+}
+
+// data_richiesta e' una data pura (senza ora/fuso, es. "2026-07-29"): la
+// costruiamo da anno/mese/giorno invece di passare per new Date(stringa),
+// che la interpreterebbe come UTC e rischierebbe di sballare di un giorno
+// una volta convertita al fuso locale.
+export function formatDataRichiesta(value: string | null | undefined): string | null {
+  if (!value) return null
+  const [anno, mese, giorno] = value.split('-').map(Number)
+  if (!anno || !mese || !giorno) return null
+  const testo = new Date(anno, mese - 1, giorno).toLocaleDateString('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  return testo.charAt(0).toUpperCase() + testo.slice(1)
 }
 
 type Voce = [string, unknown]

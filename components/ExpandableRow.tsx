@@ -27,6 +27,7 @@ export function ExpandableRow({
   record,
   hiddenKeys = [],
   columnCount,
+  sections = [],
   extra,
   extraTitle = 'Gestione',
 }: {
@@ -41,6 +42,9 @@ export function ExpandableRow({
   record: Record<string, unknown>
   hiddenKeys?: string[]
   columnCount: number
+  // Sezioni su misura (es. "Richiesta") mostrate per prime, prima di
+  // "Gestione" e dei gruppi generici ricavati dal record.
+  sections?: { title: string; content: React.ReactNode }[]
   extra?: React.ReactNode
   extraTitle?: string
 }) {
@@ -77,6 +81,12 @@ export function ExpandableRow({
         <tr className="row-detail">
           <td colSpan={columnCount}>
             <div className="detail-groups">
+              {sections.map(({ title, content }) => (
+                <div className="detail-group" key={title}>
+                  <div className="detail-group-title">{title}</div>
+                  {content}
+                </div>
+              ))}
               {extra && (
                 <div className="detail-group">
                   <div className="detail-group-title">{extraTitle}</div>

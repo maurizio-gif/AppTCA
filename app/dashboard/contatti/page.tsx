@@ -4,6 +4,7 @@ import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
+import { RichiestaSezione } from './RichiestaSezione'
 
 // Solo i campi essenziali per la lettura al volo (senza espandere la riga):
 // data, nome, stato, attivita' e richiesta - data per prima perche' su
@@ -25,6 +26,13 @@ const COLONNE_VISIBILI = [
   'gestito_da',
   'gestito_il',
   'note',
+  // Mostrati in modo dedicato nella sezione "Richiesta" (vedi RichiestaSezione),
+  // non piu' nella griglia generica "Altri dettagli".
+  'motivo',
+  'data_richiesta',
+  'ora_richiesta',
+  // Esito interno di verifica su PerfectGym: non deve comparire per nessuno.
+  'esito_verifica_pgm',
 ]
 
 const ETICHETTA_GRUPPO: Record<string, string> = {
@@ -180,6 +188,19 @@ export default async function ContattiPage({
                     columns={COLONNE_TABELLA}
                     record={riga}
                     hiddenKeys={COLONNE_VISIBILI}
+                    sections={[
+                      {
+                        title: 'Richiesta',
+                        content: (
+                          <RichiestaSezione
+                            tipo={riga.tipo_richiesta ?? null}
+                            motivo={riga.motivo ?? null}
+                            dataRichiesta={riga.data_richiesta ?? null}
+                            oraRichiesta={riga.ora_richiesta ?? null}
+                          />
+                        ),
+                      },
+                    ]}
                     extra={
                       <GestioneSezione
                         id={riga.id}
