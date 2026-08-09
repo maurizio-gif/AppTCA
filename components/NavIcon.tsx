@@ -81,6 +81,12 @@ const ICONE: Record<string, React.ReactNode> = {
       <path d="M12 7.5V12l3.2 2" />
     </>
   ),
+  'visite-sito': (
+    <>
+      <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
 }
 
 const SEGNAPOSTO = <circle cx="12" cy="12" r="3" />

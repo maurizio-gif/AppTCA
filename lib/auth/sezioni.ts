@@ -20,6 +20,7 @@ export const SEZIONI = [
   // Junior (che restano a controllare le singole card dentro il blocco).
   { chiave: 'dashboard-enquiries', label: 'Riepilogo Enquiries (Dashboard)', href: '/dashboard', gruppo: 'Moduli' },
   { chiave: 'analytics', label: 'Analytics', href: '/dashboard/analytics', gruppo: 'Amministrazione' },
+  { chiave: 'visite-sito', label: 'Visite al sito', href: '/dashboard/visite', gruppo: 'Amministrazione' },
   { chiave: 'timbratura', label: 'Timbra cartellino', href: '/dashboard/timbratura', gruppo: 'Amministrazione' },
   { chiave: 'utenti', label: 'Gestione utenti', href: '/dashboard/utenti', gruppo: 'Amministrazione' },
   { chiave: 'notifiche', label: 'Notifiche', href: '/dashboard/notifiche', gruppo: 'Amministrazione' },
