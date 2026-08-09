@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
@@ -6,16 +5,10 @@ import { ContactLinks } from '@/components/ContactLinks'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { RicercaContatti } from '@/app/dashboard/contatti/RicercaContatti'
-import { formatDateOra, variantePillola } from '@/lib/format'
-import {
-  ETICHETTA_ORIGINE,
-  corrispondeRicercaVisita,
-  costruisciSessioni,
-  hrefContatto,
-  type ContattoAnagrafica,
-  type SessioneVisita,
-} from '@/lib/visite'
+import { formatDateOra } from '@/lib/format'
+import { corrispondeRicercaVisita, costruisciSessioni, type ContattoAnagrafica, type SessioneVisita } from '@/lib/visite'
 import { VisitePagine } from './VisitePagine'
+import { BadgeOrigine } from './BadgeOrigine'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,26 +32,6 @@ function applicaFiltro(sessioni: SessioneVisita[], filtro: Filtro): SessioneVisi
   if (filtro === 'riconosciuti') return sessioni.filter((s) => s.contatto)
   if (filtro === 'anonimi') return sessioni.filter((s) => !s.contatto)
   return sessioni
-}
-
-// Badge Origine: cliccabile solo quando esiste una sezione con una ricerca
-// da riusare per ritrovare il contatto (per ora solo Enquiry - vedi
-// lib/visite.ts hrefContatto). stopPropagation perche' il badge sta dentro
-// la riga cliccabile della tabella (accordion ExpandableRow).
-function BadgeOrigine({ contatto }: { contatto: ContattoAnagrafica }) {
-  const badge = (
-    <span className={`richiesta-badge richiesta-${variantePillola(contatto.origine)}`}>
-      {ETICHETTA_ORIGINE[contatto.origine]}
-    </span>
-  )
-  const href = hrefContatto(contatto)
-  if (!href) return badge
-
-  return (
-    <Link href={href} className="link" onClick={(e) => e.stopPropagation()}>
-      {badge}
-    </Link>
-  )
 }
 
 // Sezione di sola lettura: incrocia gli accessi al sito (tabella "accessi",
