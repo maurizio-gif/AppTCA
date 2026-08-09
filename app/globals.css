@@ -1228,6 +1228,88 @@ table.data-table {
   color: var(--color-accent-dark);
 }
 
+/* Percorso di navigazione di un visitatore (VisitePagine): timeline
+   verticale in stile "flow", una tappa per pagina vista dalla prima
+   all'ultima, unita da una linea con un pallino per tappa. */
+.percorso-sorgente {
+  margin: 0 0 12px;
+}
+
+.percorso-visite {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.percorso-tappa {
+  display: flex;
+  gap: 12px;
+}
+
+.percorso-tappa-indicatore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 3px;
+}
+
+.percorso-tappa-pallino {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.percorso-tappa-pallino.e-ultima {
+  width: 12px;
+  height: 12px;
+  background: var(--color-bg);
+  border: 3px solid var(--color-accent);
+}
+
+.percorso-tappa-linea {
+  flex: 1;
+  width: 2px;
+  min-height: 24px;
+  background: var(--color-border);
+  margin: 3px 0;
+}
+
+.percorso-tappa-contenuto {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 18px;
+}
+
+.percorso-tappa-riga {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.percorso-tappa-pagina {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.percorso-tappa-ora {
+  font-size: 12px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.percorso-tappa-delta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+}
+
 @media (max-width: 700px) {
   .detail-groups {
     padding: 14px;

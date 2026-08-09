@@ -63,13 +63,15 @@ export function costruisciSessioni(accessi: RigaAccesso[], contatti: ContattoAna
 
   const sessioni: SessioneVisita[] = []
   for (const [vid, pagineVid] of pagineePerVid) {
-    // Piu' recente per prima: e' l'ordine in cui interessa leggerle (l'ultima
-    // pagina vista e' quella piu' vicina all'eventuale contatto lasciato).
-    const ordinate = [...pagineVid].sort((a, b) => b.created_at.localeCompare(a.created_at))
+    // Ordine cronologico (prima pagina vista per prima): e' il percorso di
+    // navigazione cosi' come lo ha fatto il visitatore, il formato piu'
+    // utile per leggere "cosa ha guardato prima di arrivare a cosa" (vedi
+    // VisitePagine).
+    const ordinate = [...pagineVid].sort((a, b) => a.created_at.localeCompare(b.created_at))
     sessioni.push({
       vid,
-      primaVisita: ordinate[ordinate.length - 1].created_at,
-      ultimaVisita: ordinate[0].created_at,
+      primaVisita: ordinate[0].created_at,
+      ultimaVisita: ordinate[ordinate.length - 1].created_at,
       pagine: ordinate,
       contatto: contattoPerVid.get(vid) ?? null,
     })

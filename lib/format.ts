@@ -66,6 +66,20 @@ export function formatDateOra(value: string | null | undefined): string {
   return new Date(value).toLocaleString('it-IT', { timeZone: 'Europe/Rome' })
 }
 
+// Distanza tra due timestamp in un formato breve ("12 s", "3 min", "1 h 20
+// min"): usato nel percorso di navigazione di un visitatore per mostrare
+// quanto e' passato tra una pagina vista e la successiva (tappe ravvicinate
+// = sta esplorando attivamente il sito).
+export function formatDurataBreve(dalIso: string, alIso: string): string {
+  const secondi = Math.max(0, Math.round((new Date(alIso).getTime() - new Date(dalIso).getTime()) / 1000))
+  if (secondi < 60) return `${secondi} s`
+  const minuti = Math.round(secondi / 60)
+  if (minuti < 60) return `${minuti} min`
+  const ore = Math.floor(minuti / 60)
+  const minutiResto = minuti % 60
+  return minutiResto > 0 ? `${ore} h ${minutiResto} min` : `${ore} h`
+}
+
 // Data di un appuntamento richiesto (colonna "date", senza ora) con il
 // giorno della settimana per leggerla a colpo d'occhio, es. "giovedì 30
 // luglio 2026", invece della sola data numerica.

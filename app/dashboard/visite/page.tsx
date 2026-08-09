@@ -131,8 +131,8 @@ export default async function VisiteSitoPage({
       <BoxIstruzioni titolo="Come funziona">
         <ol>
           <li>
-            Ogni riga e' un visitatore (identificato dal suo "vid" di navigazione), con l'elenco di tutte le
-            pagine viste, dalla piu' recente.
+            Ogni riga e' un visitatore (identificato dal suo "vid" di navigazione). Aprila per vedere il
+            percorso di navigazione in ordine cronologico, dalla prima pagina vista all'ultima.
           </li>
           <li>
             Se lo stesso vid compare anche in un modulo compilato (Enquiry, Scuola tennis, Summer Camp, Invita
