@@ -1366,6 +1366,21 @@ table.data-table {
   color: var(--color-text-light);
 }
 
+/* Etichetta inline per distinguere due valori diversi nella stessa cella
+   (es. Socio/Amico in Invita un amico): su desktop e' ridondante, l'header
+   di colonna gia' lo dice; su mobile la riga riassuntiva perde le etichette
+   di colonna (vedi sotto), quindi qui serve per non lasciare ambiguo chi e'
+   chi. */
+.etichetta-mobile {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .etichetta-mobile {
+    display: inline;
+  }
+}
+
 /* ---------- Tabelle su mobile: card invece di scroll orizzontale ---------- */
 @media (max-width: 700px) {
   .data-table-wrap {
