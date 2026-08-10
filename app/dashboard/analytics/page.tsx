@@ -152,7 +152,17 @@ export default async function AnalyticsPage({
     const chiave = chiaveGiorno(r.data_acquisizione)
     return !min || chiave < min ? chiave : min
   }, undefined)
-  const primoGiorno = [primoGiornoSito, primoGiornoStorico].filter((v): v is string => !!v).sort()[0] ?? oggi
+  // "Tutto" nel confronto tra sorgenti parte dal primo giorno del sito
+  // nuovo (fine luglio 2026), non dal primo lead HubSpot: il periodo
+  // principale e' sempre quello del sito, quindi farlo partire da anni
+  // fa aggiungerebbe solo centinaia di colonne vuote al grafico e
+  // sposterebbe il periodo di confronto su un anno in cui il sito non
+  // esisteva ancora. Sulle fonti singole resta il primo giorno della
+  // fonte caricata (l'altra tabella li' non e' nemmeno interrogata).
+  const primoGiorno =
+    fonte === 'entrambi'
+      ? primoGiornoSito ?? oggi
+      : [primoGiornoSito, primoGiornoStorico].filter((v): v is string => !!v).sort()[0] ?? oggi
 
   // Il confronto tra sorgenti nasce per rispondere a "come sta andando
   // questo mese rispetto allo stesso periodo dell'anno scorso": parte gia'
