@@ -19,7 +19,8 @@ export default async function DashboardHome() {
     scuolaTennisCaricato,
     summerCampDaCaricare,
     summerCampCaricato,
-    invitaAmico,
+    invitaAmicoDaGestire,
+    invitaAmicoGestiti,
     iscrizioniEventi,
   ] = await Promise.all([
     supabase.from('form_contatti').select('gruppo_attivita, gestito'),
@@ -27,7 +28,8 @@ export default async function DashboardHome() {
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
-    supabase.from('form_invita_amico').select('*', { count: 'exact', head: true }),
+    supabase.from('form_invita_amico').select('*', { count: 'exact', head: true }).eq('gestito', false),
+    supabase.from('form_invita_amico').select('*', { count: 'exact', head: true }).eq('gestito', true),
     supabase.from('iscrizioni_eventi').select('*', { count: 'exact', head: true }),
   ])
 
@@ -92,6 +94,24 @@ export default async function DashboardHome() {
               </div>
             </div>
           )}
+
+          {puoVedere('invita-amico') && (
+            <div className="riepilogo-sottosezione">
+              <h3 className="riepilogo-sottosezione-titolo">Invita un amico</h3>
+              <div className="stat-row">
+                <StatCard
+                  href="/dashboard/invita-amico?filtro=da_gestire"
+                  label="Da gestire"
+                  value={invitaAmicoDaGestire.count ?? 0}
+                />
+                <StatCard
+                  href="/dashboard/invita-amico?filtro=gestiti"
+                  label="Gestiti"
+                  value={invitaAmicoGestiti.count ?? 0}
+                />
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -122,12 +142,6 @@ export default async function DashboardHome() {
             label="Caricato"
             value={summerCampCaricato.count ?? 0}
           />
-        </SezioneRiepilogo>
-      )}
-
-      {puoVedere('invita-amico') && (
-        <SezioneRiepilogo titolo="Invita un amico">
-          <StatCard href="/dashboard/invita-amico" label="Inviti" value={invitaAmico.count ?? 0} />
         </SezioneRiepilogo>
       )}
 
