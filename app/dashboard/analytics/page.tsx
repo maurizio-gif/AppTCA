@@ -188,6 +188,12 @@ export default async function AnalyticsPage({
         <h1>Analytics</h1>
       </div>
 
+      <p className="muted analytics-sottotitolo">
+        <strong>Current site</strong> — enquiries submitted on the new website. <strong>HubSpot historical</strong> —
+        leads imported from HubSpot before the switch (snapshot as of 22 July 2026). <strong>Source comparison</strong>{' '}
+        — current site vs. HubSpot historical for the same period last year.
+      </p>
+
       <section className="riepilogo-sezione">
         <div className="report-range-toolbar">
           <label className="report-range-campo">

@@ -2280,6 +2280,15 @@ table.data-table {
   margin-bottom: 24px;
 }
 
+/* Spiega le 3 fonti dati di Analytics: sempre visibile (non dentro un box
+   pieghevole "Come funziona"), perche' cambia cosa significano i numeri
+   sotto a seconda della fonte scelta nella tendina appena sotto. */
+.analytics-sottotitolo {
+  margin: 0 0 20px;
+  line-height: 1.5;
+  max-width: 720px;
+}
+
 /* ---------- Timbra cartellino ---------- */
 
 /* Banner persistente: resta visibile finche' non si timbra l'uscita
