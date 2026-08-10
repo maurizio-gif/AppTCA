@@ -5,6 +5,7 @@ import { TotaleChart } from '@/components/TotaleChart'
 import { FontiLead } from '@/components/FontiLead'
 import { FiltroData } from '@/components/FiltroData'
 import { FiltroSelect } from '@/components/FiltroSelect'
+import { ExportPdfButton } from '@/components/ExportPdfButton'
 import {
   OPZIONI_RANGE,
   OPZIONI_CONFRONTO,
@@ -183,9 +184,10 @@ export default async function AnalyticsPage({
     `/dashboard/analytics/lista?dimensione=${dimensione}&chiave=${encodeURIComponent(chiave)}&${parametriPeriodo}`
 
   return (
-    <div>
+    <div className="analytics-page">
       <div className="page-header">
         <h1>Analytics</h1>
+        <ExportPdfButton />
       </div>
 
       <p className="muted analytics-sottotitolo">
@@ -195,7 +197,7 @@ export default async function AnalyticsPage({
       </p>
 
       <section className="riepilogo-sezione">
-        <div className="report-range-toolbar">
+        <div className="report-range-toolbar no-print">
           <label className="report-range-campo">
             <span>Data source</span>
             <FiltroSelect

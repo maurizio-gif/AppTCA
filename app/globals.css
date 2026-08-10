@@ -2275,8 +2275,9 @@ table.data-table {
 
 .page-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
@@ -2287,6 +2288,51 @@ table.data-table {
   margin: 0 0 20px;
   line-height: 1.5;
   max-width: 720px;
+}
+
+/* ---------- Stampa / export PDF (vedi ExportPdfButton) ---------- */
+/* Un elemento qualsiasi da non stampare (usata sui filtri e sul pulsante
+   stesso di Analytics, ma riusabile ovunque serva la stessa cosa). */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  /* Il menu laterale e un eventuale banner notifica aperto non hanno senso
+     su carta: senza, il contenuto stampato riparte da margine pieno invece
+     di lasciare uno spazio vuoto a sinistra dove stava la sidebar. */
+  .sidebar,
+  .notifiche-overlay {
+    display: none !important;
+  }
+
+  .main-content {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* I grafici Analytics scorrono lateralmente a schermo (vedi
+     .enquiries-chart-scroll): su carta lo scroll non esiste, quindi le
+     colonne vanno a capo su piu' righe invece di restare tagliate oltre il
+     bordo della pagina. */
+  .enquiries-chart-scroll {
+    overflow: visible;
+  }
+
+  .enquiries-chart-track {
+    flex-wrap: wrap;
+  }
+
+  .enquiries-chart-hint {
+    display: none;
+  }
+
+  /* Un'intestazione o una riga di classifica non deve iniziare in fondo a
+     una pagina e continuare nella successiva. */
+  .riepilogo-sottosezione,
+  .stat-row {
+    break-inside: avoid;
+  }
 }
 
 /* ---------- Timbra cartellino ---------- */
