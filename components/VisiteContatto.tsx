@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { FontiLead } from '@/components/FontiLead'
 import { formatDateOra } from '@/lib/format'
 import { contaVisitePerPagina, type RigaAccesso } from '@/lib/visite'
@@ -16,11 +17,24 @@ export function VisiteContatto({ accessi }: { accessi: RigaAccesso[] }) {
 
   const pagine = contaVisitePerPagina(accessi)
   const ordinateAsc = [...accessi].sort((a, b) => a.created_at.localeCompare(b.created_at))
+  const vid = accessi[0].vid
 
   return (
     <div className="detail-group">
       <div className="detail-group-title">
-        Visite al sito — {accessi.length} {accessi.length === 1 ? 'pagina vista' : 'pagine viste'}
+        {vid ? (
+          // Niente onClick qui: e' un link semplice (solo href, nessun
+          // event handler), sicuro da passare a un Client Component
+          // (Link) anche dai chiamanti Server Component di questo
+          // componente condiviso - vedi il commento in cima al file.
+          <Link href={`/dashboard/visite?q=${encodeURIComponent(vid)}`} className="link">
+            Visite al sito — {accessi.length} {accessi.length === 1 ? 'pagina vista' : 'pagine viste'}
+          </Link>
+        ) : (
+          <>
+            Visite al sito — {accessi.length} {accessi.length === 1 ? 'pagina vista' : 'pagine viste'}
+          </>
+        )}
       </div>
       <p className="muted">
         Dal {formatDateOra(ordinateAsc[0].created_at)} al{' '}
