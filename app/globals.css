@@ -2464,14 +2464,35 @@ table.data-table {
   margin: 10px 0 0;
 }
 
+.notifiche-banner-riga-mittente {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .notifiche-banner-mittente {
-  display: block;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-accent);
-  margin-bottom: 4px;
+}
+
+/* Cosi' l'operatore capisce subito, senza aprire la sezione Notifiche, se
+   deve rispondere solo per se' o se il messaggio riguarda anche altri. */
+.notifiche-banner-badge-multiplo {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--color-off-white);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-light);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .notifiche-banner-testo {

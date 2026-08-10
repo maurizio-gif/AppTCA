@@ -212,6 +212,10 @@ export type UltimaNotifica = {
   daNome: string
   messaggio: string
   quando: string
+  // Totale destinatari dello stesso invio (batch_id), se > 1: serve al
+  // banner per far vedere subito se e' un messaggio singolo o mandato a
+  // piu' operatori, senza dover aprire la sezione Notifiche per scoprirlo.
+  numeroDestinatari: number
 }
 
 // Chiamata periodicamente dal client (NotificheProvider) per il badge nel
@@ -231,7 +235,7 @@ export async function getStatoNotifiche(): Promise<{ nonLette: number; ultima: U
     supabase.from('notifiche').select('*', { count: 'exact', head: true }).eq('a_email', email).is('letta_il', null),
     supabase
       .from('notifiche')
-      .select('id, da_email, messaggio, created_at')
+      .select('id, da_email, messaggio, created_at, batch_id')
       .eq('a_email', email)
       .is('letta_il', null)
       .order('created_at', { ascending: false })
@@ -243,11 +247,12 @@ export async function getStatoNotifiche(): Promise<{ nonLette: number; ultima: U
     return { nonLette: count ?? 0, ultima: null }
   }
 
-  const { data: mittente } = await supabase
-    .from('staff_users')
-    .select('nome, cognome')
-    .eq('email', ultimaRiga.da_email)
-    .maybeSingle()
+  const [{ data: mittente }, { count: numeroDestinatari }] = await Promise.all([
+    supabase.from('staff_users').select('nome, cognome').eq('email', ultimaRiga.da_email).maybeSingle(),
+    ultimaRiga.batch_id
+      ? supabase.from('notifiche').select('*', { count: 'exact', head: true }).eq('batch_id', ultimaRiga.batch_id)
+      : Promise.resolve({ count: 1 }),
+  ])
 
   const nomeCompleto = mittente ? `${mittente.nome ?? ''} ${mittente.cognome ?? ''}`.trim() : ''
 
@@ -259,6 +264,7 @@ export async function getStatoNotifiche(): Promise<{ nonLette: number; ultima: U
       daNome: nomeCompleto || ultimaRiga.da_email,
       messaggio: ultimaRiga.messaggio,
       quando: ultimaRiga.created_at,
+      numeroDestinatari: numeroDestinatari ?? 1,
     },
   }
 }

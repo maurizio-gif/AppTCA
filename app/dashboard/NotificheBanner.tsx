@@ -60,7 +60,14 @@ export function NotificheBanner() {
             ×
           </button>
         )}
-        <span className="notifiche-banner-mittente">Messaggio da {ultima.daNome}</span>
+        <div className="notifiche-banner-riga-mittente">
+          <span className="notifiche-banner-mittente">Messaggio da {ultima.daNome}</span>
+          {ultima.numeroDestinatari > 1 && (
+            <span className="notifiche-banner-badge-multiplo">
+              A {ultima.numeroDestinatari} destinatari
+            </span>
+          )}
+        </div>
         <p className="notifiche-banner-testo">{ultima.messaggio}</p>
 
         {!confermata && (
