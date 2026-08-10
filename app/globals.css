@@ -1366,18 +1366,27 @@ table.data-table {
   color: var(--color-text-light);
 }
 
-/* Etichetta inline per distinguere due valori diversi nella stessa cella
-   (es. Socio/Amico in Invita un amico): su desktop e' ridondante, l'header
-   di colonna gia' lo dice; su mobile la riga riassuntiva perde le etichette
-   di colonna (vedi sotto), quindi qui serve per non lasciare ambiguo chi e'
-   chi. */
-.etichetta-mobile {
-  display: none;
+/* Pillola di ruolo (es. Socio/Amico in Invita un amico) davanti al valore
+   invece di un'etichetta di testo: sulla riga riassuntiva mobile il colore
+   resta leggibile anche se il resto della cella diventa piccolo/grigio
+   (vedi ".data-table tr.row-clickable" sotto), a differenza di un testo
+   normale che si confonderebbe con lo sfondo grigio chiaro. */
+.invito-ruolo {
+  margin-bottom: 4px;
 }
 
+/* Invita un amico: Socio e Amico sono due identita' diverse, non una serie
+   di tag brevi come nelle altre sezioni - qui la riga riassuntiva mobile
+   deve tenerle su blocchi separati invece che in un unico flusso testuale
+   (dove il badge Amico finirebbe a fianco dell'email del Socio). */
 @media (max-width: 700px) {
-  .etichetta-mobile {
-    display: inline;
+  .data-table.data-table-invito tr.row-clickable td[data-label]:nth-of-type(n + 3) {
+    display: block;
+    margin-top: 8px;
+  }
+
+  .data-table.data-table-invito tr.row-clickable td[data-label]:nth-of-type(n + 4)::before {
+    content: none;
   }
 }
 

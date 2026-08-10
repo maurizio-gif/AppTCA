@@ -106,7 +106,7 @@ export default async function InvitaAmicoPage({
       </div>
 
       <div className="data-table-wrap">
-        <table className="data-table">
+        <table className="data-table data-table-invito">
           <thead>
             <tr>
               <th></th>
@@ -138,11 +138,13 @@ export default async function InvitaAmicoPage({
                   cells={[
                     formatDateOra(riga.created_at),
                     <>
-                      <span className="muted etichetta-mobile">Socio: </span>
+                      <span className="richiesta-badge richiesta-blu invito-ruolo">Socio</span>
+                      <br />
                       {riga.email_socio}
                     </>,
                     <>
-                      <span className="muted etichetta-mobile">Amico: </span>
+                      <span className="richiesta-badge richiesta-verde invito-ruolo">Amico</span>
+                      <br />
                       {riga.amico_nome} {riga.amico_cognome}
                       <br />
                       <span className="muted">
