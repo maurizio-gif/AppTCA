@@ -755,6 +755,33 @@ export type Database = {
         }
         Relationships: []
       }
+      report_share_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: number
+          revoked_at: string | null
+          sezione: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          revoked_at?: string | null
+          sezione: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          revoked_at?: string | null
+          sezione?: string
+          token?: string
+        }
+        Relationships: []
+      }
       staff_users: {
         Row: {
           cognome: string | null

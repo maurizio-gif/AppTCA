@@ -28,6 +28,8 @@ export const AZIONI_LOG: Record<string, string> = {
   timbratura_uscita: 'Timbratura: uscita',
   timbratura_rifiutata: 'Timbratura: rifiutata (fuori zona)',
   notifica_inviata: 'Notifica interna inviata',
+  analytics_link_generato: 'Analytics: link condiviso generato',
+  analytics_link_rigenerato: 'Analytics: link condiviso rigenerato (revoca del precedente)',
 }
 
 export function etichettaAzione(azione: string): string {
