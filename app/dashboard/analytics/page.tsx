@@ -5,7 +5,6 @@ import { TotaleChart } from '@/components/TotaleChart'
 import { FontiLead } from '@/components/FontiLead'
 import { FiltroData } from '@/components/FiltroData'
 import { FiltroSelect } from '@/components/FiltroSelect'
-import { formatDelta } from '@/lib/format'
 import {
   OPZIONI_RANGE,
   OPZIONI_CONFRONTO,
@@ -19,6 +18,7 @@ import {
   filtraPerRangeGenerico,
   deltaPercentuale,
   formatBreve,
+  formatDeltaEn,
   parsePreset,
   parsePresetConfronto,
   type DimensioneLead,
@@ -30,9 +30,9 @@ type RigaSito = Record<string, any>
 type RigaStorico = Record<string, any>
 
 const OPZIONI_FONTE = [
-  { valore: 'sito', etichetta: 'Sito attuale' },
-  { valore: 'storico', etichetta: 'Storico HubSpot' },
-  { valore: 'entrambi', etichetta: 'Confronto sorgenti' },
+  { valore: 'sito', etichetta: 'Current site' },
+  { valore: 'storico', etichetta: 'HubSpot historical' },
+  { valore: 'entrambi', etichetta: 'Source comparison' },
 ] as const
 type FonteDati = (typeof OPZIONI_FONTE)[number]['valore']
 
@@ -45,14 +45,14 @@ function parseFonte(raw: string | undefined): FonteDati {
 // per prima, seguita dalle dimensioni UTM grezze e da quelle specifiche del
 // sito nuovo (CTA/pagina non hanno equivalente nello storico HubSpot).
 const SEZIONI_LEAD: { dimensione: DimensioneLead; titolo: string }[] = [
-  { dimensione: 'canale', titolo: 'Lead per canale' },
-  { dimensione: 'fonte', titolo: 'Lead per fonte (UTM)' },
-  { dimensione: 'medium', titolo: 'Lead per medium' },
-  { dimensione: 'campagna', titolo: 'Lead per campagna' },
-  { dimensione: 'term', titolo: 'Lead per termine di ricerca' },
-  { dimensione: 'cta', titolo: 'Lead per CTA' },
-  { dimensione: 'pagina', titolo: 'Lead per pagina' },
-  { dimensione: 'status', titolo: 'Lead Status' },
+  { dimensione: 'canale', titolo: 'Leads by channel' },
+  { dimensione: 'fonte', titolo: 'Leads by source (UTM)' },
+  { dimensione: 'medium', titolo: 'Leads by medium' },
+  { dimensione: 'campagna', titolo: 'Leads by campaign' },
+  { dimensione: 'term', titolo: 'Leads by search term' },
+  { dimensione: 'cta', titolo: 'Leads by CTA' },
+  { dimensione: 'pagina', titolo: 'Leads by page' },
+  { dimensione: 'status', titolo: 'Lead status' },
 ]
 
 // Stesse dimensioni "condivise" del sito (canale/fonte/medium/campagna/
@@ -65,18 +65,18 @@ const SEZIONI_STORICO: {
   accessor: (r: RigaStorico) => unknown
   etichettaVuoto: string
 }[] = [
-  { chiave: 'canale', titolo: 'Lead per canale', accessor: (r) => r.fonte_acquisizione, etichettaVuoto: 'Non classificato' },
-  { chiave: 'fonte', titolo: 'Lead per fonte (UTM)', accessor: (r) => r.utm_source, etichettaVuoto: 'Non impostata (dato storico)' },
-  { chiave: 'medium', titolo: 'Lead per medium', accessor: (r) => r.utm_medium, etichettaVuoto: 'Non impostato (dato storico)' },
+  { chiave: 'canale', titolo: 'Leads by channel', accessor: (r) => r.fonte_acquisizione, etichettaVuoto: 'Unclassified' },
+  { chiave: 'fonte', titolo: 'Leads by source (UTM)', accessor: (r) => r.utm_source, etichettaVuoto: 'Not set (historical data)' },
+  { chiave: 'medium', titolo: 'Leads by medium', accessor: (r) => r.utm_medium, etichettaVuoto: 'Not set (historical data)' },
   {
     chiave: 'campagna',
-    titolo: 'Lead per campagna',
+    titolo: 'Leads by campaign',
     accessor: (r) => r.utm_campaign || r.campagna_prima_conversione,
-    etichettaVuoto: 'Nessuna campagna',
+    etichettaVuoto: 'No campaign',
   },
-  { chiave: 'term', titolo: 'Lead per termine di ricerca', accessor: (r) => r.utm_term, etichettaVuoto: 'Nessun termine (dato storico)' },
-  { chiave: 'modulo', titolo: 'Lead per modulo/form HubSpot', accessor: (r) => r.modulo_origine, etichettaVuoto: 'Non rilevato' },
-  { chiave: 'status', titolo: 'Lead per stato contatto', accessor: (r) => r.contact_status, etichettaVuoto: 'Non impostato' },
+  { chiave: 'term', titolo: 'Leads by search term', accessor: (r) => r.utm_term, etichettaVuoto: 'No term (historical data)' },
+  { chiave: 'modulo', titolo: 'Leads by HubSpot form/module', accessor: (r) => r.modulo_origine, etichettaVuoto: 'Not detected' },
+  { chiave: 'status', titolo: 'Leads by contact status', accessor: (r) => r.contact_status, etichettaVuoto: 'Not set' },
 ]
 
 function classeDelta(delta: number | null): string {
@@ -99,7 +99,7 @@ export default async function AnalyticsPage({
   searchParams: { range?: string; da?: string; a?: string; fonte?: string; confronto?: string; cda?: string; ca?: string }
 }) {
   if (!(await utenteHaSezione('analytics'))) {
-    return <p className="error-banner">Non hai accesso a questa sezione.</p>
+    return <p className="error-banner">You don't have access to this section.</p>
   }
 
   const fonte = parseFonte(searchParams.fonte)
@@ -116,7 +116,7 @@ export default async function AnalyticsPage({
       .from('form_contatti')
       .select('created_at, gruppo_attivita, utm_source, utm_medium, utm_campaign, utm_term, cta, pagina, esito_verifica_pgm')
       .order('created_at')
-    if (error) return <p className="error-banner">Errore nel caricamento (sito): {error.message}</p>
+    if (error) return <p className="error-banner">Error loading data (site): {error.message}</p>
     righeSito = data ?? []
   }
 
@@ -132,7 +132,7 @@ export default async function AnalyticsPage({
         .select('data_acquisizione, fonte_acquisizione, utm_source, utm_medium, utm_campaign, utm_term, modulo_origine, campagna_prima_conversione, contact_status')
         .order('data_acquisizione')
         .range(pagina * DIMENSIONE_PAGINA, pagina * DIMENSIONE_PAGINA + DIMENSIONE_PAGINA - 1)
-      if (error) return <p className="error-banner">Errore nel caricamento (storico): {error.message}</p>
+      if (error) return <p className="error-banner">Error loading data (historical): {error.message}</p>
       righeStorico = righeStorico.concat(data ?? [])
       if (!data || data.length < DIMENSIONE_PAGINA) break
     }
@@ -191,47 +191,56 @@ export default async function AnalyticsPage({
       <section className="riepilogo-sezione">
         <div className="report-range-toolbar">
           <label className="report-range-campo">
-            <span>Fonte dati</span>
+            <span>Data source</span>
             <FiltroSelect
               valore={fonte}
               opzioni={[...OPZIONI_FONTE]}
               paramName="fonte"
-              ariaLabel="Fonte dati"
+              ariaLabel="Data source"
               azzera={['range', 'da', 'a', 'confronto', 'cda', 'ca']}
             />
           </label>
           <label className="report-range-campo">
-            <span>Periodo</span>
-            <FiltroSelect valore={preset} opzioni={[...OPZIONI_RANGE]} paramName="range" ariaLabel="Periodo report" />
+            <span>Period</span>
+            <FiltroSelect valore={preset} opzioni={[...OPZIONI_RANGE]} paramName="range" ariaLabel="Report period" />
           </label>
-          {preset === 'custom' && <FiltroData dal={da} al={a} paramDal="da" paramAl="a" />}
+          {preset === 'custom' && (
+            <FiltroData dal={da} al={a} paramDal="da" paramAl="a" etichettaDal="From" etichettaAl="To" />
+          )}
           {fonte === 'entrambi' && (
             <label className="report-range-campo">
-              <span>Storico nel periodo</span>
+              <span>Historical period</span>
               <FiltroSelect
                 valore={presetConfronto}
                 opzioni={[...OPZIONI_CONFRONTO]}
                 paramName="confronto"
-                ariaLabel="Periodo di confronto per lo storico"
+                ariaLabel="Historical comparison period"
               />
             </label>
           )}
           {fonte === 'entrambi' && presetConfronto === 'personalizzato' && (
-            <FiltroData dal={searchParams.cda ?? ''} al={searchParams.ca ?? ''} paramDal="cda" paramAl="ca" />
+            <FiltroData
+              dal={searchParams.cda ?? ''}
+              al={searchParams.ca ?? ''}
+              paramDal="cda"
+              paramAl="ca"
+              etichettaDal="From"
+              etichettaAl="To"
+            />
           )}
         </div>
         <p className="muted">
           {fonte === 'entrambi' ? (
             <>
-              Sito dal {formatBreve(da)} al {formatBreve(a)}
+              Site from {formatBreve(da)} to {formatBreve(a)}
               {rangeConfronto && (
-                <> — storico dal {formatBreve(rangeConfronto.da)} al {formatBreve(rangeConfronto.a)}</>
+                <> — historical from {formatBreve(rangeConfronto.da)} to {formatBreve(rangeConfronto.a)}</>
               )}
-              {!rangeConfronto && <> — storico nello stesso periodo</>}
+              {!rangeConfronto && <> — historical in the same period</>}
             </>
           ) : (
             <>
-              Dal {formatBreve(da)} al {formatBreve(a)}
+              From {formatBreve(da)} to {formatBreve(a)}
             </>
           )}
         </p>
@@ -239,7 +248,7 @@ export default async function AnalyticsPage({
         {fonte === 'sito' && (
           <>
             <div className="stat-row">
-              <TotaleCard titolo="Enquiries nel periodo" valore={righeSitoPeriodo.length} />
+              <TotaleCard titolo="Enquiries in period" valore={righeSitoPeriodo.length} />
             </div>
 
             <EnquiriesChart giorni={costruisciSerieGiornaliera(righeSitoPeriodo, da, a)} />
@@ -252,7 +261,7 @@ export default async function AnalyticsPage({
               return (
                 <div key={dimensione} className="riepilogo-sottosezione">
                   <h3 className="riepilogo-sottosezione-titolo">{titolo}</h3>
-                  <FontiLead fonti={fonti} />
+                  <FontiLead fonti={fonti} messaggioVuoto="Nothing to show for this period yet." formatDelta={formatDeltaEn} />
                 </div>
               )
             })}
@@ -262,7 +271,7 @@ export default async function AnalyticsPage({
         {fonte === 'storico' && (
           <>
             <div className="stat-row">
-              <TotaleCard titolo="Lead storici nel periodo" valore={righeStoricoPeriodo.length} />
+              <TotaleCard titolo="Historical leads in period" valore={righeStoricoPeriodo.length} />
             </div>
 
             <TotaleChart giorni={costruisciSerieTotale(righeStoricoPeriodo, (r) => r.data_acquisizione, da, a)} />
@@ -270,7 +279,11 @@ export default async function AnalyticsPage({
             {SEZIONI_STORICO.map(({ chiave, titolo, accessor, etichettaVuoto }) => (
               <div key={chiave} className="riepilogo-sottosezione">
                 <h3 className="riepilogo-sottosezione-titolo">{titolo}</h3>
-                <FontiLead fonti={classificaGenerico(righeStoricoPeriodo, accessor, etichettaVuoto)} />
+                <FontiLead
+                  fonti={classificaGenerico(righeStoricoPeriodo, accessor, etichettaVuoto)}
+                  messaggioVuoto="Nothing to show for this period yet."
+                  formatDelta={formatDeltaEn}
+                />
               </div>
             ))}
           </>
@@ -287,8 +300,8 @@ export default async function AnalyticsPage({
           // preciso ma paragona categorie non equivalenti.
           const righeStoricoConfrontate = righeStoricoConfronto ?? righeStoricoPeriodo
           const etichettaStorico = rangeConfronto
-            ? `Storico HubSpot (dal ${formatBreve(rangeConfronto.da)} al ${formatBreve(rangeConfronto.a)})`
-            : 'Storico HubSpot nello stesso periodo'
+            ? `HubSpot historical (from ${formatBreve(rangeConfronto.da)} to ${formatBreve(rangeConfronto.a)})`
+            : 'HubSpot historical in the same period'
           const delta = deltaPercentuale(righeSitoPeriodo.length, righeStoricoConfrontate.length)
           return (
             <div className="stat-row">
@@ -298,9 +311,9 @@ export default async function AnalyticsPage({
               </div>
               <div className="stat-card stat-card-static">
                 <div className="value">{righeSitoPeriodo.length}</div>
-                <div className="label">Sito attuale nel periodo</div>
+                <div className="label">Current site in period</div>
                 <div className={`stat-card-delta ${classeDelta(delta)}`}>
-                  {formatDelta(delta)} rispetto allo storico
+                  {formatDeltaEn(delta)} vs historical
                 </div>
               </div>
             </div>

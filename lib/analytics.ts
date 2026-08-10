@@ -19,12 +19,35 @@ export function formatBreve(chiave: string): string {
   return `${giorno}/${mese}/${anno}`
 }
 
+// Solo per i tooltip dei grafici Analytics (in inglese, a differenza del
+// resto dell'app, che resta in italiano - vedi formatDataConGiorno in
+// lib/format.ts, condivisa con le sezioni Enquiries): stesso input (chiave
+// YYYY-MM-DD), locale 'en-US' invece di 'it-IT'.
+export function formatDateWithWeekday(chiave: string): string {
+  return new Date(`${chiave}T00:00:00`).toLocaleDateString('en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+// Variante in inglese di formatDelta (lib/format.ts): quella resta condivisa
+// con FontiLead per le sezioni Enquiries/Scuola tennis/ecc, questa e' solo
+// per Analytics (vedi il prop formatDelta di FontiLead).
+export function formatDeltaEn(delta: number | null): string {
+  if (delta === null) return 'new'
+  if (delta === 0) return '0%'
+  const segno = delta > 0 ? '+' : ''
+  return `${segno}${delta}%`
+}
+
 export const OPZIONI_RANGE = [
-  { valore: 'tutto', etichetta: 'Tutto' },
-  { valore: 'mtd', etichetta: 'Da inizio mese' },
-  { valore: 'mese_precedente', etichetta: 'Mese precedente' },
-  { valore: 'anno_corrente', etichetta: 'Anno corrente' },
-  { valore: 'custom', etichetta: 'Personalizzato' },
+  { valore: 'tutto', etichetta: 'All time' },
+  { valore: 'mtd', etichetta: 'Month to date' },
+  { valore: 'mese_precedente', etichetta: 'Previous month' },
+  { valore: 'anno_corrente', etichetta: 'Current year' },
+  { valore: 'custom', etichetta: 'Custom' },
 ] as const
 export type PresetRange = (typeof OPZIONI_RANGE)[number]['valore']
 const VALORI_RANGE = OPZIONI_RANGE.map((o) => o.valore) as readonly string[]
@@ -103,10 +126,10 @@ function differenzaGiorni(da: string, a: string): number {
 }
 
 export const OPZIONI_CONFRONTO = [
-  { valore: 'nessuno', etichetta: 'Nessun confronto' },
-  { valore: 'periodo_precedente', etichetta: 'Periodo precedente' },
-  { valore: 'anno_precedente', etichetta: 'Anno precedente' },
-  { valore: 'personalizzato', etichetta: 'Personalizzato' },
+  { valore: 'nessuno', etichetta: 'No comparison' },
+  { valore: 'periodo_precedente', etichetta: 'Previous period' },
+  { valore: 'anno_precedente', etichetta: 'Previous year' },
+  { valore: 'personalizzato', etichetta: 'Custom' },
 ] as const
 export type PresetConfronto = (typeof OPZIONI_CONFRONTO)[number]['valore']
 const VALORI_CONFRONTO = OPZIONI_CONFRONTO.map((o) => o.valore) as readonly string[]
@@ -316,10 +339,23 @@ export function costruisciSerieGiornaliera(righe: RigaContatto[], da: string, a:
 
 // L'esito PGM ha piu' varianti per lo stesso "e' un lead nuovo" (es. "NUOVO"
 // e "NUOVO Adulto" arrivano da rami diversi del flusso n8n): contano tutte
-// come un'unica categoria "Nuovo" invece di restare separate.
+// come un'unica categoria "New" invece di restare separate.
+//
+// I valori restanti (vedi il commento su esito_verifica_pgm in
+// lib/supabase/types.ts) sono gia' in inglese lato PerfectGym (ENDED, NOT
+// STARTED, CURRENT) tranne due usciti in italiano dal flusso n8n: solo
+// quei due vengono tradotti qui, per la sola visualizzazione in Analytics -
+// il valore grezzo salvato sul contatto resta quello originale.
+const TRADUZIONI_ESITO_PGM: Record<string, string> = {
+  'mai avuto contratto': 'Never had a contract',
+  sospeso: 'Suspended',
+}
+
 function normalizzaEsitoPgm(valore: unknown): unknown {
-  if (typeof valore === 'string' && valore.trim().toLowerCase().startsWith('nuovo')) return 'Nuovo'
-  return valore
+  if (typeof valore !== 'string') return valore
+  const pulito = valore.trim().toLowerCase()
+  if (pulito.startsWith('nuovo')) return 'New'
+  return TRADUZIONI_ESITO_PGM[pulito] ?? valore
 }
 
 // Descrive ogni classificazione mostrata in Analytics: stessa definizione
@@ -342,15 +378,15 @@ const DIMENSIONI_LEAD = {
     etichettaVuoto: 'Direct Traffic',
     prettifica: false,
   },
-  fonte: { campo: 'utm_source', etichettaVuoto: 'Organico', prettifica: true },
-  medium: { campo: 'utm_medium', etichettaVuoto: 'Diretto/organico', prettifica: false },
-  campagna: { campo: 'utm_campaign', etichettaVuoto: 'Nessuna campagna', prettifica: true },
-  term: { campo: 'utm_term', etichettaVuoto: 'Nessun termine', prettifica: false },
-  cta: { campo: 'cta', etichettaVuoto: 'Nessuna CTA', prettifica: false },
-  pagina: { campo: 'pagina', etichettaVuoto: 'Pagina non rilevata', prettifica: false },
+  fonte: { campo: 'utm_source', etichettaVuoto: 'Organic', prettifica: true },
+  medium: { campo: 'utm_medium', etichettaVuoto: 'Direct/organic', prettifica: false },
+  campagna: { campo: 'utm_campaign', etichettaVuoto: 'No campaign', prettifica: true },
+  term: { campo: 'utm_term', etichettaVuoto: 'No term', prettifica: false },
+  cta: { campo: 'cta', etichettaVuoto: 'No CTA', prettifica: false },
+  pagina: { campo: 'pagina', etichettaVuoto: 'Page not detected', prettifica: false },
   status: {
     campo: 'esito_verifica_pgm',
-    etichettaVuoto: 'Non verificato',
+    etichettaVuoto: 'Not verified',
     prettifica: false,
     normalizza: normalizzaEsitoPgm,
   },

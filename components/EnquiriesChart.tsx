@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatDataConGiorno } from '@/lib/format'
+import { formatDateWithWeekday } from '@/lib/analytics'
 
 type PuntoGiorno = { data: string; adulti: number; junior: number; altro: number }
 
@@ -50,7 +50,7 @@ export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
   }, [])
 
   if (giorni.length === 0) {
-    return <p className="muted enquiries-chart-vuoto">Ancora nessuna enquiry da mostrare nel grafico.</p>
+    return <p className="muted enquiries-chart-vuoto">No enquiries to show in the chart yet.</p>
   }
 
   function mostraTooltip(indice: number, elemento: HTMLElement) {
@@ -66,7 +66,7 @@ export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
       <div className="enquiries-chart-legenda">
         <span className="enquiries-chart-legenda-voce">
           <span className="enquiries-chart-swatch enquiries-chart-swatch-adulti" />
-          Adulti
+          Adults
         </span>
         <span className="enquiries-chart-legenda-voce">
           <span className="enquiries-chart-swatch enquiries-chart-swatch-junior" />
@@ -75,10 +75,10 @@ export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
         {haAltro && (
           <span className="enquiries-chart-legenda-voce">
             <span className="enquiries-chart-swatch enquiries-chart-swatch-altro" />
-            Altro
+            Other
           </span>
         )}
-        <span className="enquiries-chart-hint">← scorri per andare indietro nel tempo</span>
+        <span className="enquiries-chart-hint">← scroll to go back in time</span>
       </div>
 
       <div
@@ -158,10 +158,10 @@ export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
 
       {giornoAttivo && attivo && (
         <div className="enquiries-chart-tooltip" style={{ left: attivo.x, top: attivo.y }} role="status">
-          <div className="enquiries-chart-tooltip-data">{formatDataConGiorno(giornoAttivo.data)}</div>
+          <div className="enquiries-chart-tooltip-data">{formatDateWithWeekday(giornoAttivo.data)}</div>
           <div className="enquiries-chart-tooltip-riga">
             <span className="enquiries-chart-tooltip-chiave enquiries-chart-tooltip-chiave-adulti" />
-            <span>Adulti</span>
+            <span>Adults</span>
             <strong>{giornoAttivo.adulti}</strong>
           </div>
           <div className="enquiries-chart-tooltip-riga">
@@ -172,16 +172,16 @@ export function EnquiriesChart({ giorni }: { giorni: PuntoGiorno[] }) {
           {giornoAttivo.altro > 0 && (
             <div className="enquiries-chart-tooltip-riga">
               <span className="enquiries-chart-tooltip-chiave enquiries-chart-tooltip-chiave-altro" />
-              <span>Altro</span>
+              <span>Other</span>
               <strong>{giornoAttivo.altro}</strong>
             </div>
           )}
           <div className="enquiries-chart-tooltip-totale">
-            <span>Totale</span>
+            <span>Total</span>
             <strong>{giornoAttivo.adulti + giornoAttivo.junior + giornoAttivo.altro}</strong>
           </div>
           {giornoAttivo.adulti + giornoAttivo.junior + giornoAttivo.altro > 0 && (
-            <div className="enquiries-chart-tooltip-hint">Clicca per il dettaglio</div>
+            <div className="enquiries-chart-tooltip-hint">Click for details</div>
           )}
         </div>
       )}

@@ -3,7 +3,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { RichiestaEvidenza } from '@/app/dashboard/contatti/RichiestaEvidenza'
-import { formatDataConGiorno, formatDateOra, variantePillola } from '@/lib/format'
+import { formatDateOra, variantePillola } from '@/lib/format'
 import {
   DIMENSIONI_VALIDE,
   chiaveGiorno,
@@ -11,24 +11,25 @@ import {
   dataValida,
   filtraPerDimensione,
   filtraPerGiorno,
+  formatDateWithWeekday,
   type DimensioneLead,
 } from '@/lib/analytics'
 
 export const dynamic = 'force-dynamic'
 
-const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Gruppo', 'Stato', 'Attività', 'Richiesta']
+const COLONNE_TABELLA = ['Date & time', 'Name', 'Group', 'Status', 'Activity', 'Request']
 
 const CAMPI_IN_EVIDENZA = ['id', 'created_at', 'nome', 'cognome', 'gruppo_attivita', 'tipo_richiesta', 'attivita', 'stato', 'motivo', 'data_richiesta', 'ora_richiesta']
 
 const TITOLI_DIMENSIONE: Record<DimensioneLead, string> = {
-  canale: 'Canale',
-  fonte: 'Fonte',
+  canale: 'Channel',
+  fonte: 'Source',
   medium: 'Medium',
-  campagna: 'Campagna',
-  term: 'Termine di ricerca',
+  campagna: 'Campaign',
+  term: 'Search term',
   cta: 'CTA',
-  pagina: 'Pagina',
-  status: 'Lead Status',
+  pagina: 'Page',
+  status: 'Lead status',
 }
 
 function parseDimensione(raw: string | undefined): DimensioneLead | null {
@@ -45,14 +46,14 @@ export default async function AnalyticsListaPage({
   searchParams: { giorno?: string; dimensione?: string; chiave?: string; da?: string; a?: string }
 }) {
   if (!(await utenteHaSezione('analytics'))) {
-    return <p className="error-banner">Non hai accesso a questa sezione.</p>
+    return <p className="error-banner">You don't have access to this section.</p>
   }
 
   const supabase = createSupabaseServiceClient()
   const { data, error } = await supabase.from('form_contatti').select('*').order('created_at', { ascending: false })
 
   if (error) {
-    return <p className="error-banner">Errore nel caricamento: {error.message}</p>
+    return <p className="error-banner">Error loading data: {error.message}</p>
   }
 
   const righeContatti: Record<string, any>[] = data ?? []
@@ -74,9 +75,9 @@ export default async function AnalyticsListaPage({
     righeFiltrate = filtraPerDimensione(righeFiltrate, dimensione, chiave)
   }
 
-  let descrizione = 'Tutti i contatti nel periodo selezionato'
+  let descrizione = 'All contacts in the selected period'
   if (giorno) {
-    descrizione = `Enquiry del ${formatDataConGiorno(giorno)}`
+    descrizione = `Enquiries from ${formatDateWithWeekday(giorno)}`
   } else if (dimensione && chiave !== undefined) {
     const [voce] = classificaPer(righeFiltrate, dimensione)
     descrizione = `${TITOLI_DIMENSIONE[dimensione]}: ${voce?.fonte ?? chiave}`
@@ -90,13 +91,13 @@ export default async function AnalyticsListaPage({
 
       <p className="search-note">
         <Link href="/dashboard/analytics" className="link">
-          ← Torna ad Analytics
+          ← Back to Analytics
         </Link>
       </p>
 
       <section className="riepilogo-sezione">
         <h2 className="riepilogo-sezione-titolo">
-          {descrizione} — {righeFiltrate.length} {righeFiltrate.length === 1 ? 'contatto' : 'contatti'}
+          {descrizione} — {righeFiltrate.length} {righeFiltrate.length === 1 ? 'contact' : 'contacts'}
         </h2>
 
         <div className="data-table-wrap">
@@ -125,7 +126,7 @@ export default async function AnalyticsListaPage({
                       <>
                         {riga.nome} {riga.cognome}
                       </>,
-                      riga.gruppo_attivita || 'Adulti',
+                      riga.gruppo_attivita || 'Adults',
                       riga.stato || '—',
                       Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
                       riga.tipo_richiesta ? (
@@ -142,7 +143,7 @@ export default async function AnalyticsListaPage({
             </AccordionGroup>
           </table>
 
-          {righeFiltrate.length === 0 && <p className="empty-state">Nessun contatto trovato per questa selezione.</p>}
+          {righeFiltrate.length === 0 && <p className="empty-state">No contacts found for this selection.</p>}
         </div>
       </section>
     </div>

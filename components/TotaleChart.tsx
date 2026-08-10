@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatDataConGiorno } from '@/lib/format'
+import { formatDateWithWeekday } from '@/lib/analytics'
 
 type PuntoGiornoTotale = { data: string; totale: number }
 
@@ -37,7 +37,7 @@ export function TotaleChart({ giorni }: { giorni: PuntoGiornoTotale[] }) {
   }, [])
 
   if (giorni.length === 0) {
-    return <p className="muted enquiries-chart-vuoto">Nessun lead storico da mostrare nel grafico.</p>
+    return <p className="muted enquiries-chart-vuoto">No historical leads to show in the chart yet.</p>
   }
 
   function mostraTooltip(indice: number, elemento: HTMLElement) {
@@ -91,9 +91,9 @@ export function TotaleChart({ giorni }: { giorni: PuntoGiornoTotale[] }) {
 
       {giornoAttivo && attivo && (
         <div className="enquiries-chart-tooltip" style={{ left: attivo.x, top: attivo.y }} role="status">
-          <div className="enquiries-chart-tooltip-data">{formatDataConGiorno(giornoAttivo.data)}</div>
+          <div className="enquiries-chart-tooltip-data">{formatDateWithWeekday(giornoAttivo.data)}</div>
           <div className="enquiries-chart-tooltip-totale">
-            <span>Lead</span>
+            <span>Leads</span>
             <strong>{giornoAttivo.totale}</strong>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { formatDelta } from '@/lib/format'
+import { formatDelta as formatDeltaDefault } from '@/lib/format'
 
 type FonteConteggio = {
   fonte: string
@@ -20,9 +20,21 @@ type FonteConteggio = {
 // Ogni riga con un "href" (vedi lib/analytics.ts filtraPerDimensione) porta
 // alla lista delle anagrafiche dietro quel conteggio, senza dover indovinare
 // quale altra pagina/filtro applicare per ritrovarle.
-export function FontiLead({ fonti }: { fonti: FonteConteggio[] }) {
+//
+// messaggioVuoto/formatDelta hanno un default in italiano (usato da
+// VisiteContatto nelle sezioni Enquiries/Scuola tennis/ecc): Analytics
+// passa le sue varianti in inglese invece di duplicare il componente.
+export function FontiLead({
+  fonti,
+  messaggioVuoto = 'Ancora nessuna enquiry da classificare per fonte.',
+  formatDelta = formatDeltaDefault,
+}: {
+  fonti: FonteConteggio[]
+  messaggioVuoto?: string
+  formatDelta?: (delta: number | null) => string
+}) {
   if (fonti.length === 0) {
-    return <p className="muted">Ancora nessuna enquiry da classificare per fonte.</p>
+    return <p className="muted">{messaggioVuoto}</p>
   }
 
   const totale = fonti.reduce((somma, f) => somma + f.conteggio, 0)
