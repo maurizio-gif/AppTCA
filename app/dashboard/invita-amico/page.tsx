@@ -137,8 +137,12 @@ export default async function InvitaAmicoPage({
                   }
                   cells={[
                     formatDateOra(riga.created_at),
-                    riga.email_socio,
                     <>
+                      <span className="muted etichetta-mobile">Socio: </span>
+                      {riga.email_socio}
+                    </>,
+                    <>
+                      <span className="muted etichetta-mobile">Amico: </span>
                       {riga.amico_nome} {riga.amico_cognome}
                       <br />
                       <span className="muted">
