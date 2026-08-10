@@ -221,6 +221,40 @@ export function costruisciSerieTotale<T>(
   return serie
 }
 
+export type PuntoConfronto = {
+  dataSito: string | null
+  dataStorico: string | null
+  sito: number
+  storico: number
+}
+
+// Accoppia giorno per giorno la serie del sito con quella dello storico
+// HubSpot per il grafico di confronto. L'abbinamento e' posizionale (primo
+// giorno con primo giorno, secondo con secondo, ...) e non per data: i due
+// periodi sono per definizione diversi (es. agosto 2026 sul sito vs agosto
+// 2025 su HubSpot), quindi cio' che si confronta e' "l'n-esimo giorno del
+// periodo". Se un periodo e' piu' lungo dell'altro (finestre personalizzate
+// di lunghezza diversa) i giorni in eccesso restano con la controparte a
+// null, invece di essere tagliati via.
+export function abbinaSerieConfronto(
+  serieSito: PuntoGiornoTotale[],
+  serieStorico: PuntoGiornoTotale[]
+): PuntoConfronto[] {
+  const lunghezza = Math.max(serieSito.length, serieStorico.length)
+  const abbinati: PuntoConfronto[] = []
+  for (let i = 0; i < lunghezza; i++) {
+    const sito = serieSito[i]
+    const storico = serieStorico[i]
+    abbinati.push({
+      dataSito: sito?.data ?? null,
+      dataStorico: storico?.data ?? null,
+      sito: sito?.totale ?? 0,
+      storico: storico?.totale ?? 0,
+    })
+  }
+  return abbinati
+}
+
 // Classificazione generica per righe che non condividono la forma di
 // form_contatti (es. lead_hubspot_storico): stessa logica di conteggio e
 // ordinamento di classificaPer, ma con un accessor esplicito invece di un

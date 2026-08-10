@@ -2,11 +2,13 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { EnquiriesChart } from '@/components/EnquiriesChart'
 import { TotaleChart } from '@/components/TotaleChart'
+import { ConfrontoChart } from '@/components/ConfrontoChart'
 import { FontiLead } from '@/components/FontiLead'
 import { FiltroData } from '@/components/FiltroData'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { ExportPdfButton } from '@/components/ExportPdfButton'
 import {
+  abbinaSerieConfronto,
   OPZIONI_RANGE,
   OPZIONI_CONFRONTO,
   calcolaRange,
@@ -311,20 +313,35 @@ export default async function AnalyticsPage({
             ? `HubSpot historical (from ${formatBreve(rangeConfronto.da)} to ${formatBreve(rangeConfronto.a)})`
             : 'HubSpot historical in the same period'
           const delta = deltaPercentuale(righeSitoPeriodo.length, righeStoricoConfrontate.length)
+          // Il periodo dello storico e' quello di confronto se scelto,
+          // altrimenti coincide con quello del sito: in entrambi i casi le
+          // due serie vanno costruite sui rispettivi estremi, cosi'
+          // l'abbinamento giorno per giorno resta allineato (1o giorno con
+          // 1o giorno, e cosi' via - vedi abbinaSerieConfronto).
+          const daStorico = rangeConfronto?.da ?? da
+          const aStorico = rangeConfronto?.a ?? a
+          const serieConfronto = abbinaSerieConfronto(
+            costruisciSerieTotale(righeSitoPeriodo, (r) => r.created_at, da, a),
+            costruisciSerieTotale(righeStoricoConfrontate, (r) => r.data_acquisizione, daStorico, aStorico)
+          )
           return (
-            <div className="stat-row">
-              <div className="stat-card stat-card-static">
-                <div className="value">{righeStoricoConfrontate.length}</div>
-                <div className="label">{etichettaStorico}</div>
-              </div>
-              <div className="stat-card stat-card-static">
-                <div className="value">{righeSitoPeriodo.length}</div>
-                <div className="label">Current site in period</div>
-                <div className={`stat-card-delta ${classeDelta(delta)}`}>
-                  {formatDeltaEn(delta)} vs historical
+            <>
+              <div className="stat-row">
+                <div className="stat-card stat-card-static">
+                  <div className="value">{righeStoricoConfrontate.length}</div>
+                  <div className="label">{etichettaStorico}</div>
+                </div>
+                <div className="stat-card stat-card-static">
+                  <div className="value">{righeSitoPeriodo.length}</div>
+                  <div className="label">Current site in period</div>
+                  <div className={`stat-card-delta ${classeDelta(delta)}`}>
+                    {formatDeltaEn(delta)} vs historical
+                  </div>
                 </div>
               </div>
-            </div>
+
+              <ConfrontoChart giorni={serieConfronto} />
+            </>
           )
         })()}
       </section>

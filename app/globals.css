@@ -3037,3 +3037,96 @@ table.data-table {
 .enquiries-chart-segmento-storico {
   background: #2c5aa0;
 }
+
+/* ---------- Istogramma di confronto tra sorgenti (ConfrontoChart) ---------- */
+
+/* Stessa coppia di colori del resto di Analytics: blu per lo storico
+   HubSpot (come TotaleChart), rosso di marca per il sito attuale. */
+.confronto-chart {
+  --chart-storico: #2c5aa0;
+  --chart-sito: var(--color-accent);
+}
+
+.confronto-chart-swatch-storico {
+  background: var(--chart-storico);
+}
+
+.confronto-chart-swatch-sito {
+  background: var(--chart-sito);
+}
+
+/* Barre affiancate invece che impilate: sono due sorgenti alternative
+   dello stesso dato, sommarle non avrebbe significato. */
+.confronto-chart-coppia {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.confronto-chart-barra {
+  width: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.confronto-chart-segmento-storico {
+  background: var(--chart-storico);
+}
+
+.confronto-chart-segmento-sito {
+  background: var(--chart-sito);
+}
+
+/* La data dello storico sta sotto quella del sito perche' le due colonne
+   sono accoppiate per posizione nel periodo, non per data: senza entrambe
+   non si capirebbe quale giorno dell'anno scorso si sta guardando. */
+.confronto-chart-etichetta-storico {
+  font-size: 10px;
+  color: var(--chart-storico);
+  white-space: nowrap;
+}
+
+/* Ogni riga di date prende il colore della propria barra: e' l'unico modo
+   per capire a colpo d'occhio quale delle due sorgenti sta descrivendo. */
+.confronto-chart-etichetta-sito {
+  color: var(--chart-sito);
+}
+
+.confronto-chart-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.confronto-chart-tags .enquiries-chart-totale-tag {
+  min-width: 26px;
+  padding: 0 5px;
+  font-size: 10px;
+}
+
+.confronto-chart-tag-storico:not(.is-zero) {
+  border-color: var(--chart-storico);
+  color: var(--chart-storico);
+  background: rgba(44, 90, 160, 0.08);
+}
+
+.confronto-chart-tag-sito:not(.is-zero) {
+  border-color: var(--chart-sito);
+  color: var(--chart-sito);
+  background: rgba(139, 26, 26, 0.08);
+}
+
+.confronto-chart-chiave-storico {
+  background: var(--chart-storico);
+}
+
+.confronto-chart-chiave-sito {
+  background: var(--chart-sito);
+}
+
+/* Il tooltip qui contiene due date per esteso, non due sole etichette. */
+.confronto-chart-tooltip-largo {
+  min-width: 220px;
+}
