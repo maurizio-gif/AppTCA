@@ -206,7 +206,11 @@ export type Database = {
           email_socio: string | null
           fbclid: string | null
           gclid: string | null
+          gestito: boolean
+          gestito_da: string | null
+          gestito_il: string | null
           id: string
+          note: string | null
           pagina: string | null
           utm_campaign: string | null
           utm_content: string | null
@@ -229,7 +233,11 @@ export type Database = {
           email_socio?: string | null
           fbclid?: string | null
           gclid?: string | null
+          gestito?: boolean
+          gestito_da?: string | null
+          gestito_il?: string | null
           id?: string
+          note?: string | null
           pagina?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
@@ -252,7 +260,11 @@ export type Database = {
           email_socio?: string | null
           fbclid?: string | null
           gclid?: string | null
+          gestito?: boolean
+          gestito_da?: string | null
+          gestito_il?: string | null
           id?: string
+          note?: string | null
           pagina?: string | null
           utm_campaign?: string | null
           utm_content?: string | null

@@ -20,6 +20,8 @@ export const AZIONI_LOG: Record<string, string> = {
   contatto_gestito: 'Contatto: stato gestione modificato',
   contatto_nota_salvata: 'Contatto: nota salvata',
   contatto_cancellato: 'Contatto: cancellato definitivamente',
+  invito_amico_gestito: 'Invita un amico: stato gestione modificato',
+  invito_amico_nota_salvata: 'Invita un amico: nota salvata',
   scuola_tennis_caricato_pgm: 'Scuola Tennis: stato PerfectGym modificato',
   summer_camp_caricato_pgm: 'Summer Camp: stato PerfectGym modificato',
   timbratura_entrata: 'Timbratura: entrata',
