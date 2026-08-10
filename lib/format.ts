@@ -1,34 +1,49 @@
-// Ordine standard per qualsiasi elenco di operatori nel pannello (tabelle,
-// tendine filtro, destinatari notifiche, ecc.): sempre alfabetico per
-// cognome, con l'email come criterio di riserva quando manca il nome.
-export function confrontaOperatori(
-  a: { nome?: string | null; cognome?: string | null; email: string },
-  b: { nome?: string | null; cognome?: string | null; email: string }
-): number {
-  const chiave = (o: typeof a) => `${o.cognome ?? ''} ${o.nome ?? ''}`.trim() || o.email
-  return chiave(a).localeCompare(chiave(b), 'it', { sensitivity: 'base' })
-}
-
 export function prettifyKey(key: string): string {
   return key
     .replace(/_/g, ' ')
     .replace(/^./, (c) => c.toUpperCase())
 }
 
+type Operatore = { email: string; nome?: string | null; cognome?: string | null }
+
+// Ordine alfabetico di cognome (fallback nome, poi email grezza per un
+// tentativo di accesso non autorizzato che non ha un record in staff_users):
+// stesso criterio in ogni elenco di operatori dell'app.
+export function confrontaOperatori(a: Operatore, b: Operatore): number {
+  const chiave = (o: Operatore) => (o.cognome || o.nome || o.email).toLowerCase()
+  return chiave(a).localeCompare(chiave(b), 'it')
+}
+
+// Durata breve tra due timestamp ISO (es. tra due pageview consecutive di
+// uno stesso visitatore): secondi sotto il minuto, altrimenti minuti, poi
+// ore+minuti.
+export function formatDurataBreve(daISO: string, aISO: string): string {
+  const secondi = Math.max(0, Math.round((new Date(aISO).getTime() - new Date(daISO).getTime()) / 1000))
+  if (secondi < 60) return `${secondi}s`
+  const minuti = Math.round(secondi / 60)
+  if (minuti < 60) return `${minuti} min`
+  const ore = Math.floor(minuti / 60)
+  const minutiResto = minuti % 60
+  return minutiResto > 0 ? `${ore}h ${minutiResto}min` : `${ore}h`
+}
+
 export function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'boolean') return value ? 'Sì' : 'No'
-  if (Array.isArray(value)) {
-    // Le colonne jsonb tipo "giorni"/"orari_preferiti" sono liste di
-    // stringhe scelte dall'utente nel form: vanno lette come elenco
-    // ("Lun, Gio"), non come JSON grezzo con virgolette e parentesi quadre.
-    if (value.length === 0) return '—'
-    return value.map((voce) => formatValue(voce)).join(', ')
-  }
-  if (typeof value === 'object') {
+  if (Array.isArray(value) || typeof value === 'object') {
     return JSON.stringify(value, null, 2)
   }
   return String(value)
+}
+
+// null da deltaPercentuale = si passa da 0 a un valore positivo: "nuovo"
+// comunica meglio di una percentuale (che sarebbe infinita) il fatto che
+// prima non c'era nulla da confrontare.
+export function formatDelta(delta: number | null): string {
+  if (delta === null) return 'nuovo'
+  if (delta === 0) return '0%'
+  const segno = delta > 0 ? '+' : ''
+  return `${segno}${delta}%`
 }
 
 export function isUrl(value: unknown): value is string {
@@ -46,11 +61,19 @@ export function contactHrefFor(key: string, value: unknown): string | null {
 
 const VARIANTI_RICHIESTA = ['blu', 'ambra', 'verde', 'viola', 'ciano'] as const
 
-// Colore stabile per tipo di richiesta, senza dover elencare a mano i
-// valori possibili (restano liberi lato form): stessa stringa -> stesso
-// colore ad ogni render.
+// I 3 tipi noti (form contatti) hanno un colore fisso e riconoscibile a
+// colpo d'occhio; un tipo futuro non ancora previsto qui ottiene comunque
+// un colore stabile via hash, invece di cadere tutto sul grigio neutro.
+const VARIANTE_RICHIESTA_NOTA: Record<string, string> = {
+  messaggio: 'blu',
+  richiamami: 'ambra',
+  'appuntamento in sede': 'verde',
+}
+
 export function variantePillola(testo: string | null | undefined): string {
   if (!testo) return 'neutro'
+  const nota = VARIANTE_RICHIESTA_NOTA[testo.trim().toLowerCase()]
+  if (nota) return nota
   let hash = 0
   for (let i = 0; i < testo.length; i++) {
     hash = (hash * 31 + testo.charCodeAt(i)) >>> 0
@@ -66,27 +89,15 @@ export function formatDateOra(value: string | null | undefined): string {
   return new Date(value).toLocaleString('it-IT', { timeZone: 'Europe/Rome' })
 }
 
-// Distanza tra due timestamp in un formato breve ("12 s", "3 min", "1 h 20
-// min"): usato nel percorso di navigazione di un visitatore per mostrare
-// quanto e' passato tra una pagina vista e la successiva (tappe ravvicinate
-// = sta esplorando attivamente il sito).
-export function formatDurataBreve(dalIso: string, alIso: string): string {
-  const secondi = Math.max(0, Math.round((new Date(alIso).getTime() - new Date(dalIso).getTime()) / 1000))
-  if (secondi < 60) return `${secondi} s`
-  const minuti = Math.round(secondi / 60)
-  if (minuti < 60) return `${minuti} min`
-  const ore = Math.floor(minuti / 60)
-  const minutiResto = minuti % 60
-  return minutiResto > 0 ? `${ore} h ${minutiResto} min` : `${ore} h`
-}
-
-// Data di un appuntamento richiesto (colonna "date", senza ora) con il
-// giorno della settimana per leggerla a colpo d'occhio, es. "giovedì 30
-// luglio 2026", invece della sola data numerica.
-export function formatDataConGiorno(value: string | null | undefined): string {
-  if (!value) return '—'
-  const testo = new Date(`${value}T00:00:00`).toLocaleDateString('it-IT', {
-    timeZone: 'Europe/Rome',
+// data_richiesta e' una data pura (senza ora/fuso, es. "2026-07-29"): la
+// costruiamo da anno/mese/giorno invece di passare per new Date(stringa),
+// che la interpreterebbe come UTC e rischierebbe di sballare di un giorno
+// una volta convertita al fuso locale.
+export function formatDataRichiesta(value: string | null | undefined): string | null {
+  if (!value) return null
+  const [anno, mese, giorno] = value.split('-').map(Number)
+  if (!anno || !mese || !giorno) return null
+  const testo = new Date(anno, mese - 1, giorno).toLocaleDateString('it-IT', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -94,6 +105,13 @@ export function formatDataConGiorno(value: string | null | undefined): string {
   })
   return testo.charAt(0).toUpperCase() + testo.slice(1)
 }
+
+// Alias storico: alcuni punti (grafici Analytics, evidenza Richiesta) sono
+// stati rinominati in formatDataConGiorno ma la funzione restava esportata
+// solo come formatDataRichiesta (residuo di un merge non concluso, vedi
+// app/dashboard/contatti/page.tsx). Stessa funzione, due nomi finche' non
+// si uniforma anche l'ultimo chiamante (RichiestaSezione.tsx).
+export const formatDataConGiorno = formatDataRichiesta
 
 type Voce = [string, unknown]
 
@@ -105,40 +123,12 @@ type Voce = [string, unknown]
 // segue il contatto, restano chiusi in fondo (vedi raggruppaDettagli).
 const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean; tecnico?: boolean }[] = [
   {
-    titolo: 'Bambino/a',
-    test: (k) => k.startsWith('minore_'),
-  },
-  {
-    titolo: 'Genitore',
-    test: (k) => k.startsWith('genitore_') || k.startsWith('indirizzo_'),
-  },
-  {
-    titolo: 'Iscrizione',
-    test: (k) =>
-      [
-        // Scuola tennis
-        'tipo_corso',
-        'frequenza',
-        'giorni',
-        'compagno_preferito',
-        'orari_preferiti',
-        'orario_preparazione',
-        'taglia_maglietta',
-        'taglia_pantaloncini',
-        'taglia_felpa',
-        // Summer camp
-        'tesserato_fitp',
-        'tessera_fitp_numero',
-        'socio_club',
-        'partecipato_anno_scorso',
-        'settimane',
-        'pre_camp_settimane',
-        'note_mediche',
-      ].includes(k),
-  },
-  {
     titolo: 'Contatti',
     test: (k) => k === 'email' || k === 'cellulare',
+  },
+  {
+    titolo: 'Consensi',
+    test: (k) => k === 'privacy' || k === 'marketing' || k.startsWith('consenso_'),
   },
   {
     titolo: 'PerfectGym',
@@ -146,14 +136,9 @@ const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean; 
       k.startsWith('pgm_') || k.includes('contratto_pgm') || k === 'esito_verifica_pgm',
   },
   {
-    titolo: 'Consensi',
-    test: (k) => k === 'privacy' || k === 'marketing' || k.startsWith('consenso_'),
-  },
-  {
     titolo: 'Parametri tecnici',
     test: (k) =>
-      k.startsWith('utm_') ||
-      ['vid', 'gclid', 'fbclid', 'referrer', 'cta', 'flow', 'pagina'].includes(k),
+      k.startsWith('utm_') || ['vid', 'gclid', 'fbclid', 'referrer', 'cta', 'flow'].includes(k),
     tecnico: true,
   },
 ]

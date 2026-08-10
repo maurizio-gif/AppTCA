@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState } from 'react'
 import { contactHrefFor, formatValue, isUrl, prettifyKey, raggruppaDettagli } from '@/lib/format'
-import { ExternalLink } from '@/components/ExternalLink'
 
 // Coordina le ExpandableRow di una stessa tabella: tiene l'id della riga
 // aperta, cosi' aprirne una chiude automaticamente le altre. Senza questo
@@ -29,6 +28,7 @@ export function ExpandableRow({
   hiddenKeys = [],
   columnCount,
   evidenza,
+  sections = [],
   extra,
   extraTitle = 'Gestione',
 }: {
@@ -43,11 +43,14 @@ export function ExpandableRow({
   record: Record<string, unknown>
   hiddenKeys?: string[]
   columnCount: number
-  // Contenuto in evidenza mostrato per primo, a tutta larghezza e senza il
-  // riquadro/titolo dei gruppi generici: per testo libero (es. il motivo
-  // della richiesta) che nella griglia stretta dei dettagli andrebbe a capo
-  // parola per parola invece di leggersi come un paragrafo normale.
+  // Contenuto libero mostrato per primo, prima di tutto il resto (es.
+  // RichiestaEvidenza, VisiteContatto, VisitePagine): a differenza di
+  // `sections`, si occupa da solo del proprio titolo/contenitore, quindi
+  // viene reso cosi' com'e', senza un wrapper ".detail-group" attorno.
   evidenza?: React.ReactNode
+  // Sezioni su misura (es. "Richiesta") mostrate dopo evidenza, prima di
+  // "Gestione" e dei gruppi generici ricavati dal record.
+  sections?: { title: string; content: React.ReactNode }[]
   extra?: React.ReactNode
   extraTitle?: string
 }) {
@@ -85,6 +88,12 @@ export function ExpandableRow({
           <td colSpan={columnCount}>
             <div className="detail-groups">
               {evidenza}
+              {sections.map(({ title, content }) => (
+                <div className="detail-group" key={title}>
+                  <div className="detail-group-title">{title}</div>
+                  {content}
+                </div>
+              ))}
               {extra && (
                 <div className="detail-group">
                   <div className="detail-group-title">{extraTitle}</div>
@@ -133,7 +142,9 @@ function GruppoDettaglio({ titolo, voci }: { titolo: string; voci: [string, unkn
               <span className="detail-label">{prettifyKey(key)}</span>
               <span className="detail-value">
                 {isUrl(value) ? (
-                  <ExternalLink href={value}>{value}</ExternalLink>
+                  <a href={value} target="_blank" rel="noreferrer">
+                    {value}
+                  </a>
                 ) : contactHref ? (
                   <a href={contactHref}>{formatValue(value)}</a>
                 ) : (

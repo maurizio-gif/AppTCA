@@ -596,6 +596,96 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_hubspot_storico: {
+        Row: {
+          campagna_prima_conversione: string | null
+          cap: string | null
+          cellulare: string | null
+          citta: string | null
+          cognome: string | null
+          contact_status: string | null
+          country: string | null
+          data_acquisizione: string | null
+          email: string
+          fbclid: string | null
+          fonte_acquisizione: string | null
+          fonte_acquisizione_dettaglio_1: string | null
+          fonte_acquisizione_dettaglio_2: string | null
+          gclid: string | null
+          hubspot_record_id_raw: string | null
+          id: number
+          importato_il: string
+          lifecycle_stage: string | null
+          modulo_origine: string | null
+          nome: string | null
+          owner_hubspot: string | null
+          telefono: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          campagna_prima_conversione?: string | null
+          cap?: string | null
+          cellulare?: string | null
+          citta?: string | null
+          cognome?: string | null
+          contact_status?: string | null
+          country?: string | null
+          data_acquisizione?: string | null
+          email: string
+          fbclid?: string | null
+          fonte_acquisizione?: string | null
+          fonte_acquisizione_dettaglio_1?: string | null
+          fonte_acquisizione_dettaglio_2?: string | null
+          gclid?: string | null
+          hubspot_record_id_raw?: string | null
+          id?: never
+          importato_il?: string
+          lifecycle_stage?: string | null
+          modulo_origine?: string | null
+          nome?: string | null
+          owner_hubspot?: string | null
+          telefono?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          campagna_prima_conversione?: string | null
+          cap?: string | null
+          cellulare?: string | null
+          citta?: string | null
+          cognome?: string | null
+          contact_status?: string | null
+          country?: string | null
+          data_acquisizione?: string | null
+          email?: string
+          fbclid?: string | null
+          fonte_acquisizione?: string | null
+          fonte_acquisizione_dettaglio_1?: string | null
+          fonte_acquisizione_dettaglio_2?: string | null
+          gclid?: string | null
+          hubspot_record_id_raw?: string | null
+          id?: never
+          importato_il?: string
+          lifecycle_stage?: string | null
+          modulo_origine?: string | null
+          nome?: string | null
+          owner_hubspot?: string | null
+          telefono?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
       notifiche: {
         Row: {
           a_email: string
