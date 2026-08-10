@@ -117,6 +117,10 @@ export default async function NotifichePage({
             «Attiva push» nel menu a sinistra avvisa anche a pannello chiuso, con una notifica del telefono/computer:
             va attivata separatamente su ogni dispositivo con cui vuoi riceverle.
           </li>
+          <li>
+            «Apri su» sceglie dove porta la notifica push quando viene toccata: lascia «Notifiche» oppure punta
+            direttamente a un'altra sezione (es. Enquiries) se il messaggio riguarda quella.
+          </li>
         </ol>
       </BoxIstruzioni>
 

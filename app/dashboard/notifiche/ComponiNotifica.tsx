@@ -3,10 +3,18 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { inviaNotifica } from './actions'
 import { ACCEPT_ALLEGATO, DIMENSIONE_MASSIMA_ALLEGATO, TIPI_ALLEGATO_CONSENTITI, formatDimensioneFile } from '@/lib/allegati'
+import { SEZIONI, SEZIONI_SENZA_VOCE_MENU } from '@/lib/auth/sezioni'
+
+const LINK_PREDEFINITO = '/dashboard/notifiche'
+
+// Solo le sezioni con una pagina propria (stesso criterio della Sidebar):
+// "Riepilogo Enquiries" non e' un link sensato, vive dentro /dashboard.
+const SEZIONI_LINK = SEZIONI.filter((s) => !SEZIONI_SENZA_VOCE_MENU.includes(s.chiave))
 
 export function ComponiNotifica({ destinatari }: { destinatari: { email: string; nome: string }[] }) {
   const [selezionati, setSelezionati] = useState<string[]>([])
   const [messaggio, setMessaggio] = useState('')
+  const [link, setLink] = useState(LINK_PREDEFINITO)
   const [allegato, setAllegato] = useState<File | null>(null)
   const [esito, setEsito] = useState<{ tipo: 'ok' | 'errore'; testo: string } | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -60,6 +68,7 @@ export function ComponiNotifica({ destinatari }: { destinatari: { email: string;
     const formData = new FormData()
     selezionati.forEach((email) => formData.append('destinatari', email))
     formData.append('messaggio', messaggio)
+    formData.append('link', link)
     if (allegato) formData.append('allegato', allegato)
 
     startTransition(async () => {
@@ -71,6 +80,7 @@ export function ComponiNotifica({ destinatari }: { destinatari: { email: string;
         })
         setSelezionati([])
         setMessaggio('')
+        setLink(LINK_PREDEFINITO)
         rimuoviAllegato()
       } else {
         setEsito({ tipo: 'errore', testo: risultato.errore })
@@ -155,6 +165,18 @@ export function ComponiNotifica({ destinatari }: { destinatari: { email: string;
         onChange={(e) => setMessaggio(e.target.value)}
         placeholder="Scrivi il messaggio…"
       />
+
+      <label className="componi-notifica-link">
+        Apri su (link nella notifica push)
+        <select value={link} disabled={isPending} onChange={(e) => setLink(e.target.value)}>
+          <option value={LINK_PREDEFINITO}>Notifiche (predefinito)</option>
+          {SEZIONI_LINK.filter((s) => s.href !== LINK_PREDEFINITO).map((s) => (
+            <option key={s.chiave} value={s.href}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <div className="componi-notifica-allegato">
         <input

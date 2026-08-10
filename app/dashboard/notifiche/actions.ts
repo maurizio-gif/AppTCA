@@ -5,11 +5,22 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
+import { SEZIONI, SEZIONI_SENZA_VOCE_MENU } from '@/lib/auth/sezioni'
 import { registraLog } from '@/lib/audit'
 import { BUCKET_ALLEGATI_NOTIFICHE, DIMENSIONE_MASSIMA_ALLEGATO, TIPI_ALLEGATO_CONSENTITI } from '@/lib/allegati'
 import { inviaPush } from '@/lib/push'
 
 type Risultato = { ok: true } | { ok: false; errore: string }
+
+const LINK_PREDEFINITO = '/dashboard/notifiche'
+
+// Stesso elenco offerto nella tendina "Apri su" di ComponiNotifica: validato
+// di nuovo qui perche' la Server Action non deve fidarsi del valore mandato
+// dal client, un link fuori da questo elenco ricade sul predefinito invece
+// di finire cosi' com'e' nel payload della push.
+const LINK_VALIDI: Set<string> = new Set(
+  SEZIONI.filter((s) => !SEZIONI_SENZA_VOCE_MENU.includes(s.chiave)).map((s) => s.href)
+)
 
 // Risultato come valore di ritorno, non un throw: in produzione Next.js
 // oscura sempre il messaggio di un errore lanciato da una Server Action
@@ -40,6 +51,9 @@ export async function inviaNotifica(formData: FormData): Promise<Risultato> {
   if (destinatariRichiesti.length === 0) {
     return { ok: false, errore: 'Seleziona almeno un destinatario.' }
   }
+
+  const linkRichiesto = String(formData.get('link') ?? '')
+  const link = LINK_VALIDI.has(linkRichiesto) ? linkRichiesto : LINK_PREDEFINITO
 
   const file = formData.get('allegato')
   const allegato = file instanceof File && file.size > 0 ? file : null
@@ -113,7 +127,7 @@ export async function inviaNotifica(formData: FormData): Promise<Risultato> {
     dettagli: { destinatari: destinatariUnici, messaggio: testo, allegato: allegato?.name ?? null },
   })
 
-  await provaInviaPush(supabase, email, destinatariUnici, testo)
+  await provaInviaPush(supabase, email, destinatariUnici, testo, link)
 
   revalidatePath('/dashboard/notifiche')
 
@@ -128,7 +142,8 @@ async function provaInviaPush(
   supabase: ReturnType<typeof createSupabaseServiceClient>,
   daEmail: string,
   destinatari: string[],
-  testo: string
+  testo: string,
+  link: string
 ) {
   try {
     const [{ data: mittente }, { data: sottoscrizioni }] = await Promise.all([
@@ -142,7 +157,7 @@ async function provaInviaPush(
     const payload = {
       titolo: `Messaggio da ${nomeMittente || daEmail}`,
       corpo: testo.length > 140 ? `${testo.slice(0, 140)}…` : testo,
-      url: '/dashboard/notifiche',
+      url: link,
     }
 
     const risultati = await Promise.all(
