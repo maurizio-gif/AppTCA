@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useNotifiche } from './NotificheProvider'
 import { ConfermaLetturaButton } from './notifiche/ConfermaLetturaButton'
 import { RispondiNotifica } from './notifiche/RispondiNotifica'
+import { getDestinatariBatch } from './notifiche/actions'
 
 // Overlay a tutto schermo sopra qualunque pagina del pannello (vedi
 // NotificheProvider per il polling che alimenta questo stato): un
@@ -15,12 +16,34 @@ import { RispondiNotifica } from './notifiche/RispondiNotifica'
 export function NotificheBanner() {
   const { ultima, segnaLettaLocale, chiudiUltima } = useNotifiche()
   const [confermata, setConfermata] = useState(false)
+  const [destinatariAperti, setDestinatariAperti] = useState(false)
+  const [destinatari, setDestinatari] = useState<string[] | null>(null)
+  const [caricamentoDestinatari, setCaricamentoDestinatari] = useState(false)
+  const [erroreDestinatari, setErroreDestinatari] = useState<string | null>(null)
 
-  // Un nuovo messaggio (id diverso) riparte sempre da "non confermato",
-  // anche se il precedente era arrivato fino alla risposta.
+  // Un nuovo messaggio (id diverso) riparte sempre da "non confermato" e con
+  // l'elenco destinatari richiuso, anche se il precedente era arrivato fino
+  // alla risposta o li aveva gia' caricati.
   useEffect(() => {
     setConfermata(false)
+    setDestinatariAperti(false)
+    setDestinatari(null)
+    setErroreDestinatari(null)
   }, [ultima?.id])
+
+  function alternaDestinatari() {
+    const prossimo = !destinatariAperti
+    setDestinatariAperti(prossimo)
+    if (prossimo && !destinatari && !caricamentoDestinatari && ultima?.batchId) {
+      setCaricamentoDestinatari(true)
+      setErroreDestinatari(null)
+      getDestinatariBatch(ultima.batchId).then((risultato) => {
+        setCaricamentoDestinatari(false)
+        if (risultato.ok) setDestinatari(risultato.nomi)
+        else setErroreDestinatari(risultato.errore)
+      })
+    }
+  }
 
   // Blocca lo scroll della pagina sotto mentre l'overlay e' aperto: e'
   // pensato per coprire tutto, non solo la parte visibile senza scroll.
@@ -63,11 +86,21 @@ export function NotificheBanner() {
         <div className="notifiche-banner-riga-mittente">
           <span className="notifiche-banner-mittente">Messaggio da {ultima.daNome}</span>
           {ultima.numeroDestinatari > 1 && (
-            <span className="notifiche-banner-badge-multiplo">
-              A {ultima.numeroDestinatari} destinatari
-            </span>
+            <button
+              type="button"
+              className="notifiche-banner-badge-multiplo"
+              onClick={alternaDestinatari}
+              aria-expanded={destinatariAperti}
+            >
+              A {ultima.numeroDestinatari} destinatari {destinatariAperti ? '▲' : '▼'}
+            </button>
           )}
         </div>
+        {destinatariAperti && (
+          <p className="muted notifiche-banner-destinatari">
+            {caricamentoDestinatari ? 'Carico i destinatari…' : erroreDestinatari || destinatari?.join(', ')}
+          </p>
+        )}
         <p className="notifiche-banner-testo">{ultima.messaggio}</p>
 
         {!confermata && (

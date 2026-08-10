@@ -216,6 +216,10 @@ export type UltimaNotifica = {
   // banner per far vedere subito se e' un messaggio singolo o mandato a
   // piu' operatori, senza dover aprire la sezione Notifiche per scoprirlo.
   numeroDestinatari: number
+  // null se il messaggio ha un solo destinatario (mai un batch): serve solo
+  // per recuperare i nomi con getDestinatariBatch quando l'operatore apre
+  // il badge "A N destinatari".
+  batchId: string | null
 }
 
 // Chiamata periodicamente dal client (NotificheProvider) per il badge nel
@@ -265,6 +269,48 @@ export async function getStatoNotifiche(): Promise<{ nonLette: number; ultima: U
       messaggio: ultimaRiga.messaggio,
       quando: ultimaRiga.created_at,
       numeroDestinatari: numeroDestinatari ?? 1,
+      batchId: ultimaRiga.batch_id,
     },
   }
+}
+
+// Nomi dei destinatari di uno stesso invio, richiesti solo quando l'operatore
+// apre il badge "A N destinatari" nel banner (non ad ogni polling, per non
+// appesantire getStatoNotifiche con un caso che nella pratica resta chiuso
+// il piu' delle volte).
+export async function getDestinatariBatch(
+  batchId: string
+): Promise<{ ok: true; nomi: string[] } | { ok: false; errore: string }> {
+  const email = headers().get('x-tca-user-email')
+  if (!email) {
+    return { ok: false, errore: 'Sessione non valida: ricarica la pagina e riprova.' }
+  }
+
+  const supabase = createSupabaseServiceClient()
+
+  const { data: righeBatch, error } = await supabase.from('notifiche').select('a_email').eq('batch_id', batchId)
+
+  if (error) {
+    return { ok: false, errore: error.message }
+  }
+
+  // Chi chiama deve essere lui stesso uno dei destinatari: un batch_id a
+  // caso non deve poter rivelare chi ha ricevuto un messaggio non suo.
+  if (!righeBatch?.some((r) => r.a_email === email)) {
+    return { ok: false, errore: 'Notifica non trovata.' }
+  }
+
+  const emailDestinatari = [...new Set(righeBatch.map((r) => r.a_email))]
+  const { data: staff } = await supabase.from('staff_users').select('email, nome, cognome').in('email', emailDestinatari)
+  const mappaStaff = new Map((staff ?? []).map((s) => [s.email, s]))
+
+  const nomi = emailDestinatari
+    .map((indirizzo) => {
+      const s = mappaStaff.get(indirizzo)
+      const nomeCompleto = s ? `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() : ''
+      return nomeCompleto || indirizzo
+    })
+    .sort((a, b) => a.localeCompare(b, 'it'))
+
+  return { ok: true, nomi }
 }

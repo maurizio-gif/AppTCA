@@ -2481,10 +2481,13 @@ table.data-table {
 }
 
 /* Cosi' l'operatore capisce subito, senza aprire la sezione Notifiche, se
-   deve rispondere solo per se' o se il messaggio riguarda anche altri. */
+   deve rispondere solo per se' o se il messaggio riguarda anche altri.
+   E' un bottone (non solo testo): cliccandolo si espande l'elenco nomi
+   (vedi .notifiche-banner-destinatari), caricato al volo la prima volta. */
 .notifiche-banner-badge-multiplo {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   padding: 2px 9px;
   border-radius: 999px;
   background: var(--color-off-white);
@@ -2493,6 +2496,17 @@ table.data-table {
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.notifiche-banner-badge-multiplo:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent-dark);
+}
+
+.notifiche-banner-destinatari {
+  margin: 0 0 10px;
 }
 
 .notifiche-banner-testo {
