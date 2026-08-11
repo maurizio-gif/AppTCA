@@ -199,22 +199,46 @@ function classifica(valori: string[], top: number): VoceConteggio[] {
     .slice(0, top)
 }
 
+// Un ritorno e' un rientro sul sito ad almeno 24 ore di distanza dalla
+// fine della visita precedente. Soglia diversa (e molto piu' alta) da
+// GAP_SESSIONE_MINUTI di proposito: mezz'ora separa due visite, ma
+// tornare la sera dopo cena non e' "essere tornati" - il segnale che
+// interessa qui e' la persona che ci ripensa un altro giorno.
+export const ORE_RITORNO = 24
+
 export type Ritorni = {
   visitatori: number
   diRitorno: number
   percentuale: number
-  // Quanti vid hanno fatto 1 visita, 2, 3-5, 6+: e' la stessa
+  // Quanti vid hanno fatto 1 accesso distinto, 2, 3-5, 6+: e' la stessa
   // informazione del numero singolo, ma mostra anche com'e' distribuita
   // (dieci persone tornate una volta e una tornata dieci volte danno lo
   // stesso "di ritorno", e non sono la stessa cosa).
   distribuzione: VoceConteggio[]
-  giorniMediTraPrimaEUltima: number | null
+  giorniMediTraPrimoEUltimo: number | null
 }
 
-// Chi e' tornato sul sito in un momento diverso, cioe' con almeno due
-// visite distinte (vedi GAP_SESSIONE_MINUTI: due pageview a meno di
-// mezz'ora sono la stessa visita, non un ritorno).
-export function visitatoriDiRitorno(sessioni: SessioneNavigazione[]): Ritorni {
+// Le visite di un vid raggruppate in "accessi distinti": si apre un nuovo
+// accesso quando sono passate almeno ORE_RITORNO dalla fine della visita
+// precedente. Restituisce l'istante di inizio di ciascun accesso.
+function accessiDistinti(sessioni: SessioneNavigazione[], oreRitorno: number): number[] {
+  const ordinate = [...sessioni].sort((a, b) => a.inizio.localeCompare(b.inizio))
+  const sogliaMs = oreRitorno * 3600_000
+  const inizi: number[] = []
+  let fineUltimo = -Infinity
+
+  for (const sessione of ordinate) {
+    const inizio = new Date(sessione.inizio).getTime()
+    if (inizio - fineUltimo >= sogliaMs) inizi.push(inizio)
+    fineUltimo = Math.max(fineUltimo, new Date(sessione.fine).getTime())
+  }
+  return inizi
+}
+
+export function visitatoriDiRitorno(
+  sessioni: SessioneNavigazione[],
+  oreRitorno = ORE_RITORNO
+): Ritorni {
   const perVid = new Map<string, SessioneNavigazione[]>()
   for (const sessione of sessioni) {
     if (!perVid.has(sessione.vid)) perVid.set(sessione.vid, [])
@@ -222,10 +246,10 @@ export function visitatoriDiRitorno(sessioni: SessioneNavigazione[]): Ritorni {
   }
 
   const fasce: [string, (n: number) => boolean][] = [
-    ['1 sola visita', (n) => n === 1],
-    ['2 visite', (n) => n === 2],
-    ['Da 3 a 5 visite', (n) => n >= 3 && n <= 5],
-    ['6 visite o piu’', (n) => n >= 6],
+    ['Un solo accesso', (n) => n <= 1],
+    ['2 accessi', (n) => n === 2],
+    ['Da 3 a 5 accessi', (n) => n >= 3 && n <= 5],
+    ['6 accessi o piu’', (n) => n >= 6],
   ]
   const conteggiFasce = new Map(fasce.map(([etichetta]) => [etichetta, 0]))
 
@@ -233,16 +257,13 @@ export function visitatoriDiRitorno(sessioni: SessioneNavigazione[]): Ritorni {
   let sommaGiorni = 0
 
   for (const gruppo of perVid.values()) {
-    const quante = gruppo.length
-    const fascia = fasce.find(([, test]) => test(quante))
+    const inizi = accessiDistinti(gruppo, oreRitorno)
+    const fascia = fasce.find(([, test]) => test(inizi.length))
     if (fascia) conteggiFasce.set(fascia[0], conteggiFasce.get(fascia[0])! + 1)
-    if (quante < 2) continue
+    if (inizi.length < 2) continue
 
     diRitorno += 1
-    const ordinate = [...gruppo].sort((a, b) => a.inizio.localeCompare(b.inizio))
-    const primo = new Date(ordinate[0].inizio).getTime()
-    const ultimo = new Date(ordinate[ordinate.length - 1].inizio).getTime()
-    sommaGiorni += (ultimo - primo) / 86400000
+    sommaGiorni += (inizi[inizi.length - 1] - inizi[0]) / 86400000
   }
 
   const visitatori = perVid.size
@@ -253,7 +274,7 @@ export function visitatoriDiRitorno(sessioni: SessioneNavigazione[]): Ritorni {
     distribuzione: [...conteggiFasce.entries()]
       .filter(([, conteggio]) => conteggio > 0)
       .map(([chiave, conteggio]) => ({ chiave, conteggio })),
-    giorniMediTraPrimaEUltima: diRitorno ? Math.round((sommaGiorni / diRitorno) * 10) / 10 : null,
+    giorniMediTraPrimoEUltimo: diRitorno ? Math.round((sommaGiorni / diRitorno) * 10) / 10 : null,
   }
 }
 

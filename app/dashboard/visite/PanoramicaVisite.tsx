@@ -3,6 +3,7 @@ import { FontiLead } from '@/components/FontiLead'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import {
   GAP_SESSIONE_MINUTI,
+  ORE_RITORNO,
   canaliDiIngresso,
   formatSecondi,
   paginePerPosizione,
@@ -70,7 +71,9 @@ export function PanoramicaVisite({
           </li>
           <li>
             Una <strong>visita</strong> finisce dopo {GAP_SESSIONE_MINUTI} minuti di inattivita': se la stessa
-            persona torna il giorno dopo conta come una seconda visita, non come una sola lunga.
+            persona torna il giorno dopo conta come una seconda visita, non come una sola lunga. Un{' '}
+            <strong>visitatore di ritorno</strong> usa invece una soglia piu' alta — almeno {ORE_RITORNO} ore tra
+            un accesso e il successivo — perche' riaprire il sito dopo cena non e' «essere tornati».
           </li>
           <li>
             Cambia il segmento per confrontare il percorso di chi ha lasciato una richiesta con quello di chi se
@@ -126,15 +129,15 @@ export function PanoramicaVisite({
               <strong>
                 {ritorni.diRitorno} visitatori su {ritorni.visitatori} ({ritorni.percentuale}%)
               </strong>{' '}
-              sono tornati sul sito in un momento diverso
-              {ritorni.giorniMediTraPrimaEUltima !== null && (
+              sono tornati sul sito ad almeno {ORE_RITORNO} ore di distanza
+              {ritorni.giorniMediTraPrimoEUltimo !== null && (
                 <>
                   , con{' '}
                   <strong>
-                    {ritorni.giorniMediTraPrimaEUltima}{' '}
-                    {ritorni.giorniMediTraPrimaEUltima === 1 ? 'giorno' : 'giorni'}
+                    {ritorni.giorniMediTraPrimoEUltimo}{' '}
+                    {ritorni.giorniMediTraPrimoEUltimo === 1 ? 'giorno' : 'giorni'}
                   </strong>{' '}
-                  in media tra la prima e l'ultima visita
+                  in media tra il primo e l'ultimo accesso
                 </>
               )}
               .
@@ -144,8 +147,10 @@ export function PanoramicaVisite({
               messaggioVuoto="Nessun visitatore in questo periodo."
             />
             <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
-              Il conteggio e' relativo al periodo scelto qui sopra: chi ha visitato il sito prima dell'inizio del
-              periodo e poi e' tornato dentro il periodo risulta con una visita sola. Allarga il periodo per
+              Un «accesso» qui non e' una visita: piu' visite ravvicinate nello stesso giorno contano come un
+              accesso solo, e ne parte uno nuovo dopo almeno {ORE_RITORNO} ore dalla fine della precedente. Il
+              conteggio e' relativo al periodo scelto qui sopra: chi ha visitato il sito prima dell'inizio del
+              periodo e poi e' tornato dentro il periodo risulta con un accesso solo. Allarga il periodo per
               vedere i ritorni piu' lunghi.
             </p>
           </div>
