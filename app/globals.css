@@ -1390,6 +1390,13 @@ table.data-table {
   }
 }
 
+/* Nascosta ovunque tranne che nelle tabelle su mobile (regola gemella nel
+   media query qui sotto): deve stare subito prima, altrimenti a parita' di
+   specificita' vincerebbe quella dichiarata piu' in basso nel file. */
+.etichetta-mobile {
+  display: none;
+}
+
 /* ---------- Tabelle su mobile: card invece di scroll orizzontale ---------- */
 @media (max-width: 700px) {
   .data-table-wrap {
@@ -1530,6 +1537,14 @@ table.data-table {
   .data-table tr.row-clickable td[data-label]:nth-of-type(n + 4)::before {
     content: ' · ';
     color: var(--color-text-light);
+  }
+
+  /* Su mobile le celle di una riga espandibile finiscono in fila separate
+     da "·", senza l'intestazione di colonna: due valori numerici di
+     seguito ("· 3 · 4") diventerebbero indecifrabili, quindi li' - e solo
+     li' - il valore si porta dietro la sua etichetta. */
+  .etichetta-mobile {
+    display: inline;
   }
 
   .data-table tr.table-group-header {

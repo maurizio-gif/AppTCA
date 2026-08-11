@@ -218,6 +218,15 @@ export type Ritorni = {
   giorniMediTraPrimoEUltimo: number | null
 }
 
+function raggruppaPerVid(sessioni: SessioneNavigazione[]): Map<string, SessioneNavigazione[]> {
+  const perVid = new Map<string, SessioneNavigazione[]>()
+  for (const sessione of sessioni) {
+    if (!perVid.has(sessione.vid)) perVid.set(sessione.vid, [])
+    perVid.get(sessione.vid)!.push(sessione)
+  }
+  return perVid
+}
+
 // Le visite di un vid raggruppate in "accessi distinti": si apre un nuovo
 // accesso quando sono passate almeno ORE_RITORNO dalla fine della visita
 // precedente. Restituisce l'istante di inizio di ciascun accesso.
@@ -235,15 +244,25 @@ function accessiDistinti(sessioni: SessioneNavigazione[], oreRitorno: number): n
   return inizi
 }
 
+// Quanti accessi distinti (regola delle ORE_RITORNO ore) ha fatto ciascun
+// vid: serve all'elenco dei visitatori per mostrare la colonna "Accessi" e
+// per il filtro sui contatti tornati piu' volte.
+export function accessiDistintiPerVid(
+  sessioni: SessioneNavigazione[],
+  oreRitorno = ORE_RITORNO
+): Map<string, number> {
+  const conteggi = new Map<string, number>()
+  for (const [vid, gruppo] of raggruppaPerVid(sessioni)) {
+    conteggi.set(vid, accessiDistinti(gruppo, oreRitorno).length)
+  }
+  return conteggi
+}
+
 export function visitatoriDiRitorno(
   sessioni: SessioneNavigazione[],
   oreRitorno = ORE_RITORNO
 ): Ritorni {
-  const perVid = new Map<string, SessioneNavigazione[]>()
-  for (const sessione of sessioni) {
-    if (!perVid.has(sessione.vid)) perVid.set(sessione.vid, [])
-    perVid.get(sessione.vid)!.push(sessione)
-  }
+  const perVid = raggruppaPerVid(sessioni)
 
   const fasce: [string, (n: number) => boolean][] = [
     ['Un solo accesso', (n) => n <= 1],

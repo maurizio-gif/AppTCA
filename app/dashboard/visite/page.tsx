@@ -8,7 +8,7 @@ import { RicercaContatti } from '@/app/dashboard/contatti/RicercaContatti'
 import { VistaTabs } from '@/components/VistaTabs'
 import { formatDateOra } from '@/lib/format'
 import { corrispondeRicercaVisita, costruisciSessioni, type ContattoAnagrafica, type RigaAccesso, type SessioneVisita } from '@/lib/visite'
-import { dividiInSessioni } from '@/lib/visite-analisi'
+import { ORE_RITORNO, accessiDistintiPerVid, dividiInSessioni } from '@/lib/visite-analisi'
 import { PanoramicaVisite, OPZIONI_PERIODO, OPZIONI_SEGMENTO } from './PanoramicaVisite'
 import { VisitePagine } from './VisitePagine'
 import { BadgeOrigine } from './BadgeOrigine'
@@ -41,14 +41,15 @@ async function leggiTuttiGliAccessi(
   return { righe, errore: null }
 }
 
-const COLONNE_TABELLA = ['Ultima visita', 'Visitatore', 'Origine', 'Pagine']
+const COLONNE_TABELLA = ['Ultima visita', 'Visitatore', 'Origine', 'Accessi', 'Pagine']
 
-const FILTRI_VALIDI = ['tutti', 'riconosciuti', 'anonimi'] as const
+const FILTRI_VALIDI = ['tutti', 'riconosciuti', 'ritorno', 'anonimi'] as const
 type Filtro = (typeof FILTRI_VALIDI)[number]
 
 const OPZIONI_FILTRO = [
   { valore: 'tutti', etichetta: 'Tutti' },
   { valore: 'riconosciuti', etichetta: 'Con contatto' },
+  { valore: 'ritorno', etichetta: 'Con contatto con più visite' },
   { valore: 'anonimi', etichetta: 'Solo anonimi' },
 ]
 
@@ -57,9 +58,27 @@ function parseFiltro(raw: string | undefined): Filtro {
   return 'tutti'
 }
 
-function applicaFiltro(sessioni: SessioneVisita[], filtro: Filtro): SessioneVisita[] {
+// "ritorno" e' il filtro operativo della sezione: chi ha lasciato un
+// recapito ED e' tornato sul sito almeno una seconda volta a 24 ore di
+// distanza (vedi ORE_RITORNO). Ordinato per numero di accessi invece che
+// per data, perche' qui la domanda non e' "chi e' passato per ultimo" ma
+// "chi ci sta pensando di piu'".
+function applicaFiltro(
+  sessioni: SessioneVisita[],
+  filtro: Filtro,
+  accessiPerVid: Map<string, number>
+): SessioneVisita[] {
   if (filtro === 'riconosciuti') return sessioni.filter((s) => s.contatto)
   if (filtro === 'anonimi') return sessioni.filter((s) => !s.contatto)
+  if (filtro === 'ritorno') {
+    return sessioni
+      .filter((s) => s.contatto && (accessiPerVid.get(s.vid) ?? 1) >= 2)
+      .sort(
+        (a, b) =>
+          (accessiPerVid.get(b.vid) ?? 0) - (accessiPerVid.get(a.vid) ?? 0) ||
+          b.ultimaVisita.localeCompare(a.ultimaVisita)
+      )
+  }
   return sessioni
 }
 
@@ -186,11 +205,15 @@ export default async function VisiteSitoPage({
     )
   }
 
+  const accessiPerVid = accessiDistintiPerVid(
+    dividiInSessioni(accessi, new Set(contatti.map((c) => c.vid)))
+  )
+
   const query = (searchParams.q ?? '').trim().toLowerCase()
   const filtro = parseFiltro(searchParams.filtro)
   const sessioniFiltrate = query
     ? sessioni.filter((s) => corrispondeRicercaVisita(s, query))
-    : applicaFiltro(sessioni, filtro)
+    : applicaFiltro(sessioni, filtro, accessiPerVid)
 
   return (
     <div>
@@ -216,7 +239,16 @@ export default async function VisiteSitoPage({
             Se lo stesso vid compare anche in un modulo compilato (Enquiry, Scuola tennis, Summer Camp, Invita
             un amico), qui vedi subito nome e contatti di chi ha lasciato quella richiesta.
           </li>
-          <li>Cerca per nome, cognome, email o vid, oppure filtra tra Tutti/Con contatto/Solo anonimi.</li>
+          <li>
+            La colonna <strong>Accessi</strong> conta le volte in cui quel visitatore e' tornato sul sito a
+            distanza di almeno {ORE_RITORNO} ore: piu' visite ravvicinate nello stesso giorno contano come un
+            accesso solo.
+          </li>
+          <li>
+            Cerca per nome, cognome, email o vid, oppure filtra. «Con contatto con piu' visite» e' l'elenco da
+            guardare per primo: sono le persone di cui hai un recapito e che sono tornate a rivedere il sito in
+            giorni diversi, ordinate da chi e' tornato piu' volte.
+          </li>
         </ol>
         <p className="box-istruzioni-nota">
           I visitatori "anonimi" hanno navigato il sito senza (ancora) compilare nessun modulo: restano utili
@@ -237,6 +269,7 @@ export default async function VisiteSitoPage({
               <th>Ultima visita</th>
               <th>Visitatore</th>
               <th>Origine</th>
+              <th>Accessi</th>
               <th>Pagine</th>
             </tr>
           </thead>
@@ -246,7 +279,7 @@ export default async function VisiteSitoPage({
                 <ExpandableRow
                   key={sessione.vid}
                   id={sessione.vid}
-                  columnCount={5}
+                  columnCount={6}
                   columns={COLONNE_TABELLA}
                   record={sessione}
                   hiddenKeys={['vid', 'primaVisita', 'ultimaVisita', 'pagine', 'contatto']}
@@ -269,7 +302,14 @@ export default async function VisiteSitoPage({
                       </>
                     ),
                     sessione.contatto ? <BadgeOrigine contatto={sessione.contatto} /> : '—',
-                    sessione.pagine.length,
+                    <>
+                      {accessiPerVid.get(sessione.vid) ?? 1}
+                      <span className="etichetta-mobile"> accessi</span>
+                    </>,
+                    <>
+                      {sessione.pagine.length}
+                      <span className="etichetta-mobile"> pagine</span>
+                    </>,
                   ]}
                 />
               ))}
