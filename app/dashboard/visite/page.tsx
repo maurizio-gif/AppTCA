@@ -5,12 +5,41 @@ import { ContactLinks } from '@/components/ContactLinks'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { RicercaContatti } from '@/app/dashboard/contatti/RicercaContatti'
+import { VistaTabs } from '@/components/VistaTabs'
 import { formatDateOra } from '@/lib/format'
-import { corrispondeRicercaVisita, costruisciSessioni, type ContattoAnagrafica, type SessioneVisita } from '@/lib/visite'
+import { corrispondeRicercaVisita, costruisciSessioni, type ContattoAnagrafica, type RigaAccesso, type SessioneVisita } from '@/lib/visite'
+import { dividiInSessioni } from '@/lib/visite-analisi'
+import { PanoramicaVisite, OPZIONI_PERIODO, OPZIONI_SEGMENTO } from './PanoramicaVisite'
 import { VisitePagine } from './VisitePagine'
 import { BadgeOrigine } from './BadgeOrigine'
 
 export const dynamic = 'force-dynamic'
+
+function parseDaOpzioni(raw: string | undefined, opzioni: { valore: string }[], predefinito: string): string {
+  return raw && opzioni.some((o) => o.valore === raw) ? raw : predefinito
+}
+
+// Supabase tronca ogni singola richiesta a 1000 righe (db_max_rows di
+// PostgREST): gli accessi sono un pageview a testa e superano quella soglia
+// in fretta, quindi vanno paginati - senza, sia l'elenco dei visitatori sia
+// le medie della panoramica userebbero solo una fetta dei dati senza dirlo.
+async function leggiTuttiGliAccessi(
+  supabase: ReturnType<typeof createSupabaseServiceClient>
+): Promise<{ righe: RigaAccesso[]; errore: string | null }> {
+  const DIMENSIONE_PAGINA = 1000
+  const righe: RigaAccesso[] = []
+  for (let pagina = 0; ; pagina++) {
+    const { data, error } = await supabase
+      .from('accessi')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(pagina * DIMENSIONE_PAGINA, pagina * DIMENSIONE_PAGINA + DIMENSIONE_PAGINA - 1)
+    if (error) return { righe, errore: error.message }
+    righe.push(...(data ?? []))
+    if (!data || data.length < DIMENSIONE_PAGINA) break
+  }
+  return { righe, errore: null }
+}
 
 const COLONNE_TABELLA = ['Ultima visita', 'Visitatore', 'Origine', 'Pagine']
 
@@ -43,7 +72,7 @@ function applicaFiltro(sessioni: SessioneVisita[], filtro: Filtro): SessioneVisi
 export default async function VisiteSitoPage({
   searchParams,
 }: {
-  searchParams: { q?: string; filtro?: string }
+  searchParams: { q?: string; filtro?: string; vista?: string; periodo?: string; segmento?: string }
 }) {
   if (!(await utenteHaSezione('visite-sito'))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
@@ -52,7 +81,7 @@ export default async function VisiteSitoPage({
   const supabase = createSupabaseServiceClient()
 
   const [accessiRes, contattiRes, scuolaRes, summerRes, amicoRes] = await Promise.all([
-    supabase.from('accessi').select('*').order('created_at', { ascending: false }),
+    leggiTuttiGliAccessi(supabase),
     supabase
       .from('form_contatti')
       .select('vid, created_at, nome, cognome, email, gruppo_attivita')
@@ -71,10 +100,9 @@ export default async function VisiteSitoPage({
       .not('vid', 'is', null),
   ])
 
-  const errore =
-    accessiRes.error || contattiRes.error || scuolaRes.error || summerRes.error || amicoRes.error
-  if (errore) {
-    return <p className="error-banner">Errore nel caricamento: {errore.message}</p>
+  const errore = contattiRes.error || scuolaRes.error || summerRes.error || amicoRes.error
+  if (accessiRes.errore || errore) {
+    return <p className="error-banner">Errore nel caricamento: {accessiRes.errore ?? errore!.message}</p>
   }
 
   const contatti: ContattoAnagrafica[] = [
@@ -113,7 +141,50 @@ export default async function VisiteSitoPage({
     })),
   ]
 
-  const sessioni = costruisciSessioni(accessiRes.data ?? [], contatti)
+  const accessi = accessiRes.righe
+  const sessioni = costruisciSessioni(accessi, contatti)
+
+  const vista = searchParams.vista === 'visitatori' ? 'visitatori' : 'panoramica'
+
+  if (vista === 'panoramica') {
+    const periodo = parseDaOpzioni(searchParams.periodo, OPZIONI_PERIODO, '30')
+    const segmento = parseDaOpzioni(searchParams.segmento, OPZIONI_SEGMENTO, 'tutti')
+
+    const daISO =
+      periodo === 'tutto'
+        ? null
+        : new Date(Date.now() - Number(periodo) * 24 * 60 * 60 * 1000).toISOString()
+    const accessiPeriodo = daISO ? accessi.filter((a) => a.created_at >= daISO) : accessi
+
+    // Il segmento si applica ai vid, non alle singole visite: chi ha
+    // compilato un modulo lo ha fatto una volta sola, ma tutte le sue
+    // navigazioni - anche quelle prima della richiesta - fanno parte del
+    // percorso che ha portato alla conversione.
+    const vidRiconosciuti = new Set(contatti.map((c) => c.vid))
+    const tutteLeSessioni = dividiInSessioni(accessiPeriodo, vidRiconosciuti)
+    const sessioniSegmento =
+      segmento === 'riconosciuti'
+        ? tutteLeSessioni.filter((s) => s.riconosciuto)
+        : segmento === 'anonimi'
+          ? tutteLeSessioni.filter((s) => !s.riconosciuto)
+          : tutteLeSessioni
+
+    return (
+      <div>
+        <div className="page-header">
+          <h1>Visite al sito</h1>
+        </div>
+        <VistaTabs
+          vista={vista}
+          tabs={[
+            { chiave: 'panoramica', etichetta: 'Panoramica' },
+            { chiave: 'visitatori', etichetta: 'Visitatori', contatore: sessioni.length },
+          ]}
+        />
+        <PanoramicaVisite sessioni={sessioniSegmento} periodo={periodo} segmento={segmento} />
+      </div>
+    )
+  }
 
   const query = (searchParams.q ?? '').trim().toLowerCase()
   const filtro = parseFiltro(searchParams.filtro)
@@ -126,6 +197,14 @@ export default async function VisiteSitoPage({
       <div className="page-header">
         <h1>Visite al sito</h1>
       </div>
+
+      <VistaTabs
+        vista={vista}
+        tabs={[
+          { chiave: 'panoramica', etichetta: 'Panoramica' },
+          { chiave: 'visitatori', etichetta: 'Visitatori', contatore: sessioni.length },
+        ]}
+      />
 
       <BoxIstruzioni titolo="Come funziona">
         <ol>

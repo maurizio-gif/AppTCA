@@ -1703,6 +1703,125 @@ table.data-table {
   gap: 10px;
 }
 
+/* ---------- Panoramica visite al sito ---------- */
+
+.stat-card-nota {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-grey-mid);
+}
+
+/* Griglia invece del flex di .stat-row: con sei riquadri l'ultimo andava a
+   capo da solo e si stirava a tutta larghezza, sembrando piu' importante
+   degli altri cinque. */
+.stat-row-griglia {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+/* Sei riquadri: tre e tre, cosi' la griglia resta piena invece di lasciare
+   l'ultima riga con un solo riquadro e quattro buchi. */
+@media (min-width: 900px) {
+  .stat-row-griglia {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.stat-row-griglia .stat-card {
+  min-width: 0;
+}
+
+/* Quattro colonne affiancate, una per passo del percorso: si leggono in
+   riga come una sequenza, non come quattro classifiche scollegate. Su
+   schermo stretto vanno in colonna, restando nell'ordine 1-2-3-4. */
+.passi-percorso {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.passo-percorso {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.passo-percorso-testata {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.passo-percorso-titolo {
+  display: block;
+  font-family: var(--font-display), sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+}
+
+.passo-percorso-conteggio {
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+.percorsi-frequenti {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.percorso-frequente {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.percorso-frequente-catena {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.percorso-frequente-passo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.percorso-frequente-pagina {
+  background: var(--color-off-white);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  overflow-wrap: anywhere;
+}
+
+.percorso-frequente-freccia {
+  color: var(--color-grey-mid);
+}
+
+.percorso-frequente-numeri {
+  font-size: 13px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Nome del contatto/utente su cui e' stata fatta l'azione, sotto
    l'etichetta dell'azione: in elenco dice subito "su chi", senza dover
    aprire la riga. */
