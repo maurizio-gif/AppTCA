@@ -9,6 +9,7 @@ import {
   percorsiFrequenti,
   riepilogo,
   statistichePagine,
+  visitatoriDiRitorno,
   type SessioneNavigazione,
 } from '@/lib/visite-analisi'
 
@@ -52,6 +53,7 @@ export function PanoramicaVisite({
   segmento: string
 }) {
   const dati = riepilogo(sessioni)
+  const ritorni = visitatoriDiRitorno(sessioni)
   const canali = canaliDiIngresso(sessioni)
   const passi = paginePerPosizione(sessioni)
   const percorsi = percorsiFrequenti(sessioni)
@@ -116,6 +118,36 @@ export function PanoramicaVisite({
               etichetta="Visitatori con un modulo compilato"
               nota={`${dati.visitatoriRiconosciuti} su ${dati.visitatori}`}
             />
+          </div>
+
+          <div className="riepilogo-sottosezione">
+            <h3 className="riepilogo-sottosezione-titolo">Visitatori che tornano</h3>
+            <p className="ritorni-titolo">
+              <strong>
+                {ritorni.diRitorno} visitatori su {ritorni.visitatori} ({ritorni.percentuale}%)
+              </strong>{' '}
+              sono tornati sul sito in un momento diverso
+              {ritorni.giorniMediTraPrimaEUltima !== null && (
+                <>
+                  , con{' '}
+                  <strong>
+                    {ritorni.giorniMediTraPrimaEUltima}{' '}
+                    {ritorni.giorniMediTraPrimaEUltima === 1 ? 'giorno' : 'giorni'}
+                  </strong>{' '}
+                  in media tra la prima e l'ultima visita
+                </>
+              )}
+              .
+            </p>
+            <FontiLead
+              fonti={ritorni.distribuzione.map((v) => ({ fonte: v.chiave, conteggio: v.conteggio }))}
+              messaggioVuoto="Nessun visitatore in questo periodo."
+            />
+            <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
+              Il conteggio e' relativo al periodo scelto qui sopra: chi ha visitato il sito prima dell'inizio del
+              periodo e poi e' tornato dentro il periodo risulta con una visita sola. Allarga il periodo per
+              vedere i ritorni piu' lunghi.
+            </p>
           </div>
 
           <div className="riepilogo-sottosezione">

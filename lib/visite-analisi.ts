@@ -199,6 +199,64 @@ function classifica(valori: string[], top: number): VoceConteggio[] {
     .slice(0, top)
 }
 
+export type Ritorni = {
+  visitatori: number
+  diRitorno: number
+  percentuale: number
+  // Quanti vid hanno fatto 1 visita, 2, 3-5, 6+: e' la stessa
+  // informazione del numero singolo, ma mostra anche com'e' distribuita
+  // (dieci persone tornate una volta e una tornata dieci volte danno lo
+  // stesso "di ritorno", e non sono la stessa cosa).
+  distribuzione: VoceConteggio[]
+  giorniMediTraPrimaEUltima: number | null
+}
+
+// Chi e' tornato sul sito in un momento diverso, cioe' con almeno due
+// visite distinte (vedi GAP_SESSIONE_MINUTI: due pageview a meno di
+// mezz'ora sono la stessa visita, non un ritorno).
+export function visitatoriDiRitorno(sessioni: SessioneNavigazione[]): Ritorni {
+  const perVid = new Map<string, SessioneNavigazione[]>()
+  for (const sessione of sessioni) {
+    if (!perVid.has(sessione.vid)) perVid.set(sessione.vid, [])
+    perVid.get(sessione.vid)!.push(sessione)
+  }
+
+  const fasce: [string, (n: number) => boolean][] = [
+    ['1 sola visita', (n) => n === 1],
+    ['2 visite', (n) => n === 2],
+    ['Da 3 a 5 visite', (n) => n >= 3 && n <= 5],
+    ['6 visite o piu’', (n) => n >= 6],
+  ]
+  const conteggiFasce = new Map(fasce.map(([etichetta]) => [etichetta, 0]))
+
+  let diRitorno = 0
+  let sommaGiorni = 0
+
+  for (const gruppo of perVid.values()) {
+    const quante = gruppo.length
+    const fascia = fasce.find(([, test]) => test(quante))
+    if (fascia) conteggiFasce.set(fascia[0], conteggiFasce.get(fascia[0])! + 1)
+    if (quante < 2) continue
+
+    diRitorno += 1
+    const ordinate = [...gruppo].sort((a, b) => a.inizio.localeCompare(b.inizio))
+    const primo = new Date(ordinate[0].inizio).getTime()
+    const ultimo = new Date(ordinate[ordinate.length - 1].inizio).getTime()
+    sommaGiorni += (ultimo - primo) / 86400000
+  }
+
+  const visitatori = perVid.size
+  return {
+    visitatori,
+    diRitorno,
+    percentuale: visitatori ? Math.round((diRitorno / visitatori) * 100) : 0,
+    distribuzione: [...conteggiFasce.entries()]
+      .filter(([, conteggio]) => conteggio > 0)
+      .map(([chiave, conteggio]) => ({ chiave, conteggio })),
+    giorniMediTraPrimaEUltima: diRitorno ? Math.round((sommaGiorni / diRitorno) * 10) / 10 : null,
+  }
+}
+
 export function canaliDiIngresso(sessioni: SessioneNavigazione[], top = 8): VoceConteggio[] {
   return classifica(
     sessioni.map((s) => s.canale),
