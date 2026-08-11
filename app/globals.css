@@ -1843,13 +1843,88 @@ table.data-table {
   color: var(--color-text);
 }
 
+.report-preview-nomefile {
+  margin: 6px 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+.report-preview-viste {
+  margin: 0;
+  padding: 0 24px;
+}
+
+.report-preview-viste .vista-tab {
+  font-size: 13px;
+  margin-right: 18px;
+}
+
 .report-preview-body {
   overflow: auto;
   padding: 0 24px;
 }
 
-.report-preview-body .data-table {
-  min-width: 0;
+/* Griglia in stile foglio di calcolo: e' l'anteprima di un file, quindi
+   deve somigliare a com'e' fatto il file una volta aperto, non alle
+   tabelle dell'app (niente intestazioni maiuscole rosse, niente
+   trasformazione in schede su mobile - un foglio scorre di lato). */
+.csv-foglio {
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 13px;
+  background: var(--color-bg);
+}
+
+.csv-foglio th,
+.csv-foglio td {
+  border: 1px solid #d7d5d0;
+  padding: 5px 10px;
+  text-align: left;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Le "grondaie" con lettere di colonna e numeri di riga non sono dati:
+   restano grigie e in secondo piano, come in un foglio di calcolo. */
+.csv-foglio-lettera,
+.csv-foglio-numero,
+.csv-foglio-angolo {
+  background: var(--color-off-white);
+  color: var(--color-text-light);
+  font-size: 11px;
+  text-align: center !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Niente colonna "congelata" a sinistra: il corpo della modale ha un
+   padding orizzontale, e con position:sticky le celle scorse continuano a
+   vedersi in quella fascia, accanto ai numeri di riga. */
+.csv-foglio-numero,
+.csv-foglio-angolo {
+  min-width: 34px;
+}
+
+/* La riga 1 e' una riga del file come le altre, non un'intestazione di
+   tabella: si distingue solo in grassetto, come farebbe chi apre il CSV
+   e mette in evidenza la prima riga. */
+.csv-foglio-riga-uno td {
+  font-weight: 700;
+}
+
+/* Il file cosi' com'e': utile per capire cosa arriva davvero al
+   consulente, virgolette e separatori compresi. */
+.csv-testo {
+  margin: 16px 0;
+  padding: 14px 16px;
+  background: var(--color-off-white);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre;
+  overflow-x: auto;
 }
 
 .report-preview-footer {
@@ -1863,6 +1938,13 @@ table.data-table {
 
 .report-preview-footer .muted {
   margin: 0;
+}
+
+.report-preview-nota {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--color-text-light);
+  max-width: 62ch;
 }
 
 /* ---------- Ricerca contatti ---------- */

@@ -275,6 +275,7 @@ export async function TimbratureReport({
           </p>
           <div className="timbrature-riepilogo-azioni">
             <AnteprimaReport
+              nomeFile={`timbrature_${dal}_${al}.csv`}
               titolo="Anteprima report timbrature"
               sottotitolo={`${periodo === 'custom' ? `Dal ${formattaData(dal)} al ${formattaData(al)}` : etichettaMese(periodo)} · ${operatoreFiltro === 'tutti' ? 'Tutti gli operatori' : nomeOperatore(operatoreFiltro)}`}
               intestazioni={csvIntestazioni}
