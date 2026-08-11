@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { FiltroData } from '@/components/FiltroData'
@@ -5,7 +6,10 @@ import { EsportaCsv } from '@/components/EsportaCsv'
 import { AnteprimaReport } from '@/components/AnteprimaReport'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { confrontaOperatori } from '@/lib/format'
-import { accoppiaTurni, formattaDurata, giornoRoma, type Turno } from '@/lib/timbratura'
+import { accoppiaTurni, formattaDurata, giornoRoma, oraRomaLocale, type Turno } from '@/lib/timbratura'
+import { RigaTurno } from './RigaTurno'
+
+const COLONNE_TABELLA = 6
 
 function formattaOra(iso: string): string {
   return new Date(iso).toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' })
@@ -13,6 +17,18 @@ function formattaOra(iso: string): string {
 
 function formattaData(iso: string): string {
   return new Date(iso).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' })
+}
+
+// Un'uscita che cade in un giorno diverso dall'entrata (turno a cavallo
+// della mezzanotte, o uscita dimenticata e timbrata giorni dopo) va
+// mostrata con la sua data: la colonna "Data" e' quella dell'entrata,
+// quindi senza si legge "09:37 → 09:58" accanto a una durata di 144 ore e
+// sembra un errore di calcolo invece di una timbratura da correggere.
+function testoUscita(turno: Turno, inCorso: string): string {
+  if (!turno.uscita) return inCorso
+  const ora = formattaOra(turno.uscita)
+  if (giornoRoma(turno.uscita) === giornoRoma(turno.entrata)) return ora
+  return `${ora} del ${formattaData(turno.uscita)}`
 }
 
 function aggiungiGiorni(chiave: string, giorni: number): string {
@@ -72,15 +88,19 @@ export async function TimbratureReport({
   const meseCorrente = oggi.slice(0, 7)
   const operatoreFiltro = searchParams.operatore ?? 'tutti'
 
-  const [{ data: righe, error }, { data: staffAll }] = await Promise.all([
-    supabase.from('timbrature').select('email, tipo, created_at').order('created_at', { ascending: true }),
+  const emailCorrente = headers().get('x-tca-user-email')
+
+  const [{ data: righe, error }, { data: staffAll }, { data: chiGuarda }] = await Promise.all([
+    supabase.from('timbrature').select('id, email, tipo, created_at').order('created_at', { ascending: true }),
     supabase.from('staff_users').select('email, nome, cognome'),
+    supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
   ])
 
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
+  const puoCancellare = !!chiGuarda?.puo_cancellare
   const mappaStaff = new Map((staffAll ?? []).map((s) => [s.email, s]))
   function nomeOperatore(email: string): string {
     const s = mappaStaff.get(email)
@@ -152,7 +172,7 @@ export async function TimbratureReport({
     formattaData(t.entrata),
     nomeOperatore(t.email),
     formattaOra(t.entrata),
-    t.uscita ? formattaOra(t.uscita) : 'In corso',
+    testoUscita(t, 'In corso'),
     formattaDurata(t.minuti),
     t.minuti ?? '',
   ])
@@ -177,6 +197,11 @@ export async function TimbratureReport({
           <li>
             La tabella mostra ogni turno con entrata, uscita e durata calcolata automaticamente; sotto, il totale ore
             del periodo filtrato.
+          </li>
+          <li>
+            Se un turno è sbagliato (tipico: un'uscita dimenticata e timbrata giorni dopo, che fa risultare decine di
+            ore), premi «Modifica» sulla riga e correggi data e ora di entrata e uscita, oppure cancella il turno.
+            Ogni correzione resta tracciata nel registro attività, con il valore prima e dopo.
           </li>
           <li>
             Premi «Vedi anteprima report» per controllare le righe prima di scaricare, poi «Esporta CSV» per
@@ -213,17 +238,25 @@ export async function TimbratureReport({
               <th>Entrata</th>
               <th>Uscita</th>
               <th>Durata</th>
+              <th>Azioni</th>
             </tr>
           </thead>
           <tbody>
-            {turniFiltrati.map((turno: Turno, i) => (
-              <tr key={`${turno.email}-${turno.entrata}-${i}`}>
-                <td data-label="Data">{formattaData(turno.entrata)}</td>
-                <td data-label="Operatore">{nomeOperatore(turno.email)}</td>
-                <td data-label="Entrata">{formattaOra(turno.entrata)}</td>
-                <td data-label="Uscita">{turno.uscita ? formattaOra(turno.uscita) : '—'}</td>
-                <td data-label="Durata">{formattaDurata(turno.minuti)}</td>
-              </tr>
+            {turniFiltrati.map((turno: Turno) => (
+              <RigaTurno
+                key={turno.idEntrata}
+                idEntrata={turno.idEntrata}
+                idUscita={turno.idUscita}
+                dataTesto={formattaData(turno.entrata)}
+                operatoreTesto={nomeOperatore(turno.email)}
+                entrataTesto={formattaOra(turno.entrata)}
+                uscitaTesto={testoUscita(turno, '—')}
+                durataTesto={formattaDurata(turno.minuti)}
+                entrataLocale={oraRomaLocale(turno.entrata)}
+                uscitaLocale={turno.uscita ? oraRomaLocale(turno.uscita) : null}
+                puoCancellare={puoCancellare}
+                colonne={COLONNE_TABELLA}
+              />
             ))}
           </tbody>
         </table>

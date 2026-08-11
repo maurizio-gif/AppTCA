@@ -1459,6 +1459,23 @@ table.data-table {
     padding: 7px 9px;
   }
 
+  /* Il pulsante "Modifica" del turno non e' un dato: niente riquadro come
+     le altre celle, e a tutta larghezza sotto la griglia a due colonne. */
+  .data-table .timbrature-azioni-cella {
+    grid-column: 1 / -1;
+  }
+
+  /* Card e pannello di modifica devono leggersi come un blocco solo: la
+     card perde raccordo e margine in basso, il pannello li rimette. La
+     catena di :not() e' la stessa della regola che disegna la card qui
+     sopra, altrimenti quella avrebbe la meglio per specificita'. */
+  .data-table tbody tr:not(.table-group-header):not(.row-detail):not(.row-clickable).is-in-modifica {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
   /* Riga con indicatore di espansione (contatti, scuola tennis, iscrizioni
      eventi): voce di lista bassa e compatta, non una griglia di celle -
      bisogna poterne vedere tante a schermo per capire a colpo d'occhio
@@ -1684,6 +1701,82 @@ table.data-table {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* ---------- Correzione manuale di un turno (Controllo Operatori) ---------- */
+
+.timbrature-azioni-cella {
+  white-space: nowrap;
+}
+
+/* La riga aperta in modifica resta bianca e attaccata al pannello sotto,
+   come fa una riga espansa in Enquiries (.row-clickable.is-open). */
+.data-table tbody tr.is-in-modifica,
+.data-table tbody tr.is-in-modifica:hover {
+  background: var(--color-bg);
+}
+
+.timbrature-modifica {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.timbrature-modifica-campi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.timbrature-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timbrature-campo span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-light);
+}
+
+.timbrature-campo input {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.timbrature-campo input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.timbrature-modifica-nota {
+  margin: 0;
+  align-self: center;
+  max-width: 42ch;
+  font-size: 13px;
+}
+
+.timbrature-modifica-azioni {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* La cancellazione sta lontana da "Salva": e' l'unica azione irreversibile
+   del pannello, non deve essere il pulsante accanto a quello che si preme
+   ogni volta. */
+.timbrature-modifica-elimina {
+  margin-left: auto;
 }
 
 /* ---------- Anteprima report (Timbrature) ---------- */

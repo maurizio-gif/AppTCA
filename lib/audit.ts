@@ -27,6 +27,8 @@ export const AZIONI_LOG: Record<string, string> = {
   timbratura_entrata: 'Timbratura: entrata',
   timbratura_uscita: 'Timbratura: uscita',
   timbratura_rifiutata: 'Timbratura: rifiutata (fuori zona)',
+  timbratura_modificata: 'Timbratura: turno corretto a mano',
+  timbratura_eliminata: 'Timbratura: turno cancellato',
   notifica_inviata: 'Notifica interna inviata',
 }
 

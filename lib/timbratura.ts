@@ -37,7 +37,84 @@ export function giornoRoma(iso: string): string {
   return new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' })
 }
 
+// Stessa data/ora in formato "YYYY-MM-DDTHH:mm" nel fuso di Roma: e' il
+// valore che si passa a un <input type="datetime-local"> per la correzione
+// manuale di un turno in Controllo Operatori.
+export function oraRomaLocale(iso: string): string {
+  const d = new Date(iso)
+  const data = d.toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' })
+  const ora = d.toLocaleTimeString('en-GB', { timeZone: 'Europe/Rome', hourCycle: 'h23', hour: '2-digit', minute: '2-digit' })
+  return `${data}T${ora}`
+}
+
+// Gli stessi campi della data, letti in un fuso e reinterpretati come se
+// fossero UTC: la differenza con l'istante di partenza e' l'offset del
+// fuso in quel momento (positivo d'estate, quando Roma e' avanti su UTC).
+function offsetFusoMs(istante: number, fuso: string): number {
+  const parti = new Intl.DateTimeFormat('en-CA', {
+    timeZone: fuso,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  })
+    .formatToParts(new Date(istante))
+    .reduce<Record<string, string>>((acc, p) => ({ ...acc, [p.type]: p.value }), {})
+
+  const comeUtc = Date.UTC(
+    Number(parti.year),
+    Number(parti.month) - 1,
+    Number(parti.day),
+    Number(parti.hour),
+    Number(parti.minute),
+    Number(parti.second)
+  )
+  return comeUtc - istante
+}
+
+const RE_ORA_LOCALE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/
+
+// Inverso di oraRomaLocale: "YYYY-MM-DDTHH:mm" scritto da una persona
+// (quindi ora italiana) -> timestamp ISO in UTC, come tutti i created_at
+// in tabella. null se il formato non e' valido.
+//
+// L'offset va calcolato sull'istante giusto e non su quello "finto" (i
+// campi letti come se fossero UTC), altrimenti nelle due notti del cambio
+// di ora legale si sbaglierebbe di un'ora: si stima una prima volta, si
+// corregge, e si ricalcola l'offset sul risultato.
+export function isoDaOraRoma(oraLocale: string): string | null {
+  const m = RE_ORA_LOCALE.exec(oraLocale.trim())
+  if (!m) return null
+
+  const [anno, mese, giorno, ore, minuti] = m.slice(1).map(Number)
+  const comeUtc = Date.UTC(anno, mese - 1, giorno, ore, minuti)
+  if (Number.isNaN(comeUtc)) return null
+
+  const stima = comeUtc - offsetFusoMs(comeUtc, 'Europe/Rome')
+  const istante = comeUtc - offsetFusoMs(stima, 'Europe/Rome')
+  const data = new Date(istante)
+  if (Number.isNaN(data.getTime())) return null
+
+  // Controllo di andata e ritorno: Date.UTC accetta valori fuori scala
+  // facendoli traboccare (il mese 13 diventa gennaio dell'anno dopo), e
+  // nella notte in cui l'ora legale entra in vigore ci sono orari che non
+  // esistono affatto (02:30 diventa 03:30). In entrambi i casi l'ora
+  // riletta non coincide con quella scritta: meglio un errore che salvare
+  // di nascosto un orario diverso da quello digitato.
+  const iso = data.toISOString()
+  if (oraRomaLocale(iso) !== oraLocale.trim()) return null
+  return iso
+}
+
 export type Turno = {
+  // id delle due righe di "timbrature" da cui il turno e' ricavato: senza
+  // di questi la correzione manuale in Controllo Operatori non saprebbe
+  // quale riga aggiornare (un turno non e' un record, e' una coppia).
+  idEntrata: number
+  idUscita: number | null
   email: string
   entrata: string // ISO
   uscita: string | null // null se il turno e' ancora in corso
@@ -51,8 +128,9 @@ export type Turno = {
 // con calma un'eventuale entrata senza uscita (es. il turno di oggi non
 // ancora terminato, o un dimenticato) segnandola "in corso" invece di
 // perderla o far saltare i calcoli successivi.
-export function accoppiaTurni(righe: { email: string; tipo: string; created_at: string }[]): Turno[] {
-  const perEmail = new Map<string, { tipo: string; created_at: string }[]>()
+export function accoppiaTurni(righe: { id: number; email: string; tipo: string; created_at: string }[]): Turno[] {
+  type Riga = { id: number; tipo: string; created_at: string }
+  const perEmail = new Map<string, Riga[]>()
   for (const riga of righe) {
     if (!perEmail.has(riga.email)) perEmail.set(riga.email, [])
     perEmail.get(riga.email)!.push(riga)
@@ -62,25 +140,32 @@ export function accoppiaTurni(righe: { email: string; tipo: string; created_at: 
 
   for (const [email, righeEmail] of perEmail) {
     const ordinate = [...righeEmail].sort((a, b) => a.created_at.localeCompare(b.created_at))
-    let entrataAperta: string | null = null
+    let entrataAperta: Riga | null = null
 
     for (const riga of ordinate) {
       if (riga.tipo === 'entrata') {
         if (entrataAperta) {
-          turni.push({ email, entrata: entrataAperta, uscita: null, minuti: null })
+          turni.push({ idEntrata: entrataAperta.id, idUscita: null, email, entrata: entrataAperta.created_at, uscita: null, minuti: null })
         }
-        entrataAperta = riga.created_at
+        entrataAperta = riga
       } else if (riga.tipo === 'uscita' && entrataAperta) {
         const minuti = Math.round(
-          (new Date(riga.created_at).getTime() - new Date(entrataAperta).getTime()) / 60000
+          (new Date(riga.created_at).getTime() - new Date(entrataAperta.created_at).getTime()) / 60000
         )
-        turni.push({ email, entrata: entrataAperta, uscita: riga.created_at, minuti })
+        turni.push({
+          idEntrata: entrataAperta.id,
+          idUscita: riga.id,
+          email,
+          entrata: entrataAperta.created_at,
+          uscita: riga.created_at,
+          minuti,
+        })
         entrataAperta = null
       }
     }
 
     if (entrataAperta) {
-      turni.push({ email, entrata: entrataAperta, uscita: null, minuti: null })
+      turni.push({ idEntrata: entrataAperta.id, idUscita: null, email, entrata: entrataAperta.created_at, uscita: null, minuti: null })
     }
   }
 
