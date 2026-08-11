@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
-import { registraLog } from '@/lib/audit'
+import { etichettaRecord, registraLog } from '@/lib/audit'
 
 type Risultato = { ok: true } | { ok: false; errore: string }
 
@@ -19,20 +19,22 @@ type Risultato = { ok: true } | { ok: false; errore: string }
 export async function impostaGestito(id: string, gestito: boolean): Promise<Risultato> {
   const supabase = createSupabaseServiceClient()
 
+  // Il contatto si legge sempre, non solo quando serve il controllo sulla
+  // nota: nome ed email finiscono nel log dell'azione, dove il solo id non
+  // direbbe a chi rilegge il registro su chi si e' intervenuti.
+  const { data: contatto, error: fetchError } = await supabase
+    .from('form_contatti')
+    .select('nome, cognome, email, note')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (fetchError) return { ok: false, errore: fetchError.message }
+
   // Verifica lato server (non solo lato UI, altrimenti la Server Action
   // resta chiamabile a mano bypassando il controllo): un contatto puo'
   // passare a "gestito" solo se ha gia' una nota salvata.
-  if (gestito) {
-    const { data: contatto, error: fetchError } = await supabase
-      .from('form_contatti')
-      .select('note')
-      .eq('id', id)
-      .maybeSingle()
-
-    if (fetchError) return { ok: false, errore: fetchError.message }
-    if (!contatto?.note?.trim()) {
-      return { ok: false, errore: 'Aggiungi e salva una nota prima di segnare il contatto come gestito.' }
-    }
+  if (gestito && !contatto?.note?.trim()) {
+    return { ok: false, errore: 'Aggiungi e salva una nota prima di segnare il contatto come gestito.' }
   }
 
   const email = headers().get('x-tca-user-email')
@@ -53,7 +55,7 @@ export async function impostaGestito(id: string, gestito: boolean): Promise<Risu
   await registraLog(email, 'contatto_gestito', {
     entita: 'form_contatti',
     entitaId: id,
-    dettagli: { gestito },
+    dettagli: { gestito, contatto: etichettaRecord(contatto), email_contatto: contatto?.email ?? null },
   })
 
   revalidatePath('/dashboard/contatti/adulti')
@@ -66,16 +68,27 @@ export async function salvaNote(id: string, note: string): Promise<Risultato> {
   const email = headers().get('x-tca-user-email')
   const supabase = createSupabaseServiceClient()
 
+  const { data: contatto } = await supabase
+    .from('form_contatti')
+    .select('nome, cognome, email')
+    .eq('id', id)
+    .maybeSingle()
+
   const { error } = await supabase.from('form_contatti').update({ note }).eq('id', id)
 
   if (error) {
     return { ok: false, errore: error.message }
   }
 
-  // Il testo della nota non entra nei "dettagli" del log: duplicherebbe
-  // dati del contatto (potenzialmente sensibili) in un'altra tabella senza
-  // un reale bisogno, basta sapere chi e quando ha aggiornato la nota.
-  await registraLog(email, 'contatto_nota_salvata', { entita: 'form_contatti', entitaId: id })
+  // Il testo della nota entra nel log insieme al nome del contatto: e' la
+  // sostanza dell'azione, e in Controllo Operatori serve poter verificare
+  // cosa e' stato scritto senza dover aprire il contatto (che nel
+  // frattempo puo' essere stato modificato o cancellato).
+  await registraLog(email, 'contatto_nota_salvata', {
+    entita: 'form_contatti',
+    entitaId: id,
+    dettagli: { contatto: etichettaRecord(contatto), email_contatto: contatto?.email ?? null, nota: note },
+  })
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
@@ -100,13 +113,27 @@ export async function eliminaContatto(id: string): Promise<Risultato> {
     return { ok: false, errore: 'Non hai il permesso di cancellare i record.' }
   }
 
+  // Il contatto intero si legge PRIMA di cancellarlo e finisce nel log:
+  // dopo la delete non esiste piu' nulla da consultare, e un registro che
+  // dice solo "cancellato il contatto <id>" non permette di verificare
+  // cosa e' stato buttato via.
+  const { data: record } = await supabase.from('form_contatti').select('*').eq('id', id).maybeSingle()
+
   const { error } = await supabase.from('form_contatti').delete().eq('id', id)
 
   if (error) {
     return { ok: false, errore: error.message }
   }
 
-  await registraLog(email, 'contatto_cancellato', { entita: 'form_contatti', entitaId: id })
+  await registraLog(email, 'contatto_cancellato', {
+    entita: 'form_contatti',
+    entitaId: id,
+    dettagli: {
+      contatto: etichettaRecord(record),
+      email_contatto: (record?.email as string | null) ?? null,
+      record_cancellato: record ?? null,
+    },
+  })
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')

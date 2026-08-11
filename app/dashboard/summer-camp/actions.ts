@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
-import { registraLog } from '@/lib/audit'
+import { etichettaRecord, registraLog } from '@/lib/audit'
 
 type Risultato = { ok: true } | { ok: false; errore: string }
 
@@ -14,6 +14,14 @@ type Risultato = { ok: true } | { ok: false; errore: string }
 export async function impostaCaricatoPgm(id: string, caricato: boolean): Promise<Risultato> {
   const email = headers().get('x-tca-user-email')
   const supabase = createSupabaseServiceClient()
+
+  // Nome dell'iscritto nel log: senza, il registro direbbe solo che una
+  // preiscrizione con un certo id e' stata segnata su PerfectGym.
+  const { data: iscrizione } = await supabase
+    .from('form_summer_camp')
+    .select('minore_nome, minore_cognome, genitore_nome, genitore_cognome, genitore_email')
+    .eq('id', id)
+    .maybeSingle()
 
   const { error } = await supabase
     .from('form_summer_camp')
@@ -31,7 +39,11 @@ export async function impostaCaricatoPgm(id: string, caricato: boolean): Promise
   await registraLog(email, 'summer_camp_caricato_pgm', {
     entita: 'form_summer_camp',
     entitaId: id,
-    dettagli: { caricato },
+    dettagli: {
+      caricato,
+      contatto: etichettaRecord(iscrizione),
+      email_contatto: iscrizione?.genitore_email ?? null,
+    },
   })
 
   revalidatePath('/dashboard/summer-camp')

@@ -36,6 +36,30 @@ export function etichettaAzione(azione: string): string {
   return AZIONI_LOG[azione] ?? azione
 }
 
+// Nome leggibile del record su cui e' stata fatta l'azione, da salvare nel
+// log insieme all'id: l'id da solo non dice nulla a chi rilegge il
+// registro, e se il record viene cancellato in seguito non c'e' piu' modo
+// di risalire a chi fosse. Le tabelle dei form usano prefissi diversi per
+// la stessa cosa (amico_nome, minore_nome, genitore_nome), quindi si
+// provano in ordine invece di avere una funzione per tabella.
+export function etichettaRecord(record: Record<string, unknown> | null | undefined): string | null {
+  if (!record) return null
+
+  const coppieNome: [unknown, unknown][] = [
+    [record.nome, record.cognome],
+    [record.amico_nome, record.amico_cognome],
+    [record.minore_nome, record.minore_cognome],
+    [record.genitore_nome, record.genitore_cognome],
+  ]
+  for (const [nome, cognome] of coppieNome) {
+    const testo = `${nome ?? ''} ${cognome ?? ''}`.trim()
+    if (testo) return testo
+  }
+
+  const email = record.email ?? record.amico_email ?? record.genitore_email ?? record.email_socio
+  return typeof email === 'string' && email ? email : null
+}
+
 type Dettagli = Record<string, unknown>
 
 // "Fire and forget" verso audit_log: un problema nel log (tabella non

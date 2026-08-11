@@ -134,27 +134,37 @@ function GruppoDettaglio({ titolo, voci }: { titolo: string; voci: [string, unkn
   return (
     <div className="detail-group">
       <div className="detail-group-title">{titolo}</div>
-      <div className="detail-grid">
-        {voci.map(([key, value]) => {
-          const contactHref = contactHrefFor(key, value)
-          return (
-            <div key={key} className="detail-item">
-              <span className="detail-label">{prettifyKey(key)}</span>
-              <span className="detail-value">
-                {isUrl(value) ? (
-                  <a href={value} target="_blank" rel="noreferrer">
-                    {value}
-                  </a>
-                ) : contactHref ? (
-                  <a href={contactHref}>{formatValue(value)}</a>
-                ) : (
-                  formatValue(value)
-                )}
-              </span>
-            </div>
-          )
-        })}
-      </div>
+      <GrigliaDettagli voci={voci} />
+    </div>
+  )
+}
+
+// Stessa griglia etichetta/valore usata dai gruppi automatici, ma
+// riutilizzabile dall'esterno per una `section` su misura (es. i dati del
+// record collegato in Controllo Operatori): senza, quella sezione avrebbe
+// un aspetto diverso dal resto del pannello aperto.
+export function GrigliaDettagli({ voci }: { voci: [string, unknown][] }) {
+  return (
+    <div className="detail-grid">
+      {voci.map(([key, value]) => {
+        const contactHref = contactHrefFor(key, value)
+        return (
+          <div key={key} className="detail-item">
+            <span className="detail-label">{prettifyKey(key)}</span>
+            <span className="detail-value">
+              {isUrl(value) ? (
+                <a href={value} target="_blank" rel="noreferrer">
+                  {value}
+                </a>
+              ) : contactHref ? (
+                <a href={contactHref}>{formatValue(value)}</a>
+              ) : (
+                formatValue(value)
+              )}
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }
