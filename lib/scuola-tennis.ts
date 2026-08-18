@@ -1,12 +1,12 @@
 import { chiaveGiorno } from './analytics'
 
-// Dal 15 settembre 2026 il modulo della scuola tennis non raccoglie piu'
+// Dal 15 agosto 2026 il modulo della scuola tennis non raccoglie piu'
 // preiscrizioni ma prenotazioni di un provino. La distinzione e' un
 // attributo della riga (colonna tipo_richiesta, con default e backfill
 // lato database), non una regola calcolata al volo: cosi' si puo'
 // correggere il singolo record se qualcuno compila il modulo sbagliato,
 // e il dato resta vero anche se un domani la data cambia.
-export const DATA_PASSAGGIO_PROVINI = '2026-09-15'
+export const DATA_PASSAGGIO_PROVINI = '2026-08-15'
 
 export type TipoRichiestaScuola = 'preiscrizione' | 'provino'
 

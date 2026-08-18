@@ -108,7 +108,7 @@ export default async function ScuolaTennisPage({
       etichetta: `Prenotazioni provino (${conta(nelPeriodo.filter((r) => tipoRichiesta(r) === 'provino'))})`,
     },
   ]
-  // Il conteggio nell'etichetta serve soprattutto qui: dal 15 settembre le
+  // Il conteggio nell'etichetta serve soprattutto qui: dal 15 agosto le
   // prenotazioni provino nascono gia' gestite, quindi "Da caricare" puo'
   // essere vuoto anche con decine di richieste arrivate - senza i numeri
   // sembrerebbe che la pagina non carichi.
@@ -169,7 +169,7 @@ export default async function ScuolaTennisPage({
       <BoxIstruzioni titolo="Come funziona">
         <ol>
           <li>
-            Dal 15 settembre 2026 il modulo non raccoglie piu' preiscrizioni ma{' '}
+            Dal 15 agosto 2026 il modulo non raccoglie piu' preiscrizioni ma{' '}
             <strong>prenotazioni di un provino</strong>. Le due cose restano nello stesso elenco, distinte dal
             badge sulla riga e dalla tendina «Tutti i tipi».
           </li>
