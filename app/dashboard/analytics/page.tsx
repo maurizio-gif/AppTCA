@@ -20,8 +20,10 @@ import {
   costruisciSerieTotale,
   filtraPerRangeGenerico,
   deltaPercentuale,
+  fasciaOperativa,
   formatBreve,
   formatDeltaEn,
+  formatOra,
   formatOre,
   parsePreset,
   parsePresetConfronto,
@@ -214,7 +216,11 @@ export default async function AnalyticsPage({
   // Stessi parametri da/a in ogni link di drill-down: la lista deve
   // restare coerente col conteggio mostrato (che e' gia' filtrato sul
   // periodo scelto qui). Solo il sito ha una lista di dettaglio.
-  const gestione = statisticheGestione(righeSitoPeriodo)
+  // La fascia operativa si ricava da TUTTO lo storico, non dal periodo
+  // filtrato: e' una caratteristica di come lavora la segreteria, e non
+  // deve cambiare ogni volta che si stringe il periodo.
+  const fascia = fasciaOperativa(righeSito)
+  const gestione = statisticheGestione(righeSitoPeriodo, fascia)
 
   const parametriPeriodo = `da=${da}&a=${a}`
   const hrefDimensione = (dimensione: DimensioneLead, chiave: string) =>
@@ -325,9 +331,8 @@ export default async function AnalyticsPage({
                   <div className="value">{formatOre(gestione.oreMedie)}</div>
                   <div className="label">Average time to handle</div>
                   <div className="stat-card-nota">
-                    {gestione.gestitiConTempo === gestione.gestiti
-                      ? 'from the enquiry to the moment it was marked as handled'
-                      : `measured on ${gestione.gestitiConTempo} of ${gestione.gestiti} handled enquiries`}
+                    working hours only ({formatOra(fascia.oraInizio)}–{formatOra(fascia.oraFine)})
+                    {gestione.oreMedieReali !== null && <> · {formatOre(gestione.oreMedieReali)} on the clock</>}
                   </div>
                 </div>
               </div>
@@ -346,7 +351,28 @@ export default async function AnalyticsPage({
               />
               <p className="sezione-nota muted">
                 «Not handled yet» are enquiries nobody has marked as handled — either still open, or handled
-                outside the panel without ticking the box.
+                outside the panel without ticking the box. Time to handle counts only the hours between{' '}
+                {formatOra(fascia.oraInizio)} and {formatOra(fascia.oraFine)}: an enquiry arriving at 19:30 and
+                answered at 08:30 the next morning counts as about two hours, not thirteen.{' '}
+                {fascia.derivata ? (
+                  <>
+                    That window is not a setting — it is read from when enquiries actually get handled (
+                    {fascia.campioni} handled enquiries so far), so it follows the office rather than the other
+                    way round. Weekends are working days here, as they are for the club.
+                  </>
+                ) : (
+                  <>
+                    Not enough handled enquiries yet to read the window from the data ({fascia.campioni} so far),
+                    so default office hours are used. Weekends are working days here, as they are for the club.
+                  </>
+                )}
+                {gestione.gestitiConTempo !== gestione.gestiti && (
+                  <>
+                    {' '}
+                    Measured on {gestione.gestitiConTempo} of the {gestione.gestiti} handled enquiries: the
+                    others were marked as handled before the panel started recording when.
+                  </>
+                )}
               </p>
             </div>
           </>

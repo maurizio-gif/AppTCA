@@ -113,6 +113,38 @@ export function formatDataRichiesta(value: string | null | undefined): string | 
 // si uniforma anche l'ultimo chiamante (RichiestaSezione.tsx).
 export const formatDataConGiorno = formatDataRichiesta
 
+// L'istante letto sull'orologio di Roma, espresso in minuti "da epoch"
+// come se quell'ora locale fosse UTC. Serve a ragionare in ore del giorno
+// (es. "le 19:30 di sera"): sottraendo due valori si ottiene la
+// differenza di orologio, che per gli orari di lavoro e' quella giusta -
+// nella notte del cambio d'ora una giornata lavorativa 7-20 resta di 13
+// ore, non di 12 o 14.
+export function minutiOrologioRoma(iso: string): number {
+  const parti = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Rome',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  })
+    .formatToParts(new Date(iso))
+    .reduce<Record<string, string>>((acc, p) => ({ ...acc, [p.type]: p.value }), {})
+
+  return (
+    Date.UTC(
+      Number(parti.year),
+      Number(parti.month) - 1,
+      Number(parti.day),
+      Number(parti.hour),
+      Number(parti.minute),
+      Number(parti.second)
+    ) / 60000
+  )
+}
+
 type Voce = [string, unknown]
 
 // Categorie usate per raggruppare graficamente i campi nel dettaglio espanso

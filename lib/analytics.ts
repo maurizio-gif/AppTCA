@@ -1,4 +1,4 @@
-import { prettifyKey } from '@/lib/format'
+import { minutiOrologioRoma, prettifyKey } from '@/lib/format'
 
 type RigaContatto = Record<string, any>
 
@@ -496,36 +496,115 @@ export function filtraPerDimensione(righe: RigaContatto[], dimensione: Dimension
   return righe.filter((riga) => chiaviENormalizzati(riga, dimensione).some((v) => v.chiave === chiave))
 }
 
+export type FasciaOperativa = {
+  oraInizio: number
+  oraFine: number
+  // false = nessuno storico sufficiente, si usa la fascia predefinita.
+  derivata: boolean
+  campioni: number
+}
+
+// Fascia predefinita, usata finche' lo storico non basta a ricavarne una:
+// una segreteria che apre alle 7 e chiude alle 20.
+const FASCIA_PREDEFINITA: FasciaOperativa = { oraInizio: 7, oraFine: 20, derivata: false, campioni: 0 }
+const CAMPIONI_MINIMI_FASCIA = 8
+
+function percentile(ordinati: number[], quota: number): number {
+  const indice = Math.min(ordinati.length - 1, Math.max(0, Math.round(quota * (ordinati.length - 1))))
+  return ordinati[indice]
+}
+
+// L'orario in cui si lavora davvero, ricavato da quando le richieste
+// vengono effettivamente prese in carico. Si usano il 10o e il 90o
+// percentile invece del minimo e del massimo: una singola presa in carico
+// alle due di notte allargherebbe la fascia a tutto il giorno e
+// vanificherebbe la neutralizzazione.
+export function fasciaOperativa(righe: RigaContatto[]): FasciaOperativa {
+  const ore = righe
+    .filter((r) => r.gestito && r.gestito_il)
+    .map((r) => (minutiOrologioRoma(r.gestito_il) % 1440) / 60)
+    .sort((a, b) => a - b)
+
+  if (ore.length < CAMPIONI_MINIMI_FASCIA) return { ...FASCIA_PREDEFINITA, campioni: ore.length }
+
+  const inizio = Math.max(0, Math.min(12, Math.floor(percentile(ore, 0.1))))
+  // Almeno quattro ore di larghezza: con una fascia degenere ogni attesa
+  // risulterebbe di zero minuti, che sarebbe un dato falso, non ottimista.
+  const fine = Math.min(24, Math.max(inizio + 4, Math.ceil(percentile(ore, 0.9))))
+  return { oraInizio: inizio, oraFine: fine, derivata: true, campioni: ore.length }
+}
+
+// Minuti di fascia operativa tra due istanti: le ore fuori orario non
+// contano. Una richiesta arrivata alle 19:30 e presa in carico alle 8:30
+// del mattino dopo, con fascia 7-20, vale 30 minuti + 90 minuti = 2 ore,
+// non 13.
+export function minutiLavorativiTra(daISO: string, aISO: string, fascia: FasciaOperativa): number {
+  const da = minutiOrologioRoma(daISO)
+  const a = minutiOrologioRoma(aISO)
+  if (!(a > da)) return 0
+
+  const GIORNO = 1440
+  const apertura = fascia.oraInizio * 60
+  const chiusura = fascia.oraFine * 60
+  let totale = 0
+  // Tetto di un anno: una data sballata non deve poter far girare il
+  // ciclo all'infinito.
+  const ultimoGiorno = Math.min(Math.floor(a / GIORNO), Math.floor(da / GIORNO) + 366)
+
+  for (let giorno = Math.floor(da / GIORNO); giorno <= ultimoGiorno; giorno++) {
+    const inizioFinestra = giorno * GIORNO + apertura
+    const fineFinestra = giorno * GIORNO + chiusura
+    const sovrapposizione = Math.min(a, fineFinestra) - Math.max(da, inizioFinestra)
+    if (sovrapposizione > 0) totale += sovrapposizione
+  }
+  return totale
+}
+
 export type StatisticheGestione = {
   totale: number
   gestiti: number
   percentuale: number
-  // Ore tra l'arrivo della richiesta e il momento in cui e' stata segnata
-  // come gestita. null quando nessuna richiesta gestita ha la data: le
-  // richieste segnate prima che gestito_il esistesse non hanno un tempo
-  // da misurare, e vanno escluse invece di contare come "istantanee".
+  // Ore di fascia operativa tra l'arrivo della richiesta e il momento in
+  // cui e' stata segnata come gestita. null quando nessuna richiesta
+  // gestita ha la data: quelle segnate prima che gestito_il esistesse non
+  // hanno un tempo da misurare, e vanno escluse invece di contare come
+  // "istantanee".
   oreMedie: number | null
+  // Le stesse attese misurate sull'orologio, notti comprese: serve per
+  // dire di quanto la neutralizzazione ha cambiato il numero.
+  oreMedieReali: number | null
   gestitiConTempo: number
+  fascia: FasciaOperativa
 }
 
 // Quanto delle richieste arrivate e' stato effettivamente preso in carico,
 // e in quanto tempo: e' la seconda meta' del funnel, quella che il numero
 // di enquiry da solo non dice.
-export function statisticheGestione(righe: RigaContatto[]): StatisticheGestione {
+export function statisticheGestione(righe: RigaContatto[], fascia: FasciaOperativa): StatisticheGestione {
   const gestiti = righe.filter((r) => r.gestito)
   const conTempo = gestiti.filter((r) => r.gestito_il && r.created_at)
-  const oreTotali = conTempo.reduce((somma, r) => {
-    const ore = (new Date(r.gestito_il).getTime() - new Date(r.created_at).getTime()) / 3600000
-    return somma + Math.max(0, ore)
-  }, 0)
 
+  let minutiLavorativi = 0
+  let oreReali = 0
+  for (const r of conTempo) {
+    minutiLavorativi += minutiLavorativiTra(r.created_at, r.gestito_il, fascia)
+    oreReali += Math.max(0, (new Date(r.gestito_il).getTime() - new Date(r.created_at).getTime()) / 3600000)
+  }
+
+  const arrotonda = (v: number) => Math.round(v * 10) / 10
   return {
     totale: righe.length,
     gestiti: gestiti.length,
     percentuale: righe.length ? Math.round((gestiti.length / righe.length) * 100) : 0,
-    oreMedie: conTempo.length ? Math.round((oreTotali / conTempo.length) * 10) / 10 : null,
+    oreMedie: conTempo.length ? arrotonda(minutiLavorativi / conTempo.length / 60) : null,
+    oreMedieReali: conTempo.length ? arrotonda(oreReali / conTempo.length) : null,
     gestitiConTempo: conTempo.length,
+    fascia,
   }
+}
+
+export function formatOra(ora: number): string {
+  return `${String(ora).padStart(2, '0')}:00`
 }
 
 // In inglese come il resto di Analytics (la sezione e' pensata anche per
