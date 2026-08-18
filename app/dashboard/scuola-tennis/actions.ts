@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { etichettaRecord, registraLog } from '@/lib/audit'
+import { tipoRichiesta } from '@/lib/scuola-tennis'
 
 type Risultato = { ok: true } | { ok: false; errore: string }
 
@@ -19,9 +20,16 @@ export async function impostaCaricatoPgm(id: string, caricato: boolean): Promise
   // preiscrizione con un certo id e' stata segnata su PerfectGym.
   const { data: iscrizione } = await supabase
     .from('form_scuola_tennis')
-    .select('minore_nome, minore_cognome, genitore_nome, genitore_cognome, genitore_email')
+    .select('minore_nome, minore_cognome, genitore_nome, genitore_cognome, genitore_email, tipo_richiesta, created_at')
     .eq('id', id)
     .maybeSingle()
+
+  // Una prenotazione provino non si carica su PerfectGym: l'interfaccia
+  // non mostra il toggle, ma il controllo va rifatto qui perche' la
+  // Server Action resta chiamabile a mano.
+  if (iscrizione && tipoRichiesta(iscrizione) === 'provino') {
+    return { ok: false, errore: 'Le prenotazioni provino non vanno caricate su PerfectGym.' }
+  }
 
   const { error } = await supabase
     .from('form_scuola_tennis')

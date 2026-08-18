@@ -1870,6 +1870,12 @@ table.data-table {
   margin-bottom: 0;
 }
 
+/* Contenuto che esiste solo sul foglio stampato: l'inverso di .no-print
+   (vedi il media query di stampa, dove diventa visibile). */
+.solo-stampa {
+  display: none;
+}
+
 .ritorni-titolo {
   margin: 0 0 12px;
   font-size: 14px;
@@ -2758,6 +2764,44 @@ table.data-table {
 
   .sezione-accordion {
     break-inside: avoid;
+  }
+
+  /* Filtri e istruzioni sono comandi, non contenuto: su carta lasciano
+     solo rumore in cima al report. Quale selezione e' stampata lo dice
+     l'intestazione .solo-stampa, che a schermo invece non c'e'. */
+  .filtri-toolbar,
+  .box-istruzioni {
+    display: none !important;
+  }
+
+  .solo-stampa {
+    display: block;
+  }
+
+  .intestazione-stampa {
+    margin-bottom: 16px;
+  }
+
+  .intestazione-stampa h2 {
+    margin: 0 0 4px;
+    font-size: 17px;
+  }
+
+  .intestazione-stampa p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-light);
+  }
+
+  /* Una riga di tabella non deve spezzarsi tra due pagine. */
+  .data-table tr {
+    break-inside: avoid;
+  }
+
+  /* Il "+" di apertura riga e' un comando: su carta resta la cella (serve
+     ad allineare le colonne all'intestazione) ma non il segno. */
+  .expand-indicator {
+    color: transparent;
   }
 }
 

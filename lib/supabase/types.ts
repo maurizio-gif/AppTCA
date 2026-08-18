@@ -293,6 +293,7 @@ export type Database = {
           gclid: string | null
           genitore_cellulare: string | null
           genitore_cognome: string | null
+          genitore_data_nascita: string | null
           genitore_email: string | null
           genitore_nome: string | null
           giorni: Json | null
@@ -314,6 +315,7 @@ export type Database = {
           taglia_maglietta: string | null
           taglia_pantaloncini: string | null
           tipo_corso: string | null
+          tipo_richiesta: string | null
           utm_campaign: string | null
           utm_content: string | null
           utm_email: string | null
@@ -338,6 +340,7 @@ export type Database = {
           gclid?: string | null
           genitore_cellulare?: string | null
           genitore_cognome?: string | null
+          genitore_data_nascita?: string | null
           genitore_email?: string | null
           genitore_nome?: string | null
           giorni?: Json | null
@@ -359,6 +362,7 @@ export type Database = {
           taglia_maglietta?: string | null
           taglia_pantaloncini?: string | null
           tipo_corso?: string | null
+          tipo_richiesta?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_email?: string | null
@@ -383,6 +387,7 @@ export type Database = {
           gclid?: string | null
           genitore_cellulare?: string | null
           genitore_cognome?: string | null
+          genitore_data_nascita?: string | null
           genitore_email?: string | null
           genitore_nome?: string | null
           giorni?: Json | null
@@ -404,6 +409,7 @@ export type Database = {
           taglia_maglietta?: string | null
           taglia_pantaloncini?: string | null
           tipo_corso?: string | null
+          tipo_richiesta?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_email?: string | null
