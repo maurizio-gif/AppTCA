@@ -7,6 +7,7 @@ import { FontiLead } from '@/components/FontiLead'
 import { FiltroData } from '@/components/FiltroData'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { ExportPdfButton } from '@/components/ExportPdfButton'
+import { GruppoSezioni, SezioneAccordion } from './SezioniAccordion'
 import {
   abbinaSerieConfronto,
   OPZIONI_RANGE,
@@ -304,22 +305,21 @@ export default async function AnalyticsPage({
 
             <EnquiriesChart giorni={costruisciSerieGiornaliera(righeSitoPeriodo, da, a)} />
 
+            <GruppoSezioni idSezioni={[...SEZIONI_LEAD.map((s) => s.dimensione), 'gestione']}>
             {SEZIONI_LEAD.map(({ dimensione, titolo, nota }) => {
               const fonti = classificaPer(righeSitoPeriodo, dimensione).map((voce) => ({
                 ...voce,
                 href: hrefDimensione(dimensione, voce.chiave),
               }))
               return (
-                <div key={dimensione} className="riepilogo-sottosezione">
-                  <h3 className="riepilogo-sottosezione-titolo">{titolo}</h3>
+                <SezioneAccordion key={dimensione} id={dimensione} titolo={titolo}>
                   <FontiLead fonti={fonti} messaggioVuoto="Nothing to show for this period yet." formatDelta={formatDeltaEn} />
                   {nota && <p className="sezione-nota muted">{nota}</p>}
-                </div>
+                </SezioneAccordion>
               )
             })}
 
-            <div className="riepilogo-sottosezione">
-              <h3 className="riepilogo-sottosezione-titolo">Handled by</h3>
+            <SezioneAccordion id="gestione" titolo="Handled by">
               <div className="stat-row">
                 <TotaleCard titolo="Enquiries handled" valore={gestione.gestiti} />
                 <div className="stat-card stat-card-static">
@@ -374,7 +374,8 @@ export default async function AnalyticsPage({
                   </>
                 )}
               </p>
-            </div>
+            </SezioneAccordion>
+            </GruppoSezioni>
           </>
         )}
 
@@ -386,16 +387,17 @@ export default async function AnalyticsPage({
 
             <TotaleChart giorni={costruisciSerieTotale(righeStoricoPeriodo, (r) => r.data_acquisizione, da, a)} />
 
-            {SEZIONI_STORICO.map(({ chiave, titolo, accessor, etichettaVuoto }) => (
-              <div key={chiave} className="riepilogo-sottosezione">
-                <h3 className="riepilogo-sottosezione-titolo">{titolo}</h3>
-                <FontiLead
-                  fonti={classificaGenerico(righeStoricoPeriodo, accessor, etichettaVuoto)}
-                  messaggioVuoto="Nothing to show for this period yet."
-                  formatDelta={formatDeltaEn}
-                />
-              </div>
-            ))}
+            <GruppoSezioni idSezioni={SEZIONI_STORICO.map((s) => s.chiave)}>
+              {SEZIONI_STORICO.map(({ chiave, titolo, accessor, etichettaVuoto }) => (
+                <SezioneAccordion key={chiave} id={chiave} titolo={titolo}>
+                  <FontiLead
+                    fonti={classificaGenerico(righeStoricoPeriodo, accessor, etichettaVuoto)}
+                    messaggioVuoto="Nothing to show for this period yet."
+                    formatDelta={formatDeltaEn}
+                  />
+                </SezioneAccordion>
+              ))}
+            </GruppoSezioni>
           </>
         )}
 

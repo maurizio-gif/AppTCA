@@ -1785,11 +1785,89 @@ table.data-table {
 
 /* Precisazione sotto una classifica (es. "un lead puo' indicare piu'
    attivita'"): deve leggersi come nota a margine, non come un'altra riga
-   di dati. */
+   di dati. Larghezza piena come il resto della sezione: incolonnata piu'
+   stretta sembrava una didascalia staccata dal grafico. */
 .sezione-nota {
   margin: 10px 0 0;
   font-size: 13px;
-  max-width: 70ch;
+}
+
+/* ---------- Sezioni richiudibili (Analytics) ---------- */
+
+.sezioni-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+/* Il filo sopra ogni testata e' quello che separa una classifica dalla
+   successiva: da chiuse sono solo titoli in fila, e senza una riga
+   sembrerebbero un elenco unico. */
+.sezione-accordion {
+  border-top: 1px solid var(--color-border);
+}
+
+.sezione-accordion-testata {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sezione-accordion-titolo {
+  font-family: var(--font-display), sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--color-text);
+}
+
+.sezione-accordion-testata:hover .sezione-accordion-titolo {
+  color: var(--color-accent);
+}
+
+.sezione-accordion-testata:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.sezione-accordion-indicatore {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-accent);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sezione-accordion-corpo {
+  display: none;
+  padding-bottom: 30px;
+}
+
+.sezione-accordion.is-aperta .sezione-accordion-corpo {
+  display: block;
+}
+
+/* Dentro una sezione richiudibile il titolino grigio non serve piu': il
+   titolo e' quello della testata. */
+.sezione-accordion-corpo > .riepilogo-sottosezione:only-child {
+  margin-bottom: 0;
 }
 
 .ritorni-titolo {
@@ -2663,6 +2741,22 @@ table.data-table {
      una pagina e continuare nella successiva. */
   .riepilogo-sottosezione,
   .stat-row {
+    break-inside: avoid;
+  }
+
+  /* Le sezioni richiudibili di Analytics vanno stampate tutte: il PDF si
+     ottiene con la stampa del browser, e una sezione lasciata chiusa a
+     schermo sparirebbe dal report. L'indicatore +/- invece non serve su
+     carta. */
+  .sezione-accordion-corpo {
+    display: block !important;
+  }
+
+  .sezione-accordion-indicatore {
+    display: none;
+  }
+
+  .sezione-accordion {
     break-inside: avoid;
   }
 }
