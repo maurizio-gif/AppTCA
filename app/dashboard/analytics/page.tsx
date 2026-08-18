@@ -22,8 +22,10 @@ import {
   deltaPercentuale,
   formatBreve,
   formatDeltaEn,
+  formatOre,
   parsePreset,
   parsePresetConfronto,
+  statisticheGestione,
   type DimensioneLead,
 } from '@/lib/analytics'
 
@@ -47,8 +49,17 @@ function parseFonte(raw: string | undefined): FonteDati {
 // storico HubSpot (vedi classificaCanale in lib/analytics.ts): la mostriamo
 // per prima, seguita dalle dimensioni UTM grezze e da quelle specifiche del
 // sito nuovo (CTA/pagina non hanno equivalente nello storico HubSpot).
-const SEZIONI_LEAD: { dimensione: DimensioneLead; titolo: string }[] = [
+const SEZIONI_LEAD: { dimensione: DimensioneLead; titolo: string; nota?: string }[] = [
   { dimensione: 'canale', titolo: 'Leads by channel' },
+  {
+    dimensione: 'attivita',
+    titolo: 'Leads by activity of interest',
+    // Il campo "attivita" e' un elenco: chi indica tennis e padel conta su
+    // entrambe, quindi la somma supera il numero di enquiry. Senza dirlo,
+    // le percentuali sembrerebbero sbagliate.
+    nota: 'One enquiry can mention more than one activity, so the total here is higher than the number of enquiries.',
+  },
+  { dimensione: 'gruppo', titolo: 'Leads by group' },
   { dimensione: 'fonte', titolo: 'Leads by source (UTM)' },
   { dimensione: 'medium', titolo: 'Leads by medium' },
   { dimensione: 'campagna', titolo: 'Leads by campaign' },
@@ -114,10 +125,22 @@ export default async function AnalyticsPage({
   let righeSito: RigaSito[] = []
   let righeStorico: RigaStorico[] = []
 
+  // Nome degli operatori per la sezione "Handled by": gestito_da contiene
+  // l'email, che come etichetta di un grafico non dice nulla.
+  const { data: staff } = await supabase.from('staff_users').select('email, nome, cognome')
+  const mappaStaff = new Map((staff ?? []).map((s) => [s.email.toLowerCase(), s]))
+  function nomeOperatore(emailOEtichetta: string): string {
+    const s = mappaStaff.get(emailOEtichetta.trim().toLowerCase())
+    if (!s) return emailOEtichetta
+    return `${s.nome ?? ''} ${s.cognome ?? ''}`.trim() || emailOEtichetta
+  }
+
   if (fonte === 'sito' || fonte === 'entrambi') {
     const { data, error } = await supabase
       .from('form_contatti')
-      .select('created_at, gruppo_attivita, utm_source, utm_medium, utm_campaign, utm_term, cta, pagina, esito_verifica_pgm')
+      .select(
+        'created_at, gruppo_attivita, attivita, utm_source, utm_medium, utm_campaign, utm_term, cta, pagina, esito_verifica_pgm, gestito, gestito_da, gestito_il'
+      )
       .order('created_at')
     if (error) return <p className="error-banner">Error loading data (site): {error.message}</p>
     righeSito = data ?? []
@@ -191,6 +214,8 @@ export default async function AnalyticsPage({
   // Stessi parametri da/a in ogni link di drill-down: la lista deve
   // restare coerente col conteggio mostrato (che e' gia' filtrato sul
   // periodo scelto qui). Solo il sito ha una lista di dettaglio.
+  const gestione = statisticheGestione(righeSitoPeriodo)
+
   const parametriPeriodo = `da=${da}&a=${a}`
   const hrefDimensione = (dimensione: DimensioneLead, chiave: string) =>
     `/dashboard/analytics/lista?dimensione=${dimensione}&chiave=${encodeURIComponent(chiave)}&${parametriPeriodo}`
@@ -273,7 +298,7 @@ export default async function AnalyticsPage({
 
             <EnquiriesChart giorni={costruisciSerieGiornaliera(righeSitoPeriodo, da, a)} />
 
-            {SEZIONI_LEAD.map(({ dimensione, titolo }) => {
+            {SEZIONI_LEAD.map(({ dimensione, titolo, nota }) => {
               const fonti = classificaPer(righeSitoPeriodo, dimensione).map((voce) => ({
                 ...voce,
                 href: hrefDimensione(dimensione, voce.chiave),
@@ -282,9 +307,48 @@ export default async function AnalyticsPage({
                 <div key={dimensione} className="riepilogo-sottosezione">
                   <h3 className="riepilogo-sottosezione-titolo">{titolo}</h3>
                   <FontiLead fonti={fonti} messaggioVuoto="Nothing to show for this period yet." formatDelta={formatDeltaEn} />
+                  {nota && <p className="sezione-nota muted">{nota}</p>}
                 </div>
               )
             })}
+
+            <div className="riepilogo-sottosezione">
+              <h3 className="riepilogo-sottosezione-titolo">Handled by</h3>
+              <div className="stat-row">
+                <TotaleCard titolo="Enquiries handled" valore={gestione.gestiti} />
+                <div className="stat-card stat-card-static">
+                  <div className="value">{gestione.percentuale}%</div>
+                  <div className="label">of the enquiries in this period</div>
+                  <div className="stat-card-nota">{gestione.totale - gestione.gestiti} still open</div>
+                </div>
+                <div className="stat-card stat-card-static">
+                  <div className="value">{formatOre(gestione.oreMedie)}</div>
+                  <div className="label">Average time to handle</div>
+                  <div className="stat-card-nota">
+                    {gestione.gestitiConTempo === gestione.gestiti
+                      ? 'from the enquiry to the moment it was marked as handled'
+                      : `measured on ${gestione.gestitiConTempo} of ${gestione.gestiti} handled enquiries`}
+                  </div>
+                </div>
+              </div>
+              <FontiLead
+                fonti={classificaPer(righeSitoPeriodo, 'gestito_da').map((voce) => ({
+                  ...voce,
+                  // "gestito_da" contiene l'email dell'operatore: qui
+                  // diventa il nome, ma la chiave per il drill-down resta
+                  // l'email, cosi' il filtro continua a funzionare anche se
+                  // l'operatore cambia nome.
+                  fonte: nomeOperatore(voce.fonte),
+                  href: hrefDimensione('gestito_da', voce.chiave),
+                }))}
+                messaggioVuoto="Nothing to show for this period yet."
+                formatDelta={formatDeltaEn}
+              />
+              <p className="sezione-nota muted">
+                «Not handled yet» are enquiries nobody has marked as handled — either still open, or handled
+                outside the panel without ticking the box.
+              </p>
+            </div>
           </>
         )}
 

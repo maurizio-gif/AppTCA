@@ -1783,6 +1783,15 @@ table.data-table {
   color: var(--color-text-light);
 }
 
+/* Precisazione sotto una classifica (es. "un lead puo' indicare piu'
+   attivita'"): deve leggersi come nota a margine, non come un'altra riga
+   di dati. */
+.sezione-nota {
+  margin: 10px 0 0;
+  font-size: 13px;
+  max-width: 70ch;
+}
+
 .ritorni-titolo {
   margin: 0 0 12px;
   font-size: 14px;

@@ -23,6 +23,9 @@ const CAMPI_IN_EVIDENZA = ['id', 'created_at', 'nome', 'cognome', 'gruppo_attivi
 
 const TITOLI_DIMENSIONE: Record<DimensioneLead, string> = {
   canale: 'Channel',
+  attivita: 'Activity of interest',
+  gruppo: 'Group',
+  gestito_da: 'Handled by',
   fonte: 'Source',
   medium: 'Medium',
   campagna: 'Campaign',

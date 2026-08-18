@@ -400,6 +400,11 @@ type DefinizioneDimensione = {
   etichettaVuoto: string
   prettifica: boolean
   normalizza?: (valore: unknown) => unknown
+  // Il campo contiene un elenco (jsonb array) e non un valore solo: lo
+  // stesso lead conta una volta per ciascuna voce. Vedi "attivita", dove
+  // chi indica tennis e padel deve pesare su entrambe invece di creare la
+  // categoria fantasma "tennis, padel".
+  multiplo?: boolean
 } & ({ campo: string } | { computa: (riga: RigaContatto) => unknown })
 
 // "canale" e' calcolato (utm_source + utm_medium bucketizzati, vedi
@@ -412,6 +417,9 @@ const DIMENSIONI_LEAD = {
     etichettaVuoto: 'Direct Traffic',
     prettifica: false,
   },
+  attivita: { campo: 'attivita', etichettaVuoto: 'Not specified', prettifica: true, multiplo: true },
+  gruppo: { campo: 'gruppo_attivita', etichettaVuoto: 'Not specified', prettifica: true },
+  gestito_da: { campo: 'gestito_da', etichettaVuoto: 'Not handled yet', prettifica: false },
   fonte: { campo: 'utm_source', etichettaVuoto: 'Organic', prettifica: true },
   medium: { campo: 'utm_medium', etichettaVuoto: 'Direct/organic', prettifica: false },
   campagna: { campo: 'utm_campaign', etichettaVuoto: 'No campaign', prettifica: true },
@@ -428,19 +436,38 @@ const DIMENSIONI_LEAD = {
 export type DimensioneLead = keyof typeof DIMENSIONI_LEAD
 export const DIMENSIONI_VALIDE = Object.keys(DIMENSIONI_LEAD) as DimensioneLead[]
 
-function chiaveENormalizzato(riga: RigaContatto, dimensione: DimensioneLead): { chiave: string; grezzo: string } {
+// Le chiavi di una riga per una dimensione: una sola, tranne per le
+// dimensioni "multiplo" dove ogni voce dell'elenco produce la sua. Una
+// riga con l'elenco vuoto ricade sulla chiave vuota, come se il campo non
+// fosse valorizzato.
+function chiaviENormalizzati(
+  riga: RigaContatto,
+  dimensione: DimensioneLead
+): { chiave: string; grezzo: string }[] {
   const def: DefinizioneDimensione = DIMENSIONI_LEAD[dimensione]
   const normalizza = def.normalizza
   const grezzoValore = 'computa' in def ? def.computa(riga) : riga[def.campo]
-  const valore = normalizza ? normalizza(grezzoValore) : grezzoValore
-  const grezzo = String(valore ?? '').trim()
-  return { chiave: grezzo ? grezzo.toLowerCase() : '__vuoto__', grezzo }
+  const valori = def.multiplo && Array.isArray(grezzoValore) ? grezzoValore : [grezzoValore]
+
+  const chiavi = valori
+    .map((v) => {
+      const valore = normalizza ? normalizza(v) : v
+      const grezzo = String(valore ?? '').trim()
+      return { chiave: grezzo ? grezzo.toLowerCase() : '__vuoto__', grezzo }
+    })
+    .filter((v) => v.chiave !== '__vuoto__')
+
+  return chiavi.length > 0 ? chiavi : [{ chiave: '__vuoto__', grezzo: '' }]
 }
 
 // Classifica generica per una delle dimensioni lead (fonte/campagna/cta/
 // pagina/status): raggruppa senza distinguere maiuscole/minuscole ma mostra
 // l'etichetta cosi' come arrivata la prima volta, insieme alla "chiave"
 // usata per il drill-down (vedi filtraPerDimensione).
+//
+// Su una dimensione "multiplo" la somma dei conteggi supera il numero di
+// lead, perche' lo stesso lead compare in piu' voci: e' voluto, ma va
+// dichiarato dove la classifica viene mostrata.
 export function classificaPer(
   righe: RigaContatto[],
   dimensione: DimensioneLead
@@ -449,11 +476,12 @@ export function classificaPer(
   const conteggi = new Map<string, { etichetta: string; conteggio: number }>()
 
   for (const riga of righe) {
-    const { chiave, grezzo } = chiaveENormalizzato(riga, dimensione)
-    const etichetta = grezzo ? (def.prettifica ? prettifyKey(grezzo.toLowerCase()) : grezzo) : def.etichettaVuoto
-    const voce = conteggi.get(chiave)
-    if (voce) voce.conteggio += 1
-    else conteggi.set(chiave, { etichetta, conteggio: 1 })
+    for (const { chiave, grezzo } of chiaviENormalizzati(riga, dimensione)) {
+      const etichetta = grezzo ? (def.prettifica ? prettifyKey(grezzo.toLowerCase()) : grezzo) : def.etichettaVuoto
+      const voce = conteggi.get(chiave)
+      if (voce) voce.conteggio += 1
+      else conteggi.set(chiave, { etichetta, conteggio: 1 })
+    }
   }
 
   return [...conteggi.entries()]
@@ -465,7 +493,49 @@ export function classificaPer(
 // (stessa chiave prodotta da classificaPer per quella riga): usato dalla
 // pagina di dettaglio per mostrare le anagrafiche dietro a un conteggio.
 export function filtraPerDimensione(righe: RigaContatto[], dimensione: DimensioneLead, chiave: string): RigaContatto[] {
-  return righe.filter((riga) => chiaveENormalizzato(riga, dimensione).chiave === chiave)
+  return righe.filter((riga) => chiaviENormalizzati(riga, dimensione).some((v) => v.chiave === chiave))
+}
+
+export type StatisticheGestione = {
+  totale: number
+  gestiti: number
+  percentuale: number
+  // Ore tra l'arrivo della richiesta e il momento in cui e' stata segnata
+  // come gestita. null quando nessuna richiesta gestita ha la data: le
+  // richieste segnate prima che gestito_il esistesse non hanno un tempo
+  // da misurare, e vanno escluse invece di contare come "istantanee".
+  oreMedie: number | null
+  gestitiConTempo: number
+}
+
+// Quanto delle richieste arrivate e' stato effettivamente preso in carico,
+// e in quanto tempo: e' la seconda meta' del funnel, quella che il numero
+// di enquiry da solo non dice.
+export function statisticheGestione(righe: RigaContatto[]): StatisticheGestione {
+  const gestiti = righe.filter((r) => r.gestito)
+  const conTempo = gestiti.filter((r) => r.gestito_il && r.created_at)
+  const oreTotali = conTempo.reduce((somma, r) => {
+    const ore = (new Date(r.gestito_il).getTime() - new Date(r.created_at).getTime()) / 3600000
+    return somma + Math.max(0, ore)
+  }, 0)
+
+  return {
+    totale: righe.length,
+    gestiti: gestiti.length,
+    percentuale: righe.length ? Math.round((gestiti.length / righe.length) * 100) : 0,
+    oreMedie: conTempo.length ? Math.round((oreTotali / conTempo.length) * 10) / 10 : null,
+    gestitiConTempo: conTempo.length,
+  }
+}
+
+// In inglese come il resto di Analytics (la sezione e' pensata anche per
+// la proprieta', vedi il sottotitolo della pagina).
+export function formatOre(ore: number | null): string {
+  if (ore === null) return '—'
+  if (ore < 1) return `${Math.max(1, Math.round(ore * 60))} min`
+  if (ore < 48) return `${Math.round(ore * 10) / 10} h`
+  const giorni = Math.round(ore / 24)
+  return `${giorni} ${giorni === 1 ? 'day' : 'days'}`
 }
 
 export function filtraPerGiorno(righe: RigaContatto[], giorno: string): RigaContatto[] {
