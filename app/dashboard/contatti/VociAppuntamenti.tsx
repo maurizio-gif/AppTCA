@@ -86,19 +86,14 @@ export function bloccoGestioneContatto(
   // Un'enquiry puo' avere piu' voci in agenda (una chiamata, poi la visita in
   // sede): sono l'elenco, non un campo. Assente = chi costruisce la riga non
   // ha accesso all'agenda.
-  // Chi puo' chiudere l'appuntamento: se nessuno ha preso in carico
-  // l'opportunita' chiunque veda la sezione, altrimenti il titolare o un
-  // amministratore - lo stesso criterio dei pulsanti della pipeline. Il
-  // controllo vero e' comunque nella Server Action.
-  const assegnato = (lead?.assegnato_a ?? '').trim().toLowerCase()
-  const mio = !!assegnato && assegnato === (emailCorrente ?? '').trim().toLowerCase()
+  // Chiudere l'appuntamento lo puo' fare chiunque veda la sezione, anche se
+  // l'opportunita' e' di una collega: vedi AzioniAppuntamento.
   const bloccoAppuntamento = eAppuntamento(riga) ? (
     <AzioniAppuntamento
       id={String(riga.id)}
       completatoIl={riga.appuntamento_completato_il ?? null}
       completatoDa={riga.appuntamento_completato_da ?? null}
       esito={riga.appuntamento_esito ?? null}
-      puoModificare={!assegnato || mio || eAmministratore}
     />
   ) : null
 

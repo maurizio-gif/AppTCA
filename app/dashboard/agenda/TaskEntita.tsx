@@ -145,12 +145,17 @@ function RigaTaskCollegato({
 }) {
   const [errore, setErrore] = useState<string | null>(null)
   const [conferma, setConferma] = useState(false)
+  const [chiudendo, setChiudendo] = useState(false)
+  const [esitoNuovo, setEsitoNuovo] = useState('')
   const [isPending, startTransition] = useTransition()
 
   const stato: StatoTask = eStatoTaskValido(riga.stato) ? riga.stato : 'aperto'
   const tipo = eTipoValido(riga.tipo) ? riga.tipo : 'task'
   const ora = intervalloOrario(normalizzaOra(riga.ora), Number(riga.durata_minuti) || 10)
-  const puoModificare =
+  // Completare o riaprire lo puo' fare chiunque (vedi AzioniTask); eliminare,
+  // che e' irreversibile, solo chi ce l'ha in mano, chi l'ha creato o un
+  // amministratore.
+  const puoEliminare =
     eAmministratore ||
     (!!emailCorrente &&
       (riga.assegnato_a?.toLowerCase() === emailCorrente || riga.creato_da?.toLowerCase() === emailCorrente))
@@ -177,30 +182,63 @@ function RigaTaskCollegato({
           {riga.assegnato_a && ` · ${riga.assegnato_a}`}
           {etichettaCollegamento && ` · ${etichettaCollegamento}`}
         </span>
+        {riga.esito && <span className="task-riga-esito">{riga.esito}</span>}
       </div>
 
-      {puoModificare && (
-        <div className="task-riga-azioni">
-          {stato === 'aperto' ? (
-            <button
-              type="button"
-              className="btn-ghost btn-small"
-              disabled={isPending}
-              onClick={() => esegui(() => completaTask(String(riga.id)))}
-            >
-              Completa
-            </button>
+      <div className="task-riga-azioni">
+        {stato === 'aperto' ? (
+          // Completare chiede com'e' andata prima di chiudere: e' la nota che
+          // qualifica il task come fatto, e chiederla dopo vuol dire non
+          // averla mai. Facoltativa, per non trasformare un click in un
+          // modulo.
+          chiudendo ? (
+            <>
+              <input
+                className="pipeline-motivo-input"
+                value={esitoNuovo}
+                onChange={(e) => setEsitoNuovo(e.target.value)}
+                placeholder="Com’è andata (facoltativo)"
+                autoFocus
+              />
+              <button
+                type="button"
+                className="btn btn-small"
+                disabled={isPending}
+                onClick={() => esegui(() => completaTask(String(riga.id), esitoNuovo))}
+              >
+                Completa
+              </button>
+              <button
+                type="button"
+                className="btn-ghost btn-small"
+                disabled={isPending}
+                onClick={() => setChiudendo(false)}
+              >
+                Annulla
+              </button>
+            </>
           ) : (
             <button
               type="button"
               className="btn-ghost btn-small"
               disabled={isPending}
-              onClick={() => esegui(() => riapriTask(String(riga.id)))}
+              onClick={() => setChiudendo(true)}
             >
-              Riapri
+              Completa
             </button>
-          )}
-          {conferma ? (
+          )
+        ) : (
+          <button
+            type="button"
+            className="btn-ghost btn-small"
+            disabled={isPending}
+            onClick={() => esegui(() => riapriTask(String(riga.id)))}
+          >
+            Riapri
+          </button>
+        )}
+        {puoEliminare &&
+          (conferma ? (
             <>
               <button
                 type="button"
@@ -220,12 +258,16 @@ function RigaTaskCollegato({
               </button>
             </>
           ) : (
-            <button type="button" className="btn-ghost btn-small" disabled={isPending} onClick={() => setConferma(true)}>
+            <button
+              type="button"
+              className="btn-ghost btn-small"
+              disabled={isPending}
+              onClick={() => setConferma(true)}
+            >
               Elimina
             </button>
-          )}
-        </div>
-      )}
+          ))}
+      </div>
 
       {errore && <p className="gestione-errore">{errore}</p>}
     </li>

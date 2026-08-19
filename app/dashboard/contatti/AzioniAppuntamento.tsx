@@ -11,6 +11,10 @@ import { completaAppuntamento, riapriAppuntamento } from './actions'
 // dice soltanto che quell'incontro non e' piu' lavoro da fare, ed e' cio' che
 // in agenda lo porta da rosso a verde.
 //
+// Lo puo' fare chiunque veda la sezione, anche se l'opportunita' e' di una
+// collega: chi era in sede quando il cliente e' arrivato deve poter scrivere
+// com'e' andata. Chi l'ha chiuso resta scritto qui e nel registro operatori.
+//
 // Stessa forma e stesse etichette del pannello di un task (vedi
 // agenda/AzioniTask): in agenda un appuntamento dal sito e un task sono la
 // stessa cosa, un impegno che si chiude.
@@ -19,13 +23,11 @@ export function AzioniAppuntamento({
   completatoIl,
   completatoDa,
   esito,
-  puoModificare,
 }: {
   id: string
   completatoIl: string | null
   completatoDa: string | null
   esito: string | null
-  puoModificare: boolean
 }) {
   const [esitoNuovo, setEsitoNuovo] = useState('')
   const [errore, setErrore] = useState<string | null>(null)
@@ -64,7 +66,7 @@ export function AzioniAppuntamento({
 
       {errore && <p className="gestione-errore">{errore}</p>}
 
-      {!puoModificare ? null : completato ? (
+      {completato ? (
         <div className="pipeline-azioni">
           <button
             type="button"

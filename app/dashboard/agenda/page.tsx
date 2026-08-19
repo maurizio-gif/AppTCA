@@ -196,8 +196,10 @@ export default async function AgendaPage({
             giorno selezionato è già proposto.
           </li>
           <li>
-            Un task può essere assegnato a una collega: l'agenda è condivisa in lettura, ma completarlo o
-            cancellarlo può farlo chi ce l'ha in mano, chi l'ha creato o un amministratore.
+            Un task può essere assegnato a una collega, e <strong>chiunque</strong> può chiuderlo scrivendo com'è
+            andata: chi risponde al telefono al posto di un'altra deve poterlo fare subito. Nel registro operatori
+            resta chi ha chiuso cosa. Solo <em>eliminare</em> una voce resta di chi ce l'ha in mano, di chi l'ha
+            creata o di un amministratore, perché è irreversibile.
           </li>
           <li>
             Quando una cosa è fatta, aprila e chiudila scrivendo <strong>com'è andata</strong>: un task si
