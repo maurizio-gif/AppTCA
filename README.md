@@ -332,9 +332,13 @@ gestita una seconda enquiry a cui nessuno ha ancora risposto. Il collegamento
   con la pipeline, agenda, tutte le richieste in ordine di arrivo, visite al
   sito.
 - **Task**: creato dalla riga di una richiesta, persona e lead li ricava il
-  server da quella richiesta; creato dall'Agenda, c'è un campo di ricerca
-  persona (`PersonaPicker`, cerca per nome/email/cellulare) e il lead aperto
-  viene scelto da solo.
+  server da quella richiesta. Creato dall'Agenda, il form segue l'ordine in cui
+  si ragiona al telefono: prima **con chi** (`PersonaPicker`, cerca per
+  nome/email/cellulare), poi **su cosa** — appena la persona è scelta compaiono
+  tutte le sue richieste, **dalla più recente**, con data, modulo e tipo
+  (`richiestePersona`); scegliendone una il task si aggancia anche al lead di
+  quella richiesta. Solo dopo vengono quando e cosa fare. Il campo persona si
+  può lasciare vuoto per un task interno.
 - **Possibili duplicati** (`/dashboard/persone/duplicati`): solo le coppie che
   il sistema non unisce da sé, affiancate. Unire (amministratori) sposta
   richieste, lead, task e figli sulla scheda che resta; «Sono persone diverse»

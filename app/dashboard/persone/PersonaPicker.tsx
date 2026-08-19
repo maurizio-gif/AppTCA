@@ -62,13 +62,13 @@ export function PersonaPicker({
 
   return (
     <div className="field">
-      <label htmlFor="task-persona">Persona (facoltativo)</label>
+      <label htmlFor="task-persona">Persona</label>
       <input
         id="task-persona"
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Cerca per nome, email o cellulare…"
+        placeholder="Cerca per nome, email o cellulare, oppure lascia vuoto…"
         autoComplete="off"
       />
       {isPending && <p className="gestione-meta">Cerco…</p>}
@@ -89,7 +89,9 @@ export function PersonaPicker({
         </ul>
       )}
       {cercato && !isPending && risultati.length === 0 && (
-        <p className="gestione-meta">Nessuna persona trovata: il task resta senza collegamento.</p>
+        <p className="gestione-meta">
+          Nessuna persona trovata: lascia il campo vuoto per un task interno, senza persona.
+        </p>
       )}
     </div>
   )

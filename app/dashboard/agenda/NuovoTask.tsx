@@ -11,13 +11,9 @@ import { FormTask } from './FormTask'
 export function NuovoTask({
   staff,
   emailCorrente,
-  collegabili,
 }: {
   staff: { email: string; nome: string }[]
   emailCorrente: string | null
-  // Record a cui la voce puo' essere collegata (oggi: gli inviti "Invita un
-  // amico" ancora aperti), nel formato "entita:id".
-  collegabili: { valore: string; etichetta: string }[]
 }) {
   const giornoSelezionato = useGiornoSelezionato()
   const [aperto, setAperto] = useState(false)
@@ -41,7 +37,6 @@ export function NuovoTask({
         staff={staff}
         emailCorrente={emailCorrente}
         dataProposta={giorno}
-        collegabili={collegabili}
         onFatto={() => setAperto(false)}
         onAnnulla={() => setAperto(false)}
       />
