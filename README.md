@@ -203,11 +203,12 @@ nuove, vincolo sugli stati, indici e backfill: le righe già "gestite"
 entrano come `in_gestione` assegnate a chi le aveva gestite) e
 `crea_task_agenda`.
 
-### Agenda condivisa (un solo calendario)
+### Agenda condivisa
 
-Nuova tabella `task` e nuova sezione `/dashboard/agenda`. L'agenda **non è
-un secondo calendario**: è lo stesso calendario del tab Appuntamenti delle
-Enquiries Adulti, che mostra insieme
+Nuova tabella `task` e nuova sezione `/dashboard/agenda`. Il **componente**
+calendario è uno solo, condiviso con il tab «Appuntamenti richiesti» delle
+Enquiries Adulti — ma il **contenuto** delle due viste è diverso di proposito
+(vedi l'aggiornamento in fondo). L'Agenda mostra insieme
 
 - gli **appuntamenti prenotati dal sito** (`form_contatti`, in sede o
   telefonici — li classifica `classificaContatto`), e
@@ -485,3 +486,24 @@ sarebbe peggio che non averla.
   il link alla scheda di ciascun amico.
 
 Migrazioni applicate: `storico_opportunita`, `rimuovi_trigger_gestito_enquiry`.
+
+## Aggiornamento — due porte, due mestieri: «Appuntamenti richiesti» e Agenda
+
+Il tab degli appuntamenti nelle Enquiries e l'Agenda mostravano quasi la stessa
+cosa (gli stessi task, e gli appuntamenti dal sito con la sola differenza dei
+Junior): due porte che sembrano la stessa stanza, dove ogni divergenza diventa
+un bug e chi guarda non sa quale sia la vista «vera».
+
+Ora:
+
+- **Enquiries → «Appuntamenti richiesti»**: solo gli appuntamenti che i
+  **clienti hanno prenotato dal sito** per quella sezione, nel giorno fissato.
+  È una vista dei dati della sezione, come la lista dei Messaggi, e ha la
+  ricerca della sezione. Niente form di creazione.
+- **Agenda**: il diario condiviso — quegli stessi appuntamenti *più* i task e
+  gli appuntamenti interni, di tutte le sezioni, con vista lista e arretrati.
+
+Il guadagno della fusione resta dov'era utile: il componente calendario e il
+modello dati (`lib/agenda.ts`) sono uno solo, quindi una correzione vale per
+entrambe. Da una richiesta si continua a fissare un evento dal blocco «In
+agenda» della sua riga: finisce in Agenda, dove si guarda la giornata.
