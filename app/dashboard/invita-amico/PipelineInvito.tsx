@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { formatDateOra } from '@/lib/format'
+import { PipelineBadge } from '@/components/PipelineBadge'
 import {
-  CLASSE_STATO,
   ETICHETTE_AZIONE,
   ETICHETTE_STATO,
+  PASSI_AVANZAMENTO as PASSI,
   STATI_CON_NOTA,
   TRANSIZIONI,
   eStatoFinale,
@@ -13,35 +14,45 @@ import {
 } from '@/lib/pipeline'
 import { cambiaStato, prendiInGestione, riapriGestione, riassegna, salvaNote } from './actions'
 
-// Percorso "buono" mostrato come stepper: perso e' un'uscita laterale, non
-// un passo avanti, quindi resta fuori dalla fila e compare solo come badge
-// quando il lead e' effettivamente perso.
-const PASSI: StatoPipeline[] = ['nuovo', 'in_gestione', 'vinto', 'credito_caricato']
-
+// Avanzamento come fila di pallini numerati con l'etichetta sotto: quelli
+// fatti spuntati, quello attuale in evidenza, i prossimi spenti. Un lead
+// perso non ha un "punto" nella fila (puo' uscire da "in gestione" o da
+// "vinto"), quindi mostriamo la sola presa in carico e l'uscita: e' la
+// verita' che conosciamo, non una posizione inventata.
 function Stepper({ stato }: { stato: StatoPipeline }) {
   if (stato === 'perso') {
     return (
-      <div className="pipeline-stepper">
-        <span className="richiesta-badge richiesta-neutro">{ETICHETTE_STATO.perso}</span>
-      </div>
+      <ol className="pipeline-track perso">
+        <li className="pipeline-nodo-wrap fatto">
+          <span className="pipeline-nodo">✓</span>
+          <span className="pipeline-etichetta">Preso in carico</span>
+        </li>
+        <li className="pipeline-nodo-wrap uscita">
+          <span className="pipeline-nodo">✕</span>
+          <span className="pipeline-etichetta">{ETICHETTE_STATO.perso}</span>
+        </li>
+      </ol>
     )
   }
 
   const indiceAttuale = PASSI.indexOf(stato)
 
   return (
-    <div className="pipeline-stepper">
-      {PASSI.map((passo, i) => (
-        <span key={passo} className="pipeline-passo-wrap">
-          <span
-            className={`pipeline-passo${i === indiceAttuale ? ' attuale' : ''}${i < indiceAttuale ? ' fatto' : ''}`}
-          >
-            {ETICHETTE_STATO[passo]}
-          </span>
-          {i < PASSI.length - 1 && <span className="pipeline-freccia">›</span>}
-        </span>
-      ))}
-    </div>
+    <ol className="pipeline-track">
+      {PASSI.map((passo, i) => {
+        const fatto = i < indiceAttuale || (i === indiceAttuale && eStatoFinale(stato))
+        const classi = ['pipeline-nodo-wrap']
+        if (fatto) classi.push('fatto')
+        if (i === indiceAttuale) classi.push('attuale')
+
+        return (
+          <li className={classi.join(' ')} key={passo}>
+            <span className="pipeline-nodo">{fatto ? '✓' : i + 1}</span>
+            <span className="pipeline-etichetta">{ETICHETTE_STATO[passo]}</span>
+          </li>
+        )
+      })}
+    </ol>
   )
 }
 
@@ -131,7 +142,7 @@ export function PipelineInvito({
       <Stepper stato={stato} />
 
       <div className="pipeline-meta">
-        <span className={`richiesta-badge ${CLASSE_STATO[stato]}`}>{ETICHETTE_STATO[stato]}</span>
+        <PipelineBadge stato={stato} />
         {assegnatoA ? (
           <span className="gestione-meta">
             assegnato a {mio ? 'te' : assegnatoA}

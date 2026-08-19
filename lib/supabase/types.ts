@@ -819,6 +819,7 @@ export type Database = {
           created_at: string
           creato_da: string
           data: string
+          durata_minuti: number
           entita: string | null
           entita_id: string | null
           esito: string | null
@@ -835,6 +836,7 @@ export type Database = {
           created_at?: string
           creato_da: string
           data: string
+          durata_minuti?: number
           entita?: string | null
           entita_id?: string | null
           esito?: string | null
@@ -851,6 +853,7 @@ export type Database = {
           created_at?: string
           creato_da?: string
           data?: string
+          durata_minuti?: number
           entita?: string | null
           entita_id?: string | null
           esito?: string | null

@@ -235,6 +235,32 @@ app/dashboard/contatti/VociAppuntamenti.tsx → riga form_contatti → voce di c
   operatori già esistenti (`sezioni_consentite`), altrimenti la voce non
   sarebbe comparsa a nessuno finché un amministratore non la spuntava.
 
+### Durate (per la disponibilità futura)
+
+Ogni voce d'agenda ha una durata in minuti (`task.durata_minuti`), con
+default per tipo in `DURATA_PREDEFINITA` (`lib/agenda.ts`):
+
+| tipo | durata |
+| :--- | :--- |
+| appuntamento in sede | 30 min |
+| appuntamento telefonico | 10 min |
+| task | 10 min |
+
+Il form propone il default del tipo scelto e lo lascia modificare. Gli
+appuntamenti arrivati dal sito non hanno una colonna durata (il form non la
+chiede): si assume quella del loro tipo. Serve per il passo successivo —
+calcolare la disponibilità da offrire a chi prenota dal sito — quindi una
+voce senza durata non è ammessa. In calendario si legge `09:30 - 10:00`.
+
+### Task creati dalla riga di un record
+
+`app/dashboard/agenda/TaskEntita.tsx` è il blocco «In agenda» da mettere
+dentro la riga espansa di qualsiasi record: elenca le voci collegate e ne
+crea di nuove già agganciate (`entita`/`entita_id`). Oggi è nella sezione
+Invita un amico; per usarlo altrove basta passare `entita` ed etichetta
+diverse. Il form di creazione è condiviso (`FormTask.tsx`) fra questo blocco
+e il pulsante «+ Aggiungi in agenda» del calendario.
+
 Non incluso di proposito (fase successiva): promemoria push/notifica interna
 per i task in scadenza — servirebbe un cron esterno (n8n o Vercel Cron) che
 chiami una route dedicata.

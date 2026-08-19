@@ -8,7 +8,9 @@ import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { puoAmministrare } from '@/lib/auth/permessi'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
 import { VisiteContatto } from '@/components/VisiteContatto'
-import { CLASSE_STATO, ETICHETTE_STATO, normalizzaStato, OPZIONI_FILTRO, parseFiltro, statiDelFiltro } from '@/lib/pipeline'
+import { normalizzaStato, OPZIONI_FILTRO, parseFiltro, statiDelFiltro } from '@/lib/pipeline'
+import { PipelineBadge } from '@/components/PipelineBadge'
+import { TaskEntita } from '../agenda/TaskEntita'
 import { PipelineInvito } from './PipelineInvito'
 import { FiltroCheckbox } from '@/components/FiltroCheckbox'
 
@@ -56,9 +58,16 @@ export default async function InvitaAmicoPage({
   const supabase = createSupabaseServiceClient()
   const emailCorrente = (headers().get('x-tca-user-email') ?? '').toLowerCase() || null
 
-  const [{ data: righe, error }, { data: staff }, eAmministratore] = await Promise.all([
+  // Il blocco "In agenda" dentro la riga (vedi TaskEntita) e' parte della
+  // sezione Agenda: chi non ha quel permesso vede la pipeline e basta.
+  const vedeAgenda = await utenteHaSezione('agenda')
+
+  const [{ data: righe, error }, { data: staff }, { data: task }, eAmministratore] = await Promise.all([
     supabase.from('form_invita_amico').select('*').order('created_at', { ascending: false }),
     supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
+    vedeAgenda
+      ? supabase.from('task').select('*').eq('entita', 'form_invita_amico').order('data', { ascending: true })
+      : Promise.resolve({ data: [] as Record<string, any>[] }),
     puoAmministrare(emailCorrente),
   ])
 
@@ -77,6 +86,14 @@ export default async function InvitaAmicoPage({
   )
   const etichettaOperatore = (email: string | null) =>
     email ? nomiStaff[email.toLowerCase()] ?? email : null
+
+  // Task raggruppati per invito, per il blocco "In agenda" di ogni riga.
+  const taskPerInvito = new Map<string, Record<string, any>[]>()
+  for (const riga of task ?? []) {
+    const chiave = String(riga.entita_id)
+    if (!taskPerInvito.has(chiave)) taskPerInvito.set(chiave, [])
+    taskPerInvito.get(chiave)!.push(riga)
+  }
 
   // Visite al sito di ciascun socio (per vid), per capire quanto e' "caldo"
   // l'invito - vedi VisiteContatto.
@@ -124,6 +141,10 @@ export default async function InvitaAmicoPage({
             Per segnare vinto o perso serve una nota salvata: è il modo per lasciare traccia di cosa è stato
             fatto. Prendere in gestione invece è un solo click.
           </li>
+          <li>
+            Nel blocco <strong>«In agenda»</strong> della riga crei un task o un appuntamento già collegato a
+            questo invito: compare nell'Agenda condivisa e resta agganciato qui.
+          </li>
         </ol>
         <p className="box-istruzioni-nota">
           «Perso» e «Credito caricato» sono stati finali: per riaprirli serve un amministratore, che può anche
@@ -150,6 +171,8 @@ export default async function InvitaAmicoPage({
             <tbody>
               {righeFiltrate.map((riga) => {
                 const stato = normalizzaStato(riga.stato)
+                const nomeAmico =
+                  `${riga.amico_nome ?? ''} ${riga.amico_cognome ?? ''}`.trim() || riga.amico_email || 'invito'
                 return (
                   <ExpandableRow
                     key={riga.id}
@@ -159,6 +182,27 @@ export default async function InvitaAmicoPage({
                     record={riga}
                     hiddenKeys={COLONNE_VISIBILI}
                     evidenza={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
+                    sections={
+                      vedeAgenda
+                        ? [
+                            {
+                              title: 'In agenda',
+                              content: (
+                                <TaskEntita
+                                  entita="form_invita_amico"
+                                  entitaId={String(riga.id)}
+                                  etichetta={`Invita un amico · ${nomeAmico}`}
+                                  titoloSuggerito={`Ricontattare ${nomeAmico}`}
+                                  task={taskPerInvito.get(String(riga.id)) ?? []}
+                                  staff={elencoStaff}
+                                  emailCorrente={emailCorrente}
+                                  eAmministratore={eAmministratore}
+                                />
+                              ),
+                            },
+                          ]
+                        : []
+                    }
                     extra={
                       <PipelineInvito
                         id={riga.id}
@@ -189,7 +233,7 @@ export default async function InvitaAmicoPage({
                           {riga.amico_email} · {riga.amico_prefisso} {riga.amico_cellulare}
                         </span>
                       </>,
-                      <span className={`richiesta-badge ${CLASSE_STATO[stato]}`}>{ETICHETTE_STATO[stato]}</span>,
+                      <PipelineBadge stato={stato} />,
                       etichettaOperatore(riga.assegnato_a ?? null) ?? '—',
                     ]}
                   />

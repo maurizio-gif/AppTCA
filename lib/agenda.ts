@@ -40,6 +40,16 @@ export const CLASSE_TIPO: Record<TipoVoce, string> = {
 
 export const OPZIONI_TIPO = TIPI.map((tipo) => ({ valore: tipo, etichetta: ETICHETTE_TIPO[tipo] }))
 
+// Quanto occupa in agenda ciascun tipo, quando non e' stato indicato
+// diversamente. Non e' solo estetica: e' il dato con cui si calcolera' la
+// disponibilita' da offrire a chi prenota un appuntamento dal sito, quindi
+// una voce senza durata non e' ammessa.
+export const DURATA_PREDEFINITA: Record<TipoVoce, number> = {
+  appuntamento_in_sede: 30,
+  appuntamento_telefonico: 10,
+  task: 10,
+}
+
 export const STATI_TASK = ['aperto', 'completato', 'annullato'] as const
 export type StatoTask = (typeof STATI_TASK)[number]
 
@@ -76,9 +86,31 @@ export type VoceAgenda = {
   // 'HH:MM'; null = tutto il giorno / orario non indicato.
   ora: string | null
   assegnatoA: string | null
+  // Minuti occupati in agenda (vedi DURATA_PREDEFINITA).
+  durataMinuti: number
   // Guida il pallino del giorno: c'e' ancora qualcosa da fare o no.
   daFare: boolean
   statoEtichetta: string
+}
+
+// Fine di una voce, per mostrare "09:30 - 10:00" invece della sola ora di
+// inizio. Null se la voce non ha un orario (tutto il giorno).
+export function oraFine(ora: string | null, durataMinuti: number): string | null {
+  if (!ora) return null
+  const [ore, minuti] = ora.split(':').map(Number)
+  if (Number.isNaN(ore) || Number.isNaN(minuti)) return null
+  const totale = ore * 60 + minuti + durataMinuti
+  // Una voce che sfora la mezzanotte si fermerebbe a 23:59: in agenda non
+  // esistono appuntamenti che scavalcano il giorno.
+  const limitato = Math.min(totale, 23 * 60 + 59)
+  return `${String(Math.floor(limitato / 60)).padStart(2, '0')}:${String(limitato % 60).padStart(2, '0')}`
+}
+
+// "09:30 - 10:00", oppure la sola ora se manca la durata utile.
+export function intervalloOrario(ora: string | null, durataMinuti: number): string | null {
+  if (!ora) return null
+  const fine = oraFine(ora, durataMinuti)
+  return fine && fine !== ora ? `${ora} - ${fine}` : ora
 }
 
 // Le colonne time di Postgres arrivano come 'HH:MM:SS': in agenda i secondi
@@ -108,6 +140,7 @@ export function voceDaTask(riga: RigaTask): VoceAgenda {
     data: riga.data ? String(riga.data).slice(0, 10) : null,
     ora: normalizzaOra(riga.ora),
     assegnatoA: riga.assegnato_a ?? null,
+    durataMinuti: Number(riga.durata_minuti) > 0 ? Number(riga.durata_minuti) : DURATA_PREDEFINITA.task,
     daFare: stato === 'aperto',
     statoEtichetta: ETICHETTE_STATO_TASK[stato],
   }
@@ -120,6 +153,9 @@ export function eAppuntamento(riga: Record<string, any>): boolean {
   return classificaContatto(riga) !== 'messaggio'
 }
 
+// form_contatti non ha una colonna durata (il form del sito non la chiede):
+// la si assume da quanto dura di solito quel tipo di appuntamento, che e'
+// esattamente cio' che serve per calcolare la disponibilita'.
 export function voceDaContatto(riga: Record<string, any>): VoceAgenda {
   const tipo = classificaContatto(riga)
   const nome = `${riga.nome ?? ''} ${riga.cognome ?? ''}`.trim()
@@ -134,6 +170,7 @@ export function voceDaContatto(riga: Record<string, any>): VoceAgenda {
     // Un appuntamento prenotato dal sito non ha (ancora) un titolare: chi
     // lo ha gestito e' l'unica cosa che ci avviciniamo a un assegnatario.
     assegnatoA: riga.gestito ? riga.gestito_da ?? null : null,
+    durataMinuti: DURATA_PREDEFINITA[tipo === 'messaggio' ? 'task' : tipo],
     daFare: !riga.gestito,
     statoEtichetta: riga.gestito ? 'Gestito' : 'Da gestire',
   }
