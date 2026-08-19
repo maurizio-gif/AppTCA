@@ -9,7 +9,7 @@ import { VisiteContatto } from '@/components/VisiteContatto'
 import { ContactLinks } from '@/components/ContactLinks'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
-import { puoAmministrare } from '@/lib/auth/permessi'
+import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
 import { etichettaFonte, nomePersona } from '@/lib/persone'
 import { ETICHETTE_STATO, normalizzaStato } from '@/lib/pipeline'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
@@ -49,6 +49,7 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
     { data: staff },
     { data: task },
     eAmministratore,
+    puoRiassegnareLead,
   ] = await Promise.all([
     persona.genitore_id
       ? supabase.from('persone').select('id, nome, cognome, email').eq('id', persona.genitore_id).maybeSingle()
@@ -58,6 +59,7 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
     supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
     supabase.from('task').select('*').eq('persona_id', persona.id).order('data', { ascending: true }),
     puoAmministrare(emailCorrente),
+    puoRiassegnare(emailCorrente),
   ])
 
   // Le richieste della persona, modulo per modulo: quelle intestate a lei e -
@@ -137,6 +139,7 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
               motivoPerso={leadAperto.motivo_perso ?? null}
               emailCorrente={emailCorrente}
               eAmministratore={eAmministratore}
+              puoRiassegnareLead={puoRiassegnareLead}
               staff={elencoStaff}
             />
           ) : (

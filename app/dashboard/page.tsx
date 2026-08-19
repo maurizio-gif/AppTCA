@@ -74,14 +74,14 @@ export default async function DashboardHome() {
               <h3 className="riepilogo-sottosezione-titolo">Adulti</h3>
               <div className="stat-row">
                 <StatCard
-                  href="/dashboard/contatti/adulti?filtro=da_gestire"
-                  label="Da gestire"
+                  href="/dashboard/contatti/adulti?filtro=da_rispondere"
+                  label="Da rispondere"
                   value={contattiAdultiDaGestire}
                 />
                 <StatCard
-                  href="/dashboard/contatti/adulti?filtro=gestiti"
-                  label="Gestiti"
-                  value={contattiAdultiGestiti}
+                  href="/dashboard/contatti/adulti?filtro=tutti"
+                  label="Totale"
+                  value={contattiAdultiDaGestire + contattiAdultiGestiti}
                 />
               </div>
             </div>
@@ -92,14 +92,14 @@ export default async function DashboardHome() {
               <h3 className="riepilogo-sottosezione-titolo">Junior</h3>
               <div className="stat-row">
                 <StatCard
-                  href="/dashboard/contatti/junior?filtro=da_gestire"
-                  label="Da gestire"
+                  href="/dashboard/contatti/junior?filtro=da_rispondere"
+                  label="Da rispondere"
                   value={contattiJuniorDaGestire}
                 />
                 <StatCard
-                  href="/dashboard/contatti/junior?filtro=gestiti"
-                  label="Gestiti"
-                  value={contattiJuniorGestiti}
+                  href="/dashboard/contatti/junior?filtro=tutti"
+                  label="Totale"
+                  value={contattiJuniorDaGestire + contattiJuniorGestiti}
                 />
               </div>
             </div>

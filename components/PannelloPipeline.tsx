@@ -73,6 +73,7 @@ export function PannelloPipeline({
   motivoPerso,
   emailCorrente,
   eAmministratore,
+  puoRiassegnareLead = false,
   staff,
   dopoAzioni,
 }: {
@@ -84,6 +85,9 @@ export function PannelloPipeline({
   motivoPerso: string | null
   emailCorrente: string | null
   eAmministratore: boolean
+  // Permesso "Puo' riassegnare i lead" (staff_users.puo_riassegnare): serve
+  // solo per i lead di qualcun altro, il proprio si passa sempre.
+  puoRiassegnareLead?: boolean
   staff: { email: string; nome: string }[]
   // Adempimento specifico della sezione, reso subito sotto i pulsanti di
   // stato: e' il caso del credito referral (vedi CreditoToggle), che si legge
@@ -95,18 +99,28 @@ export function PannelloPipeline({
   const [chiedeMotivo, setChiedeMotivo] = useState(false)
   const [motivo, setMotivo] = useState('')
   const [destinatario, setDestinatario] = useState('')
+  const [riassegnaAperta, setRiassegnaAperta] = useState(false)
+  // Quale azione sta girando: una Server Action che rinfresca la pagina puo'
+  // metterci un secondo, e senza un segnale il pulsante sembra non aver fatto
+  // niente (e si finisce per ricliccarlo).
+  const [inCorso, setInCorso] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const mio = !!assegnatoA && !!emailCorrente && assegnatoA.toLowerCase() === emailCorrente.toLowerCase()
   const puoOperare = stato === 'nuovo' ? true : mio || eAmministratore
   const prossimi = TRANSIZIONI[stato]
 
-  function esegui(azione: () => Promise<{ ok: true } | { ok: false; errore: string }>) {
+  function esegui(quale: string, azione: () => Promise<{ ok: true } | { ok: false; errore: string }>) {
     setErrore(null)
+    setInCorso(quale)
     startTransition(async () => {
       const risultato = await azione()
+      setInCorso(null)
       if (!risultato.ok) setErrore(risultato.errore)
-      else setChiedeMotivo(false)
+      else {
+        setChiedeMotivo(false)
+        setRiassegnaAperta(false)
+      }
     })
   }
 
@@ -120,11 +134,11 @@ export function PannelloPipeline({
     // La presa in carico ha un'azione a se': e' l'unico passaggio che puo'
     // fare chiunque, ed e' quello che assegna il lead (vedi actions.ts).
     if (stato === 'nuovo' && nuovo === 'in_gestione') {
-      esegui(() => prendiInGestione(id))
+      esegui(nuovo, () => prendiInGestione(id))
       return
     }
 
-    esegui(() => cambiaStato(id, nuovo, nuovo === 'perso' ? motivo : undefined))
+    esegui(nuovo, () => cambiaStato(id, nuovo, nuovo === 'perso' ? motivo : undefined))
   }
 
   return (
@@ -159,7 +173,7 @@ export function PannelloPipeline({
             disabled={isPending || !puoOperare}
             onClick={() => vaiA(prossimo)}
           >
-            {ETICHETTE_AZIONE[prossimo]}
+            {inCorso === prossimo ? 'Un momento…' : ETICHETTE_AZIONE[prossimo]}
           </button>
         ))}
 
@@ -169,9 +183,9 @@ export function PannelloPipeline({
               type="button"
               className="btn-ghost btn-small"
               disabled={isPending}
-              onClick={() => esegui(() => riapriGestione(id))}
+              onClick={() => esegui('riapri', () => riapriGestione(id))}
             >
-              Riapri gestione
+              {inCorso === 'riapri' ? 'Riapro…' : 'Riapri gestione'}
             </button>
           ) : (
             <span className="gestione-meta">Gestione chiusa: solo un amministratore può riaprirla.</span>
@@ -205,7 +219,7 @@ export function PannelloPipeline({
               disabled={isPending || !motivo.trim()}
               onClick={() => vaiA('perso')}
             >
-              Conferma perso
+              {inCorso === 'perso' ? 'Un momento…' : 'Conferma perso'}
             </button>
             <button
               type="button"
@@ -224,34 +238,62 @@ export function PannelloPipeline({
 
       {errore && <p className="gestione-errore">{errore}</p>}
 
-      {eAmministratore && (
+      {/* Passaggio di mano: in fondo e chiuso, perche' e' l'eccezione e non il
+          lavoro di ogni giorno. Lo vede chi ha il lead in mano e chi ha il
+          permesso "Puo' riassegnare i lead" (Gestione utenti); per gli altri
+          non c'e' nulla da mostrare. */}
+      {(mio || puoRiassegnareLead) && (
         <div className="pipeline-riassegna">
-          <label className="gestione-note-label" htmlFor={`riassegna-${id}`}>
-            Riassegna a (solo amministratori)
-          </label>
-          <div className="pipeline-azioni">
-            <select
-              id={`riassegna-${id}`}
-              className="filter-select"
-              value={destinatario}
-              onChange={(e) => setDestinatario(e.target.value)}
-            >
-              <option value="">Scegli un operatore…</option>
-              {staff.map((persona) => (
-                <option key={persona.email} value={persona.email}>
-                  {persona.nome}
-                </option>
-              ))}
-            </select>
+          {riassegnaAperta ? (
+            <>
+              <label className="gestione-note-label" htmlFor={`riassegna-${id}`}>
+                Passa il lead a
+              </label>
+              <div className="pipeline-azioni">
+                <select
+                  id={`riassegna-${id}`}
+                  className="filter-select"
+                  value={destinatario}
+                  onChange={(e) => setDestinatario(e.target.value)}
+                >
+                  <option value="">Scegli un operatore…</option>
+                  {staff.map((persona) => (
+                    <option key={persona.email} value={persona.email}>
+                      {persona.nome}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-small"
+                  disabled={isPending || !destinatario}
+                  onClick={() => esegui('riassegna', () => riassegna(id, destinatario))}
+                >
+                  {inCorso === 'riassegna' ? 'Un momento…' : 'Conferma'}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-small"
+                  disabled={isPending}
+                  onClick={() => {
+                    setRiassegnaAperta(false)
+                    setDestinatario('')
+                  }}
+                >
+                  Annulla
+                </button>
+              </div>
+            </>
+          ) : (
             <button
               type="button"
-              className="btn-ghost btn-small"
-              disabled={isPending || !destinatario}
-              onClick={() => esegui(() => riassegna(id, destinatario))}
+              className="pipeline-riassegna-apri"
+              disabled={isPending}
+              onClick={() => setRiassegnaAperta(true)}
             >
-              Riassegna
+              + Riassegna a un altro operatore
             </button>
-          </div>
+          )}
         </div>
       )}
     </div>

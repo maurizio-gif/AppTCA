@@ -16,6 +16,7 @@ export const AZIONI_LOG: Record<string, string> = {
   utente_rimosso: 'Utente rimosso',
   permesso_invitare_modificato: 'Permesso "Può invitare" modificato',
   permesso_cancellare_modificato: 'Permesso "Può cancellare" modificato',
+  permesso_riassegnare_modificato: 'Permesso "Può riassegnare i lead" modificato',
   sezioni_modificate: 'Sezioni visibili modificate',
   contatto_gestito: 'Contatto: stato gestione modificato',
   contatto_nota_salvata: 'Contatto: nota salvata',

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { registraLog } from '@/lib/audit'
-import { puoAmministrare } from '@/lib/auth/permessi'
+import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
 import { nomePersona } from '@/lib/persone'
 import {
   ETICHETTE_STATO,
@@ -259,9 +259,6 @@ export async function riapriGestione(id: string): Promise<Risultato> {
 export async function riassegna(id: string, nuovoAssegnato: string): Promise<Risultato> {
   const email = emailCorrente()
   if (!email) return { ok: false, errore: 'Sessione scaduta: ricarica la pagina e rientra.' }
-  if (!(await puoAmministrare(email))) {
-    return { ok: false, errore: 'Solo un amministratore può riassegnare un lead.' }
-  }
 
   const destinatario = nuovoAssegnato.trim().toLowerCase()
   if (!destinatario) return { ok: false, errore: 'Scegli a chi assegnare il lead.' }
@@ -273,6 +270,14 @@ export async function riassegna(id: string, nuovoAssegnato: string): Promise<Ris
 
   const { data: opportunita } = await leggiOpportunita(id)
   if (!opportunita) return { ok: false, errore: 'Opportunità non trovata: ricarica la pagina.' }
+
+  // Chi ha il lead in mano lo puo' sempre passare a un collega; per gli altri
+  // serve il permesso "Puo' riassegnare i lead" (Gestione utenti). Il
+  // controllo e' qui e non solo nella UI: la Server Action resta chiamabile a
+  // mano.
+  if (!stessoOperatore(opportunita.assegnato_a, email) && !(await puoRiassegnare(email))) {
+    return { ok: false, errore: 'Non hai il permesso di riassegnare un lead di qualcun altro.' }
+  }
 
   const stato = normalizzaStato(opportunita.stato)
   const adesso = new Date().toISOString()
