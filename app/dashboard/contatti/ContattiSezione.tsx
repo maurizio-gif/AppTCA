@@ -259,7 +259,7 @@ export async function ContattiSezione({
             voci={vociCalendario}
             nuovoTask={
               vedeAgenda ? (
-                <NuovoTask staff={elencoStaff} emailCorrente={emailCorrente} collegabili={[]} />
+                <NuovoTask staff={elencoStaff} emailCorrente={emailCorrente} />
               ) : undefined
             }
           />

@@ -56,12 +56,7 @@ export default async function AgendaPage({
         ? supabase.from('form_contatti').select('*')
         : Promise.resolve({ data: [] as Record<string, any>[] }),
       supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
-      // Solo i lead ancora aperti: a un invito chiuso non si attaccano piu'
-      // task, e la tendina "collega a" resta corta.
-      supabase
-        .from('form_invita_amico')
-        .select('id, amico_nome, amico_cognome, amico_email')
-        .in('stato', ['nuovo', 'in_gestione', 'vinto']),
+      supabase.from('form_invita_amico').select('id, amico_nome, amico_cognome, amico_email'),
       supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
       puoAmministrare(emailCorrente),
     ])
@@ -80,14 +75,15 @@ export default async function AgendaPage({
     elencoStaff.map((persona) => [persona.email.toLowerCase(), persona.nome])
   )
 
-  const collegabili = (inviti ?? []).map((invito) => ({
-    valore: `form_invita_amico:${invito.id}`,
-    etichetta: `Invita un amico · ${
-      `${invito.amico_nome ?? ''} ${invito.amico_cognome ?? ''}`.trim() || invito.amico_email || 'invito'
-    }`,
-  }))
+  // Etichette dei record collegati ai task, per non mostrare
+  // "form_invita_amico:9f2c…" in calendario.
   const etichetteCollegamento: Record<string, string> = Object.fromEntries(
-    collegabili.map((opzione) => [opzione.valore, opzione.etichetta])
+    (inviti ?? []).map((invito) => [
+      `form_invita_amico:${invito.id}`,
+      `Invita un amico · ${
+        `${invito.amico_nome ?? ''} ${invito.amico_cognome ?? ''}`.trim() || invito.amico_email || 'invito'
+      }`,
+    ])
   )
 
   // Nome delle persone dei task: in agenda conta con chi e' l'appuntamento.
@@ -190,7 +186,7 @@ export default async function AgendaPage({
         <CalendarioAgenda
           voci={voci}
           nuovoTask={
-            <NuovoTask staff={elencoStaff} emailCorrente={emailCorrente} collegabili={collegabili} />
+            <NuovoTask staff={elencoStaff} emailCorrente={emailCorrente} />
           }
         />
       ) : (
