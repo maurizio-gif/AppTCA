@@ -34,7 +34,6 @@ const AVANZAMENTO: Record<StatoPipeline, number> = {
   nuovo: 1,
   in_gestione: 2,
   vinto: 3,
-  credito_caricato: 4,
 }
 
 function emailCorrente(): string | null {

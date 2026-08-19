@@ -4066,3 +4066,18 @@ button.cal-cella {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* Riga che richiede ancora un'azione e non deve passare inosservata scorrendo
+   l'elenco (es. un referral vinto col credito del socio da caricare): vedi
+   ExpandableRow, prop "evidenziata". */
+.row-clickable.riga-evidenza > td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.row-clickable.riga-evidenza > td {
+  background: #fdf6e7;
+}
+
+.row-clickable.riga-evidenza:hover > td {
+  background: #fbeed2;
+}

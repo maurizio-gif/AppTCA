@@ -31,6 +31,7 @@ export function ExpandableRow({
   sections = [],
   extra,
   extraTitle = 'Gestione',
+  evidenziata = false,
 }: {
   // Identificativo univoco della riga nella tabella (es. l'id del record):
   // serve al gruppo di accordion per sapere quale riga tenere aperta.
@@ -53,6 +54,9 @@ export function ExpandableRow({
   sections?: { title: string; content: React.ReactNode }[]
   extra?: React.ReactNode
   extraTitle?: string
+  // Riga che richiede ancora un'azione e non deve passare inosservata (es. un
+  // referral vinto col credito da caricare): sfondo e bordo di richiamo.
+  evidenziata?: boolean
 }) {
   const gruppo = useContext(AccordionContext)
   const [openLocale, setOpenLocale] = useState(false)
@@ -75,7 +79,7 @@ export function ExpandableRow({
   return (
     <>
       <tr
-        className={`row-clickable${open ? ' is-open' : ''}`}
+        className={`row-clickable${open ? ' is-open' : ''}${evidenziata ? ' riga-evidenza' : ''}`}
         onClick={alternaOpen}
       >
         <td className="expand-indicator">{open ? '−' : '+'}</td>

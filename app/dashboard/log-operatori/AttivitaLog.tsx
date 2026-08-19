@@ -33,7 +33,7 @@ const TABELLE_COLLEGATE: Record<TabellaCollegata, { chiaveId: string; select: st
   form_invita_amico: {
     chiaveId: 'id',
     select:
-      'id, created_at, amico_nome, amico_cognome, amico_email, amico_cellulare, email_socio, stato, assegnato_a, motivo_perso, note',
+      'id, created_at, amico_nome, amico_cognome, amico_email, amico_cellulare, email_socio, stato, assegnato_a, motivo_perso, credito_caricato, note',
   },
   form_scuola_tennis: {
     chiaveId: 'id',

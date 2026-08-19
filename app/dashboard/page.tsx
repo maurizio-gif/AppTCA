@@ -28,7 +28,7 @@ export default async function DashboardHome() {
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
-    supabase.from('form_invita_amico').select('stato'),
+    supabase.from('form_invita_amico').select('stato, credito_caricato'),
     supabase.from('iscrizioni_eventi').select('*', { count: 'exact', head: true }),
   ])
 
@@ -44,11 +44,15 @@ export default async function DashboardHome() {
   }
 
   // Contatori della pipeline "Invita un amico" (vedi lib/pipeline.ts): il
-  // carico di lavoro non e' piu' "da gestire/gestiti" ma nuovi da prendere
-  // in carico, in gestione e vinti che aspettano il caricamento del credito.
+  // carico di lavoro non e' piu' "da gestire/gestiti" ma nuovi da prendere in
+  // carico, in gestione, e referral vinti col credito del socio ancora da
+  // caricare - che e' l'unica cosa che li tiene aperti.
   const righeInviti = invitiPerRiepilogo.data ?? []
   const contaInviti = (stato: StatoPipeline) =>
     righeInviti.filter((riga) => normalizzaStato(riga.stato) === stato).length
+  const invitiCreditoDaCaricare = righeInviti.filter(
+    (riga) => normalizzaStato(riga.stato) === 'vinto' && !riga.credito_caricato
+  ).length
 
   const contattiAdultiDaGestire = contaContatti('adulti', false)
   const contattiAdultiGestiti = contaContatti('adulti', true)
@@ -113,8 +117,8 @@ export default async function DashboardHome() {
                 />
                 <StatCard
                   href="/dashboard/invita-amico?filtro=da_caricare"
-                  label="Vinti da caricare"
-                  value={contaInviti('vinto')}
+                  label="Credito da caricare"
+                  value={invitiCreditoDaCaricare}
                 />
               </div>
             </div>

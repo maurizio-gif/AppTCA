@@ -13,9 +13,10 @@ import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { puoAmministrare } from '@/lib/auth/permessi'
 import { nomePersona, totaleRichieste } from '@/lib/persone'
 import { conteggiRichieste } from '@/lib/persone-server'
-import { normalizzaStato, OPZIONI_FILTRO, parseFiltro, statiDelFiltro } from '@/lib/pipeline'
+import { normalizzaStato, type StatoPipeline } from '@/lib/pipeline'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
 import { TaskEntita } from '../agenda/TaskEntita'
+import { CreditoToggle } from './CreditoToggle'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,12 +45,57 @@ const COLONNE_VISIBILI = [
   'gestito',
   'gestito_da',
   'gestito_il',
+  'credito_caricato',
+  'credito_caricato_da',
+  'credito_caricato_il',
   'persona_id',
   'persona_socio_id',
   'opportunita_id',
 ]
 
 type RigaInvito = Record<string, any>
+
+// I filtri sono di questa sezione e non della pipeline generale, perche' solo
+// qui esiste il credito da riconoscere al socio: "Credito da caricare" e'
+// un referral vinto col toggle ancora spento, e finche' e' li' non e' finito.
+const FILTRI = ['nuovi', 'in_gestione', 'da_caricare', 'chiusi', 'tutti'] as const
+type Filtro = (typeof FILTRI)[number]
+
+const OPZIONI_FILTRO = [
+  { valore: 'nuovi', etichetta: 'Nuovi' },
+  { valore: 'in_gestione', etichetta: 'In gestione' },
+  { valore: 'da_caricare', etichetta: 'Credito da caricare' },
+  { valore: 'chiusi', etichetta: 'Chiusi (credito caricato e persi)' },
+  { valore: 'tutti', etichetta: 'Tutti' },
+]
+
+// Assente o non valido = "nuovi": e' quello che si vede aprendo la pagina dal
+// menu, cioe' il lavoro non ancora preso in carico da nessuno.
+function parseFiltro(raw: string | undefined): Filtro {
+  if (raw && (FILTRI as readonly string[]).includes(raw)) return raw as Filtro
+  return 'nuovi'
+}
+
+// Un referral vinto col credito ancora da caricare non e' finito: resta in
+// evidenza nell'elenco e nel filtro "Credito da caricare".
+function creditoDaCaricare(stato: StatoPipeline, riga: RigaInvito): boolean {
+  return stato === 'vinto' && !riga.credito_caricato
+}
+
+function nelFiltro(filtro: Filtro, stato: StatoPipeline, riga: RigaInvito): boolean {
+  switch (filtro) {
+    case 'nuovi':
+      return stato === 'nuovo'
+    case 'in_gestione':
+      return stato === 'in_gestione'
+    case 'da_caricare':
+      return creditoDaCaricare(stato, riga)
+    case 'chiusi':
+      return stato === 'perso' || (stato === 'vinto' && !!riga.credito_caricato)
+    default:
+      return true
+  }
+}
 
 export default async function InvitaAmicoPage({
   searchParams,
@@ -130,7 +176,6 @@ export default async function InvitaAmicoPage({
 
   const filtro = parseFiltro(searchParams.filtro)
   const soloMiei = searchParams.mio === '1'
-  const stati = statiDelFiltro(filtro)
 
   // Lo stato di riferimento e' quello dell'opportunita'; la colonna sulla
   // richiesta e' il suo specchio e serve solo se l'opportunita' mancasse.
@@ -140,7 +185,7 @@ export default async function InvitaAmicoPage({
     opportunitaPerId.get(riga.opportunita_id)?.assegnato_a ?? riga.assegnato_a ?? null
 
   const righeFiltrate = inviti.filter((riga: RigaInvito) => {
-    if (stati && !stati.includes(statoDi(riga))) return false
+    if (!nelFiltro(filtro, statoDi(riga), riga)) return false
     if (soloMiei) {
       // "I miei" include anche i nuovi non ancora assegnati: sono il lavoro
       // che chiunque puo' prendere, nasconderli renderebbe il filtro una
@@ -169,7 +214,12 @@ export default async function InvitaAmicoPage({
           </li>
           <li>
             Da «In gestione» si esce in due modi: <strong>Vinto</strong> oppure <strong>Perso</strong> (con il
-            motivo). Un lead vinto si chiude davvero solo con <strong>Credito caricato</strong>.
+            motivo).
+          </li>
+          <li>
+            Su un referral <strong>vinto</strong> resta il credito da riconoscere al socio: la riga resta{' '}
+            <strong>in evidenza</strong> finché non alzi il toggle «Credito caricato». È l'unico modo per farla
+            sparire dall'elenco, così un credito non si perde per strada.
           </li>
           <li>
             Per segnare vinto o perso serve una nota salvata: è il modo per lasciare traccia di cosa è stato
@@ -207,6 +257,7 @@ export default async function InvitaAmicoPage({
             <tbody>
               {righeFiltrate.map((riga) => {
                 const stato = statoDi(riga)
+                const daCaricare = creditoDaCaricare(stato, riga)
                 const lead = opportunitaPerId.get(riga.opportunita_id)
                 const amico = personePerId.get(riga.persona_id)
                 const socio = personePerId.get(riga.persona_socio_id)
@@ -220,8 +271,29 @@ export default async function InvitaAmicoPage({
                     columns={COLONNE_TABELLA}
                     record={riga}
                     hiddenKeys={COLONNE_VISIBILI}
+                    evidenziata={daCaricare}
                     evidenza={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
                     sections={
+                      [
+                        // Il credito riguarda solo i referral vinti: prima di
+                        // allora non c'e' nulla da caricare, quindi il toggle
+                        // non compare affatto.
+                        ...(stato === 'vinto'
+                          ? [
+                              {
+                                title: 'Credito referral',
+                                content: (
+                                  <CreditoToggle
+                                    id={riga.id}
+                                    caricato={!!riga.credito_caricato}
+                                    caricatoDa={riga.credito_caricato_da ?? null}
+                                    caricatoIl={riga.credito_caricato_il ?? null}
+                                  />
+                                ),
+                              },
+                            ]
+                          : []),
+                      ].concat(
                       vedeAgenda
                         ? [
                             {
@@ -243,6 +315,7 @@ export default async function InvitaAmicoPage({
                             },
                           ]
                         : []
+                      )
                     }
                     extra={
                       lead ? (
@@ -299,7 +372,15 @@ export default async function InvitaAmicoPage({
                           {riga.amico_email} · {riga.amico_prefisso} {riga.amico_cellulare}
                         </span>
                       </>,
-                      <PipelineBadge stato={stato} />,
+                      <>
+                        <PipelineBadge stato={stato} />
+                        {daCaricare && (
+                          <>
+                            <br />
+                            <span className="richiesta-badge richiesta-ambra">Credito da caricare</span>
+                          </>
+                        )}
+                      </>,
                       etichettaOperatore(assegnatoDi(riga)) ?? '—',
                     ]}
                   />
