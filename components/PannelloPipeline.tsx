@@ -7,12 +7,11 @@ import {
   ETICHETTE_AZIONE,
   ETICHETTE_STATO,
   PASSI_AVANZAMENTO as PASSI,
-  STATI_CON_NOTA,
   TRANSIZIONI,
   eStatoFinale,
   type StatoPipeline,
 } from '@/lib/pipeline'
-import { cambiaStato, prendiInGestione, riapriGestione, riassegna, salvaNota } from '@/app/dashboard/opportunita/actions'
+import { cambiaStato, prendiInGestione, riapriGestione, riassegna } from '@/app/dashboard/opportunita/actions'
 
 // Avanzamento come fila di pallini numerati con l'etichetta sotto: quelli
 // fatti spuntati, quello attuale in evidenza, i prossimi spenti. Un lead
@@ -72,7 +71,6 @@ export function PannelloPipeline({
   assegnatoIl,
   statoIl,
   motivoPerso,
-  noteIniziali,
   emailCorrente,
   eAmministratore,
   staff,
@@ -83,13 +81,10 @@ export function PannelloPipeline({
   assegnatoIl: string | null
   statoIl: string | null
   motivoPerso: string | null
-  noteIniziali: string | null
   emailCorrente: string | null
   eAmministratore: boolean
   staff: { email: string; nome: string }[]
 }) {
-  const [note, setNote] = useState(noteIniziali ?? '')
-  const [noteSalvata, setNoteSalvata] = useState(true)
   const [errore, setErrore] = useState<string | null>(null)
   const [chiedeMotivo, setChiedeMotivo] = useState(false)
   const [motivo, setMotivo] = useState('')
@@ -110,19 +105,6 @@ export function PannelloPipeline({
   }
 
   function vaiA(nuovo: StatoPipeline) {
-    // Controlli locali solo per risparmiare il giro di rete: gli stessi
-    // vincoli sono ripetuti lato server.
-    if (STATI_CON_NOTA.includes(nuovo)) {
-      if (!note.trim()) {
-        setErrore(`Scrivi e salva una nota prima di segnare l'invito come «${ETICHETTE_STATO[nuovo]}».`)
-        return
-      }
-      if (!noteSalvata) {
-        setErrore('Salva la nota prima di cambiare stato.')
-        return
-      }
-    }
-
     if (nuovo === 'perso' && !chiedeMotivo) {
       setErrore(null)
       setChiedeMotivo(true)
@@ -233,36 +215,6 @@ export function PannelloPipeline({
       )}
 
       {errore && <p className="gestione-errore">{errore}</p>}
-
-      <label className="gestione-note-label" htmlFor={`note-lead-${id}`}>
-        Note sul lead {!noteSalvata || !note.trim() ? '(obbligatoria per segnare vinto o perso)' : ''}
-      </label>
-      <textarea
-        id={`note-lead-${id}`}
-        className="gestione-note"
-        rows={3}
-        value={note}
-        onChange={(e) => {
-          setNote(e.target.value)
-          setNoteSalvata(false)
-        }}
-        placeholder="Cosa è stato fatto con questa persona…"
-      />
-      <button
-        type="button"
-        className="btn-ghost btn-small"
-        disabled={isPending || noteSalvata}
-        onClick={() => {
-          setErrore(null)
-          startTransition(async () => {
-            const risultato = await salvaNota(id, note)
-            if (risultato.ok) setNoteSalvata(true)
-            else setErrore(risultato.errore)
-          })
-        }}
-      >
-        {noteSalvata ? 'Nota salvata' : 'Salva nota'}
-      </button>
 
       {eAmministratore && (
         <div className="pipeline-riassegna">

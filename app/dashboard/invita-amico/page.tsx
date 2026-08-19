@@ -217,13 +217,9 @@ export default async function InvitaAmicoPage({
             motivo).
           </li>
           <li>
-            Su un referral <strong>vinto</strong> resta il credito da riconoscere al socio: la riga resta{' '}
-            <strong>in evidenza</strong> finché non alzi il toggle «Credito caricato». È l'unico modo per farla
-            sparire dall'elenco, così un credito non si perde per strada.
-          </li>
-          <li>
-            Per segnare vinto o perso serve una nota salvata: è il modo per lasciare traccia di cosa è stato
-            fatto. Prendere in gestione invece è un solo click.
+            Appena un referral è <strong>Vinto</strong> compare il toggle <strong>«Credito caricato SI/NO»</strong>:
+            finché è su NO la riga resta <strong>in evidenza</strong>, ed è l'unico modo per farla sparire
+            dall'elenco — così un credito da riconoscere al socio non si perde per strada.
           </li>
           <li>
             Nel blocco <strong>«In agenda»</strong> della riga crei un task o un appuntamento già collegato a
@@ -233,7 +229,7 @@ export default async function InvitaAmicoPage({
         <p className="box-istruzioni-nota">
           Lo stato è del <strong>lead della persona</strong>, non della singola richiesta: se la stessa persona ha
           già un'opportunità aperta (per esempio da un'enquiry), l'invito si aggancia a quella invece di creare un
-          secondo lead da lavorare due volte. «Perso» e «Credito caricato» sono finali: per riaprirli serve un
+          secondo lead da lavorare due volte. «Vinto» e «Perso» chiudono il lead: per riaprirlo serve un
           amministratore, che può anche riassegnare.
         </p>
       </BoxIstruzioni>
@@ -281,7 +277,7 @@ export default async function InvitaAmicoPage({
                         ...(stato === 'vinto'
                           ? [
                               {
-                                title: 'Credito referral',
+                                title: 'Credito caricato',
                                 content: (
                                   <CreditoToggle
                                     id={riga.id}
@@ -326,7 +322,6 @@ export default async function InvitaAmicoPage({
                           assegnatoIl={lead.assegnato_il ?? null}
                           statoIl={lead.stato_il ?? null}
                           motivoPerso={lead.motivo_perso ?? null}
-                          noteIniziali={lead.note ?? null}
                           emailCorrente={emailCorrente}
                           eAmministratore={eAmministratore}
                           staff={elencoStaff}

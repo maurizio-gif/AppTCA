@@ -33,6 +33,8 @@ export const AZIONI_LOG: Record<string, string> = {
   opportunita_stato_cambiato: 'Lead: stato pipeline cambiato',
   opportunita_riaperta: 'Lead: gestione riaperta',
   opportunita_riassegnata: 'Lead: riassegnato a un altro operatore',
+  // Azione non piu' possibile (il campo nota sul lead e' stato rimosso):
+  // resta l'etichetta per le righe storiche del registro.
   opportunita_nota_salvata: 'Lead: nota salvata',
   persone_unite: 'Anagrafica: due schede unite',
   duplicato_ignorato: 'Anagrafica: coppia segnata come persone diverse',
