@@ -3,9 +3,9 @@
 import { ToggleConMeta } from '@/components/ToggleConMeta'
 import { impostaCreditoCaricato } from './actions'
 
-// Toggle del credito referral, stesso componente e stesso gesto del "Caricato
-// su PerfectGym" di Scuola Tennis. Compare solo sui referral vinti: finche' e'
-// su "Da caricare" l'invito resta in evidenza nell'elenco.
+// Toggle "Credito caricato SI/NO", stesso componente e stesso gesto del
+// "Caricato su PerfectGym" di Scuola Tennis. Compare solo sui referral vinti:
+// finche' e' su NO l'invito resta in evidenza nell'elenco.
 export function CreditoToggle({
   id,
   caricato,
@@ -22,8 +22,8 @@ export function CreditoToggle({
       attivo={caricato}
       attivoDa={caricatoDa}
       attivoIl={caricatoIl}
-      etichettaOff="Credito da caricare"
-      etichettaOn="Credito caricato"
+      etichettaOff="NO"
+      etichettaOn="SI"
       onToggle={(nuovo) => impostaCreditoCaricato(id, nuovo)}
     />
   )

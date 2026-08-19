@@ -178,9 +178,9 @@ nuovo → in_gestione → vinto   (finale)
   (`assegnato_a`, `assegnato_il`, letti dall'header `x-tca-user-email` del
   middleware, mai da un valore passato dal client). Da lì in avanti solo lui
   — o un amministratore — può far avanzare il lead.
-- Prendere in gestione è **un click, senza nota**: la nota diventa
-  obbligatoria per uscire da "in gestione" (vinto o perso), e su `perso`
-  serve anche il `motivo_perso`.
+- Prendere in gestione è **un click**, e lo sono anche vinto e perso: nessuna
+  nota obbligatoria da nessuna parte (il campo nota sul lead è stato rimosso).
+  Su `perso` resta il solo `motivo_perso`, che serve alle analisi.
 - `vinto` e `perso` sono gli stati finali e valorizzano `chiuso_il` (utile per
   i tempi di ciclo in Analytics).
 - Il **credito da riconoscere al socio non è uno stato**: riguarda solo i

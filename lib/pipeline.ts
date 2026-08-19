@@ -56,11 +56,6 @@ export const ETICHETTE_AZIONE: Record<StatoPipeline, string> = {
   perso: 'Segna perso',
 }
 
-// Passaggi che chiudono (o quasi) la gestione e per cui serve una nota
-// salvata: prendere in gestione invece deve restare un click, altrimenti
-// nessuno lo fa e il dato di presa in carico non vale niente.
-export const STATI_CON_NOTA: readonly StatoPipeline[] = ['vinto', 'perso']
-
 export function eStatoValido(valore: string | null | undefined): valore is StatoPipeline {
   return !!valore && (STATI as readonly string[]).includes(valore)
 }

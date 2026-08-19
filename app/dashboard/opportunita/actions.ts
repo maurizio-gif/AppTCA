@@ -8,7 +8,6 @@ import { puoAmministrare } from '@/lib/auth/permessi'
 import { nomePersona } from '@/lib/persone'
 import {
   ETICHETTE_STATO,
-  STATI_CON_NOTA,
   eStatoFinale,
   eStatoValido,
   normalizzaStato,
@@ -52,7 +51,7 @@ async function leggiOpportunita(id: string) {
   const supabase = createSupabaseServiceClient()
   return supabase
     .from('opportunita')
-    .select('id, stato, assegnato_a, assegnato_il, note, persona_id, persone(nome, cognome, email)')
+    .select('id, stato, assegnato_a, assegnato_il, persona_id, persone(nome, cognome, email)')
     .eq('id', id)
     .maybeSingle()
 }
@@ -156,13 +155,6 @@ export async function cambiaStato(id: string, nuovoStato: string, motivoPerso?: 
     return {
       ok: false,
       errore: `Questo lead è assegnato a ${opportunita.assegnato_a ?? 'un altro operatore'}: solo chi lo gestisce (o un amministratore) può cambiarne lo stato.`,
-    }
-  }
-
-  if (STATI_CON_NOTA.includes(nuovoStato) && !opportunita.note?.trim()) {
-    return {
-      ok: false,
-      errore: `Scrivi e salva una nota prima di segnare il lead come «${ETICHETTE_STATO[nuovoStato]}».`,
     }
   }
 
@@ -306,31 +298,6 @@ export async function riassegna(id: string, nuovoAssegnato: string): Promise<Ris
     entita: 'opportunita',
     entitaId: id,
     dettagli: { ...dettagliLog(opportunita), da: opportunita.assegnato_a ?? null, a: destinatario },
-  })
-
-  rinfresca()
-
-  return { ok: true }
-}
-
-// Una nota per lead (non per richiesta): e' la storia della trattativa, ed e'
-// quella che serve per poterlo segnare vinto o perso.
-export async function salvaNota(id: string, note: string): Promise<Risultato> {
-  const email = emailCorrente()
-  const supabase = createSupabaseServiceClient()
-
-  const { data: opportunita } = await leggiOpportunita(id)
-  if (!opportunita) return { ok: false, errore: 'Opportunità non trovata: ricarica la pagina.' }
-
-  const { error } = await supabase.from('opportunita').update({ note }).eq('id', id)
-  if (error) return { ok: false, errore: error.message }
-
-  // Il testo della nota entra nel log: e' la sostanza dell'azione, e in
-  // Controllo Operatori serve poter verificare cosa e' stato scritto.
-  await registraLog(email, 'opportunita_nota_salvata', {
-    entita: 'opportunita',
-    entitaId: id,
-    dettagli: { ...dettagliLog(opportunita), nota: note },
   })
 
   rinfresca()
