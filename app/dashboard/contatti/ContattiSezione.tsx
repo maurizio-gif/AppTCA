@@ -11,7 +11,11 @@ import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
 import { VistaTabs } from '@/components/VistaTabs'
-import { CalendarioAppuntamenti } from './CalendarioAppuntamenti'
+import { CalendarioAgenda, type VoceCalendario } from '@/components/CalendarioAgenda'
+import { puoAmministrare } from '@/lib/auth/permessi'
+import { voceCalendarioDaContatto } from './VociAppuntamenti'
+import { voceCalendarioDaTask } from '../agenda/VociTask'
+import { NuovoTask } from '../agenda/NuovoTask'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 
@@ -84,9 +88,9 @@ function corrispondeRicerca(riga: RigaContatto, query: string): boolean {
 //
 // Solo per Adulti, la sezione si divide in due viste (vedi VistaTabs):
 // Messaggi (da smaltire subito, in ordine di arrivo) e Appuntamenti
-// (mostrati nel calendario in base al giorno fissato, non a quando e'
-// arrivata la richiesta - vedi CalendarioAppuntamenti). Su Junior non c'e'
-// questa distinzione, resta l'unica lista di sempre.
+// (nel calendario dell'agenda condivisa, in base al giorno fissato e non a
+// quando e' arrivata la richiesta - vedi components/CalendarioAgenda.tsx).
+// Su Junior non c'e' questa distinzione, resta l'unica lista di sempre.
 export async function ContattiSezione({
   gruppo,
   titolo,
@@ -105,12 +109,24 @@ export async function ContattiSezione({
   }
 
   const supabase = createSupabaseServiceClient()
-  const emailCorrente = headers().get('x-tca-user-email')
+  const emailCorrente = (headers().get('x-tca-user-email') ?? '').toLowerCase() || null
 
-  const [{ data: righe, error }, { data: viewer }] = await Promise.all([
-    supabase.from('form_contatti').select('*').order('created_at', { ascending: false }),
-    supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
-  ])
+  // Solo la vista Adulti ha il calendario, ed e' la stessa agenda condivisa
+  // di /dashboard/agenda: qui arrivano quindi anche i task delle consulenti
+  // (tabella task), non solo gli appuntamenti prenotati dal sito. I task
+  // pero' li vede (e li crea) solo chi ha il permesso della sezione Agenda:
+  // il calendario condiviso non e' una scorciatoia per aggirarlo.
+  const conDivisioneViste = gruppo === 'adulti'
+  const vedeAgenda = conDivisioneViste && (await utenteHaSezione('agenda'))
+
+  const [{ data: righe, error }, { data: viewer }, { data: task }, { data: staff }, eAmministratore] =
+    await Promise.all([
+      supabase.from('form_contatti').select('*').order('created_at', { ascending: false }),
+      supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
+      vedeAgenda ? supabase.from('task').select('*') : Promise.resolve({ data: [] as Record<string, any>[] }),
+      supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
+      puoAmministrare(emailCorrente),
+    ])
 
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
@@ -127,7 +143,14 @@ export async function ContattiSezione({
 
   const righeSezione = (righe ?? []).filter((riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo))
 
-  const conDivisioneViste = gruppo === 'adulti'
+  const elencoStaff = (staff ?? []).map((persona) => ({
+    email: persona.email,
+    nome: `${persona.nome ?? ''} ${persona.cognome ?? ''}`.trim() || persona.email,
+  }))
+  const nomiStaff: Record<string, string> = Object.fromEntries(
+    elencoStaff.map((persona) => [persona.email.toLowerCase(), persona.nome])
+  )
+
   const messaggiSezione = conDivisioneViste
     ? righeSezione.filter((riga) => classificaContatto(riga) === 'messaggio')
     : righeSezione
@@ -148,6 +171,26 @@ export async function ContattiSezione({
   const appuntamentiFiltrati = query
     ? appuntamentiSezione.filter((riga) => corrispondeRicerca(riga, query))
     : appuntamentiSezione
+
+  // Appuntamenti dal sito e task nello stesso calendario (vedi lib/agenda.ts).
+  // Durante una ricerca i task restano fuori: si sta cercando un contatto,
+  // e un elenco di task non c'entrerebbe niente col risultato.
+  const vociCalendario: VoceCalendario[] = conDivisioneViste
+    ? [
+        ...appuntamentiFiltrati.map((riga) =>
+          voceCalendarioDaContatto(riga, {
+            nomiStaff,
+            puoCancellare,
+            accessi: riga.vid ? accessiPerVid[riga.vid] ?? [] : [],
+          })
+        ),
+        ...(query
+          ? []
+          : (task ?? []).map((riga) =>
+              voceCalendarioDaTask(riga, { nomiStaff, emailCorrente, eAmministratore })
+            )),
+      ]
+    : []
 
   return (
     <div>
@@ -193,26 +236,32 @@ export async function ContattiSezione({
           <BoxIstruzioni titolo="Come funziona">
             <ol>
               <li>
-                Il calendario mostra ogni appuntamento nel giorno <strong>fissato</strong>, non nel giorno in cui è
-                arrivata la richiesta: un giorno con un pallino ha almeno un appuntamento.
+                Questo è il calendario dell'<strong>agenda condivisa</strong> (la stessa che trovi alla voce
+                Agenda): ci sono sia gli appuntamenti prenotati dal sito sia i task e gli appuntamenti che vi
+                fissate voi.
               </li>
               <li>
-                Pallino rosso: c'è almeno un appuntamento da gestire quel giorno. Pallino verde: tutti gestiti.
+                Ogni appuntamento compare nel giorno <strong>fissato</strong>, non nel giorno in cui è arrivata la
+                richiesta. Pallino rosso: quel giorno c'è ancora qualcosa da fare; pallino verde: tutto gestito.
               </li>
-              <li>Clicca un giorno con il pallino per aprire sotto la lista degli appuntamenti di quel giorno.</li>
+              <li>Clicca un giorno per aprire sotto l'elenco, e «+ Aggiungi in agenda» per metterci qualcosa.</li>
               <li>
                 Apri una riga per aggiungere una nota, segnarla come gestita o cancellarla (se hai il permesso).
               </li>
             </ol>
             <p className="box-istruzioni-nota">
               Un appuntamento senza una data registrata finisce nella sezione «Senza data» in fondo alla pagina,
-              così non resta invisibile.
+              così non resta invisibile. Durante una ricerca il calendario mostra solo gli appuntamenti trovati,
+              senza i task.
             </p>
           </BoxIstruzioni>
-          <CalendarioAppuntamenti
-            righe={appuntamentiFiltrati}
-            puoCancellare={puoCancellare}
-            accessiPerVid={accessiPerVid}
+          <CalendarioAgenda
+            voci={vociCalendario}
+            nuovoTask={
+              vedeAgenda ? (
+                <NuovoTask staff={elencoStaff} emailCorrente={emailCorrente} collegabili={[]} />
+              ) : undefined
+            }
           />
           {query && appuntamentiFiltrati.length === 0 && (
             <p className="empty-state">Nessun risultato per la ricerca negli appuntamenti.</p>

@@ -21,6 +21,7 @@ type TabellaCollegata =
   | 'form_scuola_tennis'
   | 'form_summer_camp'
   | 'staff_users'
+  | 'task'
 
 const TABELLE_COLLEGATE: Record<TabellaCollegata, { chiaveId: string; select: string }> = {
   form_contatti: {
@@ -29,7 +30,8 @@ const TABELLE_COLLEGATE: Record<TabellaCollegata, { chiaveId: string; select: st
   },
   form_invita_amico: {
     chiaveId: 'id',
-    select: 'id, created_at, amico_nome, amico_cognome, amico_email, amico_cellulare, email_socio, gestito, note',
+    select:
+      'id, created_at, amico_nome, amico_cognome, amico_email, amico_cellulare, email_socio, stato, assegnato_a, motivo_perso, note',
   },
   form_scuola_tennis: {
     chiaveId: 'id',
@@ -44,6 +46,10 @@ const TABELLE_COLLEGATE: Record<TabellaCollegata, { chiaveId: string; select: st
   staff_users: {
     chiaveId: 'email',
     select: 'email, nome, cognome, puo_invitare, puo_cancellare, sezioni_consentite',
+  },
+  task: {
+    chiaveId: 'id',
+    select: 'id, created_at, titolo, tipo, data, ora, assegnato_a, creato_da, stato, esito, entita, entita_id',
   },
 }
 

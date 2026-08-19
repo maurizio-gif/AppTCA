@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
 import { apparteneAGruppo, type GruppoContatto } from '@/lib/contatti'
+import { normalizzaStato, type StatoPipeline } from '@/lib/pipeline'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,8 +20,7 @@ export default async function DashboardHome() {
     scuolaTennisCaricato,
     summerCampDaCaricare,
     summerCampCaricato,
-    invitaAmicoDaGestire,
-    invitaAmicoGestiti,
+    invitiPerRiepilogo,
     iscrizioniEventi,
   ] = await Promise.all([
     supabase.from('form_contatti').select('gruppo_attivita, gestito'),
@@ -28,8 +28,7 @@ export default async function DashboardHome() {
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
-    supabase.from('form_invita_amico').select('*', { count: 'exact', head: true }).eq('gestito', false),
-    supabase.from('form_invita_amico').select('*', { count: 'exact', head: true }).eq('gestito', true),
+    supabase.from('form_invita_amico').select('stato'),
     supabase.from('iscrizioni_eventi').select('*', { count: 'exact', head: true }),
   ])
 
@@ -43,6 +42,13 @@ export default async function DashboardHome() {
       (riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo) && !!riga.gestito === gestito
     ).length
   }
+
+  // Contatori della pipeline "Invita un amico" (vedi lib/pipeline.ts): il
+  // carico di lavoro non e' piu' "da gestire/gestiti" ma nuovi da prendere
+  // in carico, in gestione e vinti che aspettano il caricamento del credito.
+  const righeInviti = invitiPerRiepilogo.data ?? []
+  const contaInviti = (stato: StatoPipeline) =>
+    righeInviti.filter((riga) => normalizzaStato(riga.stato) === stato).length
 
   const contattiAdultiDaGestire = contaContatti('adulti', false)
   const contattiAdultiGestiti = contaContatti('adulti', true)
@@ -99,15 +105,16 @@ export default async function DashboardHome() {
             <div className="riepilogo-sottosezione">
               <h3 className="riepilogo-sottosezione-titolo">Invita un amico</h3>
               <div className="stat-row">
+                <StatCard href="/dashboard/invita-amico?filtro=nuovi" label="Nuovi" value={contaInviti('nuovo')} />
                 <StatCard
-                  href="/dashboard/invita-amico?filtro=da_gestire"
-                  label="Da gestire"
-                  value={invitaAmicoDaGestire.count ?? 0}
+                  href="/dashboard/invita-amico?filtro=in_gestione"
+                  label="In gestione"
+                  value={contaInviti('in_gestione')}
                 />
                 <StatCard
-                  href="/dashboard/invita-amico?filtro=gestiti"
-                  label="Gestiti"
-                  value={invitaAmicoGestiti.count ?? 0}
+                  href="/dashboard/invita-amico?filtro=da_caricare"
+                  label="Vinti da caricare"
+                  value={contaInviti('vinto')}
                 />
               </div>
             </div>

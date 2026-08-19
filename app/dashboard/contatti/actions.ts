@@ -60,6 +60,9 @@ export async function impostaGestito(id: string, gestito: boolean): Promise<Risu
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
+  // Gli appuntamenti compaiono anche nell'agenda condivisa, dove si
+  // gestiscono con questo stesso pannello (vedi lib/agenda.ts).
+  revalidatePath('/dashboard/agenda')
 
   return { ok: true }
 }
@@ -92,6 +95,9 @@ export async function salvaNote(id: string, note: string): Promise<Risultato> {
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
+  // Gli appuntamenti compaiono anche nell'agenda condivisa, dove si
+  // gestiscono con questo stesso pannello (vedi lib/agenda.ts).
+  revalidatePath('/dashboard/agenda')
 
   return { ok: true }
 }
@@ -137,6 +143,9 @@ export async function eliminaContatto(id: string): Promise<Risultato> {
 
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
+  // Gli appuntamenti compaiono anche nell'agenda condivisa, dove si
+  // gestiscono con questo stesso pannello (vedi lib/agenda.ts).
+  revalidatePath('/dashboard/agenda')
 
   return { ok: true }
 }
