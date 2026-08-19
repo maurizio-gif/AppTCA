@@ -68,7 +68,8 @@ export default async function PersonePage({
     conteggiRichieste(ids),
   ])
 
-  // Il lead da mostrare e' quello aperto; se non ce n'e' uno, l'ultimo chiuso.
+  // L'opportunita' da mostrare e' quella aperta; se non ce n'e' una, l'ultima
+  // chiusa.
   const leadPerPersona = new Map<string, Record<string, any>>()
   for (const lead of opportunita ?? []) {
     const attuale = leadPerPersona.get(lead.persona_id)
@@ -95,7 +96,7 @@ export default async function PersonePage({
             </Link>{' '}
             da valutare a mano.
           </li>
-          <li>Apri una scheda per vedere tutte le sue richieste, il lead, l'agenda e le visite al sito.</li>
+          <li>Apri una scheda per vedere tutte le sue richieste, l'opportunità, l'agenda e le visite al sito.</li>
         </ol>
         <p className="box-istruzioni-nota">
           «Solo storico HubSpot» sono le persone che conosciamo dai vecchi lead ma che non hanno ancora compilato
@@ -115,8 +116,8 @@ export default async function PersonePage({
               <th>Nome</th>
               <th>Contatti</th>
               <th>Richieste</th>
-              <th>Lead</th>
-              <th>Assegnato a</th>
+              <th>Opportunità</th>
+              <th>Assegnata a</th>
               <th>Prima fonte</th>
             </tr>
           </thead>
@@ -141,10 +142,10 @@ export default async function PersonePage({
                     <span className="muted">{[persona.email, persona.cellulare].filter(Boolean).join(' · ') || '—'}</span>
                   </td>
                   <td data-label="Richieste">{richieste}</td>
-                  <td data-label="Lead">
+                  <td data-label="Opportunità">
                     {lead ? <PipelineBadge stato={normalizzaStato(lead.stato)} /> : '—'}
                   </td>
-                  <td data-label="Assegnato a">{lead?.assegnato_a ?? '—'}</td>
+                  <td data-label="Assegnata a">{lead?.assegnato_a ?? '—'}</td>
                   <td data-label="Prima fonte">{etichettaFonte(persona.fonte) ?? '—'}</td>
                 </tr>
               )

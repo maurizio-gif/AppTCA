@@ -4,8 +4,8 @@ import { useState, useTransition } from 'react'
 import { impostaPuoRiassegnare } from './actions'
 
 // Stesso toggle di PuoCancellareToggle, per il diritto di passare a un altro
-// operatore un lead che non e' il proprio (chi ce l'ha in mano puo' sempre
-// farlo da se').
+// operatore un'opportunita' che non e' la propria (chi ce l'ha in mano puo'
+// sempre farlo da se').
 export function PuoRiassegnareToggle({
   email,
   puoRiassegnare,

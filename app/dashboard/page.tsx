@@ -23,7 +23,7 @@ export default async function DashboardHome() {
     invitiPerRiepilogo,
     iscrizioniEventi,
   ] = await Promise.all([
-    supabase.from('form_contatti').select('gruppo_attivita, gestito'),
+    supabase.from('form_contatti').select('gruppo_attivita, opportunita_id'),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
@@ -34,19 +34,35 @@ export default async function DashboardHome() {
 
   const righeContatti = contattiPerRiepilogo.data ?? []
 
+  // Il carico di lavoro delle Enquiries e' lo stato dell'opportunita' della
+  // persona, non piu' un flag sulla richiesta: servono quindi gli stati delle
+  // opportunita' collegate.
+  const opportunitaIds = [...new Set(righeContatti.map((r) => r.opportunita_id).filter(Boolean))] as string[]
+  const { data: opportunitaContatti } = opportunitaIds.length
+    ? await supabase.from('opportunita').select('id, stato').in('id', opportunitaIds)
+    : { data: [] as { id: string; stato: string }[] }
+  const statoOpportunita = new Map((opportunitaContatti ?? []).map((o) => [o.id, normalizzaStato(o.stato)]))
+
   // Stesso criterio Adulti/Junior usato dalle due sezioni Enquiries (vedi
-  // lib/contatti.ts): i contatori "da gestire" restano il carico di lavoro
-  // attuale.
-  function contaContatti(gruppo: GruppoContatto, gestito: boolean) {
+  // lib/contatti.ts). Una richiesta senza opportunita' (manca l'email, quindi
+  // non c'e' una persona) conta come da prendere in carico: e' lavoro che
+  // qualcuno deve guardare, non deve sparire dai numeri.
+  function contaContatti(gruppo: GruppoContatto, stato: StatoPipeline) {
     return righeContatti.filter(
-      (riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo) && !!riga.gestito === gestito
+      (riga) =>
+        apparteneAGruppo(riga.gruppo_attivita, gruppo) &&
+        (riga.opportunita_id ? statoOpportunita.get(riga.opportunita_id) ?? 'nuovo' : 'nuovo') === stato
     ).length
   }
 
-  // Contatori della pipeline "Invita un amico" (vedi lib/pipeline.ts): il
-  // carico di lavoro non e' piu' "da gestire/gestiti" ma nuovi da prendere in
-  // carico, in gestione, e referral vinti col credito del socio ancora da
-  // caricare - che e' l'unica cosa che li tiene aperti.
+  const contattiAdultiDaPrendere = contaContatti('adulti', 'nuovo')
+  const contattiAdultiInGestione = contaContatti('adulti', 'in_gestione')
+  const contattiJuniorDaPrendere = contaContatti('junior', 'nuovo')
+  const contattiJuniorInGestione = contaContatti('junior', 'in_gestione')
+
+  // Contatori di "Invita un amico": opportunita' da prendere in carico, in
+  // gestione, e referral vinti col credito del socio ancora da caricare - che
+  // e' l'unica cosa che li tiene aperti.
   const righeInviti = invitiPerRiepilogo.data ?? []
   const contaInviti = (stato: StatoPipeline) =>
     righeInviti.filter((riga) => normalizzaStato(riga.stato) === stato).length
@@ -54,10 +70,6 @@ export default async function DashboardHome() {
     (riga) => normalizzaStato(riga.stato) === 'vinto' && !riga.credito_caricato
   ).length
 
-  const contattiAdultiDaGestire = contaContatti('adulti', false)
-  const contattiAdultiGestiti = contaContatti('adulti', true)
-  const contattiJuniorDaGestire = contaContatti('junior', false)
-  const contattiJuniorGestiti = contaContatti('junior', true)
 
   return (
     <div>
@@ -74,14 +86,14 @@ export default async function DashboardHome() {
               <h3 className="riepilogo-sottosezione-titolo">Adulti</h3>
               <div className="stat-row">
                 <StatCard
-                  href="/dashboard/contatti/adulti?filtro=da_rispondere"
-                  label="Da rispondere"
-                  value={contattiAdultiDaGestire}
+                  href="/dashboard/contatti/adulti?filtro=da_prendere"
+                  label="Da prendere in carico"
+                  value={contattiAdultiDaPrendere}
                 />
                 <StatCard
-                  href="/dashboard/contatti/adulti?filtro=tutti"
-                  label="Totale"
-                  value={contattiAdultiDaGestire + contattiAdultiGestiti}
+                  href="/dashboard/contatti/adulti?filtro=in_gestione"
+                  label="In gestione"
+                  value={contattiAdultiInGestione}
                 />
               </div>
             </div>
@@ -92,14 +104,14 @@ export default async function DashboardHome() {
               <h3 className="riepilogo-sottosezione-titolo">Junior</h3>
               <div className="stat-row">
                 <StatCard
-                  href="/dashboard/contatti/junior?filtro=da_rispondere"
-                  label="Da rispondere"
-                  value={contattiJuniorDaGestire}
+                  href="/dashboard/contatti/junior?filtro=da_prendere"
+                  label="Da prendere in carico"
+                  value={contattiJuniorDaPrendere}
                 />
                 <StatCard
-                  href="/dashboard/contatti/junior?filtro=tutti"
-                  label="Totale"
-                  value={contattiJuniorDaGestire + contattiJuniorGestiti}
+                  href="/dashboard/contatti/junior?filtro=in_gestione"
+                  label="In gestione"
+                  value={contattiJuniorInGestione}
                 />
               </div>
             </div>
@@ -109,7 +121,11 @@ export default async function DashboardHome() {
             <div className="riepilogo-sottosezione">
               <h3 className="riepilogo-sottosezione-titolo">Invita un amico</h3>
               <div className="stat-row">
-                <StatCard href="/dashboard/invita-amico?filtro=nuovi" label="Nuovi" value={contaInviti('nuovo')} />
+                <StatCard
+                  href="/dashboard/invita-amico?filtro=nuovi"
+                  label="Da prendere in carico"
+                  value={contaInviti('nuovo')}
+                />
                 <StatCard
                   href="/dashboard/invita-amico?filtro=in_gestione"
                   label="In gestione"

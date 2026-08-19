@@ -24,13 +24,13 @@ export type DatiNuovoTask = {
   // tendina "collega a" del form.
   entita?: string | null
   entitaId?: string | null
-  // Persona e lead: se non arrivano ma il task e' collegato a una richiesta,
+  // Persona e opportunita': se non arrivano ma il task e' collegato a una richiesta,
   // si ricavano da quella (vedi sotto) - l'operatore non deve ridirli.
   personaId?: string | null
   opportunitaId?: string | null
 }
 
-// Richieste da cui si puo' ricavare persona e lead di un task collegato.
+// Richieste da cui si puo' ricavare persona e opportunita' di un task.
 const TABELLE_CON_PERSONA = ['form_contatti', 'form_invita_amico'] as const
 
 // Le pagine che mostrano voci d'agenda: un task nuovo o completato deve
@@ -93,7 +93,7 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
 
   // Persona e opportunita': quelle passate dal form, altrimenti quelle della
   // richiesta collegata. Cosi' un task creato dalla riga di un invito nasce
-  // gia' agganciato alla persona e al suo lead, senza chiedere nulla.
+  // gia' agganciato alla persona e alla sua opportunita', senza chiedere nulla.
   let personaId = dati.personaId?.trim() || null
   let opportunitaId = dati.opportunitaId?.trim() || null
 
@@ -107,7 +107,7 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
     opportunitaId = opportunitaId ?? richiesta?.opportunita_id ?? null
   }
 
-  // Il lead deve essere di quella persona: un task agganciato all'opportunita'
+  // L'opportunita' deve essere di quella persona: un task agganciato a quella
   // di qualcun altro comparirebbe nella scheda sbagliata.
   if (opportunitaId) {
     const { data: lead } = await supabase
@@ -115,9 +115,9 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
       .select('id, persona_id')
       .eq('id', opportunitaId)
       .maybeSingle()
-    if (!lead) return { ok: false, errore: 'Il lead collegato non esiste piu\': ricarica la pagina.' }
+    if (!lead) return { ok: false, errore: 'L’opportunità collegata non esiste più: ricarica la pagina.' }
     if (personaId && lead.persona_id !== personaId) {
-      return { ok: false, errore: 'Il lead scelto non è di quella persona.' }
+      return { ok: false, errore: 'L’opportunità scelta non è di quella persona.' }
     }
     personaId = personaId ?? lead.persona_id
   }

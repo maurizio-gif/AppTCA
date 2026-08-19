@@ -13,7 +13,7 @@ import { creaTask } from './actions'
 // L'ordine dei campi segue il modo in cui si ragiona al telefono: prima CON CHI
 // (la persona), poi SU COSA (quale delle sue richieste, dalla piu' recente), e
 // solo dopo il quando e il cosa fare. Scegliendo la richiesta il task si
-// aggancia da solo anche al lead di quella richiesta.
+// aggancia da solo anche all'opportunita' di quella richiesta.
 export function FormTask({
   staff,
   emailCorrente,
@@ -31,7 +31,7 @@ export function FormTask({
   dataProposta: string
   // Collegamento gia' deciso da chi apre il form (task creato dalla riga di
   // un invito, di un contatto…): in quel caso non si chiede niente, persona e
-  // lead li ricava il server da quella richiesta.
+  // opportunita' li ricava il server da quella richiesta.
   collegamentoFisso?: { valore: string; etichetta: string }
   // Persona gia' decisa (form aperto dalla sua scheda): non si cerca, ma le
   // sue richieste si possono comunque collegare.
@@ -97,8 +97,8 @@ export function FormTask({
   const data = dataManuale ?? dataProposta
   const durata = durataManuale ?? DURATA_PREDEFINITA[tipo]
 
-  // Il lead: quello della richiesta scelta se c'e', altrimenti quello aperto
-  // della persona (una sola per volta, vedi la tabella opportunita).
+  // L'opportunita': quella della richiesta scelta se c'e', altrimenti quella
+  // aperta della persona (una sola per volta, vedi la tabella opportunita).
   function leadDaCollegare(): string | null {
     if (richiestaScelta) {
       return richieste.find((r) => r.chiave === richiestaScelta)?.opportunitaId ?? null
@@ -112,7 +112,7 @@ export function FormTask({
 
       {collegamentoFisso ? (
         <p className="agenda-collegamento">
-          Collegato a: {collegamentoFisso.etichetta} — persona e lead vengono presi da questa richiesta.
+          Collegato a: {collegamentoFisso.etichetta} — persona e opportunità vengono prese da questa richiesta.
         </p>
       ) : (
         <>
@@ -123,8 +123,8 @@ export function FormTask({
               persona={persona}
               onScegli={(scelta) => {
                 setPersona(scelta)
-                // Una persona ha di norma un solo lead aperto: se c'e' lo
-                // scegliamo noi, cosi' l'operatore non deve fare nulla.
+                // Una persona ha di norma una sola opportunita' aperta: se
+                // c'e' la scegliamo noi, l'operatore non deve fare nulla.
                 setOpportunitaId(scelta?.opportunita[0]?.id ?? '')
               }}
             />

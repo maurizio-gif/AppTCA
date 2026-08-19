@@ -22,9 +22,9 @@ export async function puoAmministrare(email: string | null | undefined): Promise
   return !!data?.puo_invitare
 }
 
-// Diritto di passare un lead a un altro operatore (colonna puo_riassegnare,
-// assegnabile da Gestione utenti). Chi ha il lead in mano puo' sempre
-// riassegnarlo: il controllo su questo permesso serve per tutti gli altri.
+// Diritto di passare a un altro operatore un'opportunita' che non e' la propria
+// (colonna puo_riassegnare, assegnabile da Gestione utenti). Chi ce l'ha in mano
+// puo' sempre passarla: il controllo serve per tutte le altre.
 export async function puoRiassegnare(email: string | null | undefined): Promise<boolean> {
   if (!email) return false
 

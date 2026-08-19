@@ -5,6 +5,7 @@ import { formatDateOra } from '@/lib/format'
 import { PipelineBadge } from '@/components/PipelineBadge'
 import {
   ETICHETTE_AZIONE,
+  normalizzaStato,
   ETICHETTE_STATO,
   PASSI_AVANZAMENTO as PASSI,
   TRANSIZIONI,
@@ -14,10 +15,17 @@ import {
 import { cambiaStato, prendiInGestione, riapriGestione, riassegna } from '@/app/dashboard/opportunita/actions'
 
 // Avanzamento come fila di pallini numerati con l'etichetta sotto: quelli
-// fatti spuntati, quello attuale in evidenza, i prossimi spenti. Un lead
-// perso non ha un "punto" nella fila (puo' uscire da "in gestione" o da
-// "vinto"), quindi mostriamo la sola presa in carico e l'uscita: e' la
-// verita' che conosciamo, non una posizione inventata.
+// fatti spuntati, quello attuale in evidenza, i prossimi spenti. Un'opportunita'
+// persa non ha un "punto" nella fila (puo' uscire da "in gestione" o da
+// "vinta"), quindi mostriamo la sola presa in carico e l'uscita: e' la verita'
+// che conosciamo, non una posizione inventata.
+// Uno stato storico potrebbe non essere piu' fra quelli previsti (e' successo
+// con "credito caricato", diventato un toggle): si mostra comunque, con
+// l'etichetta di oggi quando la conosciamo.
+function etichettaStato(valore: string): string {
+  return ETICHETTE_STATO[normalizzaStato(valore)] ?? valore
+}
+
 function Stepper({ stato }: { stato: StatoPipeline }) {
   if (stato === 'perso') {
     return (
@@ -55,15 +63,15 @@ function Stepper({ stato }: { stato: StatoPipeline }) {
   )
 }
 
-// Pannello di gestione di un lead (opportunita'): al posto del vecchio
-// toggle "Da gestire/Gestito" c'e' la pipeline di lib/pipeline.ts. Chi prende
-// in gestione il lead ne diventa il titolare e da quel momento solo lui - o
-// un amministratore - lo fa avanzare; i controlli veri stanno comunque nelle
+// Pannello di gestione di un'opportunita': al posto del vecchio toggle "Da
+// gestire/Gestito" ci sono gli stati di lib/pipeline.ts. Chi la prende in
+// carico ne diventa il titolare e da quel momento solo lui - o un
+// amministratore - la fa avanzare; i controlli veri stanno comunque nelle
 // Server Action, qui evitiamo solo giri di rete inutili.
 //
 // L'opportunita' e' della PERSONA, non della singola richiesta: lo stesso
-// pannello serve quindi ogni sezione che mostra un lead (oggi Invita un
-// amico, domani le Enquiries).
+// pannello serve quindi ogni sezione che ne mostra una (Enquiries e Invita un
+// amico).
 export function PannelloPipeline({
   id,
   stato,
@@ -75,6 +83,7 @@ export function PannelloPipeline({
   eAmministratore,
   puoRiassegnareLead = false,
   staff,
+  storico = [],
   dopoAzioni,
 }: {
   id: string
@@ -85,10 +94,13 @@ export function PannelloPipeline({
   motivoPerso: string | null
   emailCorrente: string | null
   eAmministratore: boolean
-  // Permesso "Puo' riassegnare i lead" (staff_users.puo_riassegnare): serve
-  // solo per i lead di qualcun altro, il proprio si passa sempre.
+  // Permesso di riassegnazione (staff_users.puo_riassegnare): serve
+  // solo per le opportunita' di qualcun altro, la propria si passa sempre.
   puoRiassegnareLead?: boolean
   staff: { email: string; nome: string }[]
+  // Passaggi di stato in ordine di data (dal piu' recente): li scrive un
+  // trigger sul database, vedi opportunita_storico.
+  storico?: { stato: string; statoPrecedente: string | null; cambiatoDa: string | null; cambiatoIl: string }[]
   // Adempimento specifico della sezione, reso subito sotto i pulsanti di
   // stato: e' il caso del credito referral (vedi CreditoToggle), che si legge
   // dove un attimo prima c'era il pulsante "Segna vinto" che lo rende
@@ -96,10 +108,9 @@ export function PannelloPipeline({
   dopoAzioni?: React.ReactNode
 }) {
   const [errore, setErrore] = useState<string | null>(null)
-  const [chiedeMotivo, setChiedeMotivo] = useState(false)
-  const [motivo, setMotivo] = useState('')
   const [destinatario, setDestinatario] = useState('')
   const [riassegnaAperta, setRiassegnaAperta] = useState(false)
+  const [storicoAperto, setStoricoAperto] = useState(false)
   // Quale azione sta girando: una Server Action che rinfresca la pagina puo'
   // metterci un secondo, e senza un segnale il pulsante sembra non aver fatto
   // niente (e si finisce per ricliccarlo).
@@ -117,28 +128,19 @@ export function PannelloPipeline({
       const risultato = await azione()
       setInCorso(null)
       if (!risultato.ok) setErrore(risultato.errore)
-      else {
-        setChiedeMotivo(false)
-        setRiassegnaAperta(false)
-      }
+      else setRiassegnaAperta(false)
     })
   }
 
   function vaiA(nuovo: StatoPipeline) {
-    if (nuovo === 'perso' && !chiedeMotivo) {
-      setErrore(null)
-      setChiedeMotivo(true)
-      return
-    }
-
     // La presa in carico ha un'azione a se': e' l'unico passaggio che puo'
-    // fare chiunque, ed e' quello che assegna il lead (vedi actions.ts).
+    // fare chiunque, ed e' quello che assegna l'opportunita' (vedi actions.ts).
     if (stato === 'nuovo' && nuovo === 'in_gestione') {
       esegui(nuovo, () => prendiInGestione(id))
       return
     }
 
-    esegui(nuovo, () => cambiaStato(id, nuovo, nuovo === 'perso' ? motivo : undefined))
+    esegui(nuovo, () => cambiaStato(id, nuovo))
   }
 
   return (
@@ -188,7 +190,7 @@ export function PannelloPipeline({
               {inCorso === 'riapri' ? 'Riapro…' : 'Riapri gestione'}
             </button>
           ) : (
-            <span className="gestione-meta">Gestione chiusa: solo un amministratore può riaprirla.</span>
+            <span className="gestione-meta">Chiusa: solo un amministratore può riaprirla.</span>
           ))}
       </div>
 
@@ -196,58 +198,57 @@ export function PannelloPipeline({
 
       {!puoOperare && (
         <p className="gestione-meta">
-          Questo lead è in gestione a {assegnatoA}: puoi leggerlo, ma non cambiarne lo stato.
+          Questa opportunità è in gestione a {assegnatoA}: puoi vederla, ma non cambiarne lo stato.
         </p>
-      )}
-
-      {chiedeMotivo && (
-        <div className="pipeline-motivo-box">
-          <label className="gestione-note-label" htmlFor={`motivo-${id}`}>
-            Motivo della perdita (obbligatorio)
-          </label>
-          <input
-            id={`motivo-${id}`}
-            className="pipeline-motivo-input"
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-            placeholder="Es. non interessato, già socio altrove, prezzo…"
-          />
-          <div className="pipeline-azioni">
-            <button
-              type="button"
-              className="btn btn-small"
-              disabled={isPending || !motivo.trim()}
-              onClick={() => vaiA('perso')}
-            >
-              {inCorso === 'perso' ? 'Un momento…' : 'Conferma perso'}
-            </button>
-            <button
-              type="button"
-              className="btn-ghost btn-small"
-              disabled={isPending}
-              onClick={() => {
-                setChiedeMotivo(false)
-                setMotivo('')
-              }}
-            >
-              Annulla
-            </button>
-          </div>
-        </div>
       )}
 
       {errore && <p className="gestione-errore">{errore}</p>}
 
+      {/* Quando e' cambiato cosa: chiuso, perche' serve quando qualcuno chiede
+          "chi l'ha presa e quando", non ogni volta che si apre la riga. */}
+      {storico.length > 0 && (
+        <div className="pipeline-storico">
+          {storicoAperto ? (
+            <>
+              <button
+                type="button"
+                className="pipeline-riassegna-apri"
+                onClick={() => setStoricoAperto(false)}
+              >
+                − Nascondi lo storico
+              </button>
+              <ol className="pipeline-storico-elenco">
+                {storico.map((voce, i) => (
+                  <li key={`${voce.cambiatoIl}-${i}`}>
+                    <span className="pipeline-storico-quando">{formatDateOra(voce.cambiatoIl)}</span>
+                    <span>
+                      {voce.statoPrecedente
+                        ? `${etichettaStato(voce.statoPrecedente)} → ${etichettaStato(voce.stato)}`
+                        : etichettaStato(voce.stato)}
+                    </span>
+                    {voce.cambiatoDa && <span className="muted">{voce.cambiatoDa}</span>}
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : (
+            <button type="button" className="pipeline-riassegna-apri" onClick={() => setStoricoAperto(true)}>
+              + Storico dei passaggi ({storico.length})
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Passaggio di mano: in fondo e chiuso, perche' e' l'eccezione e non il
-          lavoro di ogni giorno. Lo vede chi ha il lead in mano e chi ha il
-          permesso "Puo' riassegnare i lead" (Gestione utenti); per gli altri
-          non c'e' nulla da mostrare. */}
+          lavoro di ogni giorno. Lo vede chi l'ha in mano e chi ha il permesso
+          "Puo' riassegnare le opportunita'" (Gestione utenti); per gli altri non c'e'
+          nulla da mostrare. */}
       {(mio || puoRiassegnareLead) && (
         <div className="pipeline-riassegna">
           {riassegnaAperta ? (
             <>
               <label className="gestione-note-label" htmlFor={`riassegna-${id}`}>
-                Passa il lead a
+                Passa l'opportunità a
               </label>
               <div className="pipeline-azioni">
                 <select
@@ -291,7 +292,7 @@ export function PannelloPipeline({
               disabled={isPending}
               onClick={() => setRiassegnaAperta(true)}
             >
-              + Riassegna a un altro operatore
+              + Passa a un altro operatore
             </button>
           )}
         </div>

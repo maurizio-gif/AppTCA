@@ -418,3 +418,70 @@ sede), quindi ovunque c'è un **elenco** e non un singolo appuntamento:
   pulsante sembrava non aver fatto nulla.
 
 Migrazione applicata: `permesso_puo_riassegnare`.
+
+## Aggiornamento — «Opportunità» al posto di «Lead», storico dei passaggi, niente più flag sulla richiesta
+
+### Nomenclatura
+
+Una richiesta dal sito è un'**enquiry**; la trattativa che ne nasce è
+un'**opportunità**, ed è della persona. «Lead» è sparito dall'interfaccia.
+
+Gli stati non usano più la parola «nuovo», che si scontrava con
+`form_contatti.stato` — il dato verificato su PerfectGym, che vale NUOVO,
+NUOVO ADULTO, MAI AVUTO CONTRATTO, ENDED, CURRENT:
+
+| stato (database) | etichetta |
+| :--- | :--- |
+| `nuovo` | Da prendere in carico |
+| `in_gestione` | In gestione |
+| `vinto` | Vinta |
+| `perso` | Persa |
+
+I valori sul database restano quelli: cambiare le etichette non richiede una
+migrazione, e cambiare i valori sì. In tabella «Stato contatto» e
+«Opportunità» sono due colonne distinte, di proposito.
+
+### Un solo posto dove si dice se è lavorata
+
+Il flag `gestito` sulle enquiries **non si usa più**: era la stessa cosa detta
+due volte («gestito» accanto a «in gestione») e l'operatore doveva ricordarsi
+di aggiornare entrambi. Della singola richiesta restano la **nota** di cosa è
+stato fatto e la **cancellazione**; lo stato di lavorazione è quello
+dell'opportunità.
+
+Conseguenze gestite:
+
+- **Analytics** leggeva `gestito`/`gestito_il` per la presa in carico: ora
+  quelle informazioni arrivano dall'opportunità (`conPresaInCarico` in
+  `lib/opportunita-server.ts`), scritte sugli stessi campi che la pagina legge
+  da sempre — nessuna modifica a `lib/analytics.ts`.
+- **Dashboard**: i contatori Enquiries sono «Da prendere in carico» e «In
+  gestione», calcolati sulle opportunità.
+- Il trigger `gestito_muove_opportunita` è stato rimosso: non aveva più niente
+  da intercettare. Le colonne `gestito*` restano con i valori storici.
+
+### Storico dei passaggi
+
+Nuova tabella **`opportunita_storico`**, scritta da un trigger su `opportunita`
+(quindi registra anche una modifica fatta da Studio o da n8n): stato
+precedente, stato nuovo, titolare in quel momento e chi ha fatto il cambio.
+Nel pannello c'è «+ Storico dei passaggi (N)», chiuso per default. Il registro
+operatori resta il controllo generale del CRM; questa è la timeline della
+singola trattativa.
+
+Le opportunità già esistenti hanno una riga iniziale con lo stato attuale e la
+data che conoscevamo: prima di oggi la storia non è ricostruibile, e inventarla
+sarebbe peggio che non averla.
+
+### Altro
+
+- **Niente motivo obbligatorio** per segnare persa: è un click, come gli altri
+  passaggi. Un motivo già scritto in passato resta visibile.
+- **Invita un amico**: l'opportunità è dell'**amico invitato** — è lui il
+  soggetto da gestire — e il titolo del pannello lo dice («Opportunità ·
+  Mario Rossi»). Il socio resta collegato all'invito e ne conta il credito.
+- **Scheda del socio**: nuovo blocco «Amici invitati» con quanti sono, quanti
+  si sono iscritti (opportunità vinta) e quanti hanno il credito caricato, con
+  il link alla scheda di ciascun amico.
+
+Migrazioni applicate: `storico_opportunita`, `rimuovi_trigger_gestito_enquiry`.

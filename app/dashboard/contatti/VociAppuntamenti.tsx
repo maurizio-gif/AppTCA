@@ -7,7 +7,7 @@ import { formatDateOra } from '@/lib/format'
 import { normalizzaStato } from '@/lib/pipeline'
 import type { RigaAccesso } from '@/lib/visite'
 import { TaskEntita } from '../agenda/TaskEntita'
-import { GestioneSezione } from './GestioneSezione'
+import { GestioneRichiesta } from './GestioneRichiesta'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
 
 type RigaContatto = Record<string, any>
@@ -46,14 +46,16 @@ function ArrivoRichiesta({ riga }: { riga: RigaContatto }) {
 }
 
 export type OpzioniGestione = {
-  // Il lead della persona (tabella opportunita): la pipeline e' sua, non della
-  // singola richiesta.
+  // L'opportunita' della persona: gli stati sono suoi, non della singola
+  // richiesta.
   lead: Record<string, any> | null
   emailCorrente: string | null
   eAmministratore: boolean
   puoRiassegnareLead: boolean
   puoCancellare: boolean
   staff: { email: string; nome: string }[]
+  // Passaggi di stato dell'opportunita' (vedi lib/opportunita-server.ts).
+  storico?: { stato: string; statoPrecedente: string | null; cambiatoDa: string | null; cambiatoIl: string }[]
   // Eventi in agenda collegati a questa richiesta: una stessa enquiry ne puo'
   // avere piu' di uno (una chiamata, poi la visita in sede). Assente = chi
   // costruisce la riga non ha accesso all'agenda.
@@ -64,17 +66,17 @@ export type OpzioniGestione = {
 // lista dei Messaggi sia il calendario degli Appuntamenti, che sono due viste
 // della stessa cosa e non devono divergere.
 //
-// Tre blocchi, in ordine di importanza: il lead (la trattativa, che e' della
-// persona), la singola richiesta (ho risposto a questo messaggio? con nota e
-// cancellazione) e l'agenda.
+// Tre blocchi, in ordine di importanza: l'opportunita' (la trattativa, che e'
+// della persona), la singola richiesta (la nota di cosa e' stato fatto, e la
+// cancellazione per chi ne ha il permesso) e l'agenda.
 export function bloccoGestioneContatto(
   riga: RigaContatto,
-  { lead, emailCorrente, eAmministratore, puoRiassegnareLead, puoCancellare, staff, task }: OpzioniGestione
+  { lead, emailCorrente, eAmministratore, puoRiassegnareLead, puoCancellare, staff, storico, task }: OpzioniGestione
 ): { extra: React.ReactNode; extraTitle: string; sections: { title: string; content: React.ReactNode }[] } {
   const nome = `${riga.nome ?? ''} ${riga.cognome ?? ''}`.trim() || riga.email || 'contatto'
 
   return {
-    extraTitle: 'Lead',
+    extraTitle: 'Opportunità',
     extra: lead ? (
       <PannelloPipeline
         id={lead.id}
@@ -87,29 +89,18 @@ export function bloccoGestioneContatto(
         eAmministratore={eAmministratore}
         puoRiassegnareLead={puoRiassegnareLead}
         staff={staff}
+        storico={storico}
       />
     ) : (
       <p className="gestione-meta">
-        Questa richiesta non è collegata a una persona in anagrafica (manca l'email), quindi non ha un lead da
-        gestire.
+        Questa richiesta non è collegata a una persona in anagrafica (manca l'email), quindi non ha un'opportunità
+        da gestire.
       </p>
     ),
     sections: [
       {
-        // "Gestito" qui vuol dire "a questo messaggio ho risposto", che non e'
-        // lo stato del lead: la stessa persona puo' avere una trattativa aperta
-        // e un messaggio nuovo ancora senza risposta.
         title: 'Questa richiesta',
-        content: (
-          <GestioneSezione
-            id={riga.id}
-            gestito={!!riga.gestito}
-            gestitoDa={riga.gestito_da ?? null}
-            gestitoIl={riga.gestito_il ?? null}
-            noteIniziali={riga.note ?? null}
-            puoCancellare={puoCancellare}
-          />
-        ),
+        content: <GestioneRichiesta id={riga.id} noteIniziali={riga.note ?? null} puoCancellare={puoCancellare} />,
       },
       ...(task
         ? [
@@ -154,8 +145,8 @@ export function voceCalendarioDaContatto(
   const { extra, extraTitle, sections } = bloccoGestioneContatto(riga, gestione)
 
   return {
-    ...voceDaContatto(riga),
-    assegnatoEtichetta: riga.gestito ? etichettaPersona(riga.gestito_da, nomiStaff) : null,
+    ...voceDaContatto(riga, gestione.lead),
+    assegnatoEtichetta: etichettaPersona(gestione.lead?.assegnato_a, nomiStaff),
     sottotitolo: <ContactLinks email={riga.email} phone={riga.cellulare} />,
     record: riga,
     hiddenKeys: CAMPI_CONTATTO_NASCOSTI,

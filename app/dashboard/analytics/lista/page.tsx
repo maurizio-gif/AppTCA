@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { conPresaInCarico } from '@/lib/opportunita-server'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { RichiestaEvidenza } from '@/app/dashboard/contatti/RichiestaEvidenza'
@@ -59,7 +60,9 @@ export default async function AnalyticsListaPage({
     return <p className="error-banner">Error loading data: {error.message}</p>
   }
 
-  const righeContatti: Record<string, any>[] = data ?? []
+  // Come nella pagina Analytics: la presa in carico arriva dall'opportunita'
+  // della persona, non da un flag sulla richiesta.
+  const righeContatti: Record<string, any>[] = await conPresaInCarico(data ?? [])
   const giorno = dataValida(searchParams.giorno) ? searchParams.giorno : undefined
   const dimensione = parseDimensione(searchParams.dimensione)
   const chiave = searchParams.chiave

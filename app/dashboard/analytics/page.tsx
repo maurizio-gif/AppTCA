@@ -1,4 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { conPresaInCarico } from '@/lib/opportunita-server'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { EnquiriesChart } from '@/components/EnquiriesChart'
 import { TotaleChart } from '@/components/TotaleChart'
@@ -142,11 +143,14 @@ export default async function AnalyticsPage({
     const { data, error } = await supabase
       .from('form_contatti')
       .select(
-        'created_at, gruppo_attivita, attivita, utm_source, utm_medium, utm_campaign, utm_term, cta, pagina, esito_verifica_pgm, gestito, gestito_da, gestito_il'
+        'created_at, gruppo_attivita, attivita, utm_source, utm_medium, utm_campaign, utm_term, cta, pagina, esito_verifica_pgm, opportunita_id'
       )
       .order('created_at')
     if (error) return <p className="error-banner">Error loading data (site): {error.message}</p>
-    righeSito = data ?? []
+    // La presa in carico non e' piu' un flag sulla singola richiesta: e' quella
+    // dell'opportunita' della persona, riportata sui campi che questa pagina
+    // legge da sempre (vedi lib/opportunita-server.ts).
+    righeSito = await conPresaInCarico(data ?? [])
   }
 
   if (fonte === 'storico' || fonte === 'entrambi') {

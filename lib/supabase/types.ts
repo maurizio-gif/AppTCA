@@ -863,6 +863,36 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunita_storico: {
+        Row: {
+          assegnato_a: string | null
+          cambiato_da: string | null
+          cambiato_il: string
+          id: number
+          opportunita_id: string
+          stato: string
+          stato_precedente: string | null
+        }
+        Insert: {
+          assegnato_a?: string | null
+          cambiato_da?: string | null
+          cambiato_il?: string
+          id?: never
+          opportunita_id: string
+          stato: string
+          stato_precedente?: string | null
+        }
+        Update: {
+          assegnato_a?: string | null
+          cambiato_da?: string | null
+          cambiato_il?: string
+          id?: never
+          opportunita_id?: string
+          stato?: string
+          stato_precedente?: string | null
+        }
+        Relationships: []
+      }
       persone: {
         Row: {
           id: string
