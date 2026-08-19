@@ -87,6 +87,11 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
 
   richieste.sort((a, b) => b.quando.localeCompare(a.quando))
 
+  // Per gli eventi in agenda: da quale richiesta e' nato ciascuno.
+  const etichetteRichieste: Record<string, string> = Object.fromEntries(
+    richieste.map(({ modulo, riga }) => [`${modulo.tabella}:${riga.id}`, modulo.etichetta])
+  )
+
   // Visite al sito: i vid delle sue richieste, cosi' si vede quanto e' "calda"
   // la persona e non la singola richiesta.
   const vids = [...new Set(richieste.map((r) => r.riga.vid).filter((v): v is string => !!v))]
@@ -117,6 +122,59 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
         {persona.storico && <span className="richiesta-badge richiesta-neutro">Solo storico HubSpot</span>}
         {persona.pgm_member_id && <span className="richiesta-badge richiesta-viola">PerfectGym</span>}
         <ContactLinks email={persona.email} phone={persona.cellulare} />
+      </div>
+
+      <div className="pannello-gestione">
+        <div className="pannello-gestione-blocco">
+          <div className="pannello-gestione-titolo">Lead</div>
+          {leadAperto ? (
+            <PannelloPipeline
+              id={leadAperto.id}
+              stato={normalizzaStato(leadAperto.stato)}
+              assegnatoA={leadAperto.assegnato_a ?? null}
+              assegnatoIl={leadAperto.assegnato_il ?? null}
+              statoIl={leadAperto.stato_il ?? null}
+              motivoPerso={leadAperto.motivo_perso ?? null}
+              emailCorrente={emailCorrente}
+              eAmministratore={eAmministratore}
+              staff={elencoStaff}
+            />
+          ) : (
+            <p className="gestione-meta">
+              Nessun lead aperto. Ne nasce uno da solo alla prossima enquiry o invito di questa persona.
+            </p>
+          )}
+
+          {leadChiusi.length > 0 && (
+            <ul className="persona-lead-chiusi">
+              {leadChiusi.map((lead) => (
+                <li key={lead.id}>
+                  <PipelineBadge stato={normalizzaStato(lead.stato)} />
+                  <span className="muted">
+                    chiuso il {formatDateOra(lead.chiuso_il)}
+                    {lead.assegnato_a && ` · ${lead.assegnato_a}`}
+                    {lead.motivo_perso && ` · ${lead.motivo_perso}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Tutti gli eventi della persona, anche quelli nati da una sua
+            richiesta: la stessa persona puo' averne piu' di uno. */}
+        <div className="pannello-gestione-blocco">
+          <div className="pannello-gestione-titolo">In agenda</div>
+          <TaskEntita
+            persona={{ id: persona.id, nome, opportunitaId: leadAperto?.id ?? null }}
+            titoloSuggerito={`Ricontattare ${nome}`}
+            task={task ?? []}
+            staff={elencoStaff}
+            emailCorrente={emailCorrente}
+            eAmministratore={eAmministratore}
+            etichetteCollegamento={etichetteRichieste}
+          />
+        </div>
       </div>
 
       <div className="detail-group">
@@ -160,54 +218,6 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
           </ul>
         </div>
       )}
-
-      <div className="detail-group">
-        <div className="detail-group-title">Lead</div>
-        {leadAperto ? (
-          <PannelloPipeline
-            id={leadAperto.id}
-            stato={normalizzaStato(leadAperto.stato)}
-            assegnatoA={leadAperto.assegnato_a ?? null}
-            assegnatoIl={leadAperto.assegnato_il ?? null}
-            statoIl={leadAperto.stato_il ?? null}
-            motivoPerso={leadAperto.motivo_perso ?? null}
-            emailCorrente={emailCorrente}
-            eAmministratore={eAmministratore}
-            staff={elencoStaff}
-          />
-        ) : (
-          <p className="gestione-meta">
-            Nessun lead aperto. Ne nasce uno da solo alla prossima enquiry o invito di questa persona.
-          </p>
-        )}
-
-        {leadChiusi.length > 0 && (
-          <ul className="persona-lead-chiusi">
-            {leadChiusi.map((lead) => (
-              <li key={lead.id}>
-                <PipelineBadge stato={normalizzaStato(lead.stato)} />
-                <span className="muted">
-                  chiuso il {formatDateOra(lead.chiuso_il)}
-                  {lead.assegnato_a && ` · ${lead.assegnato_a}`}
-                  {lead.motivo_perso && ` · ${lead.motivo_perso}`}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="detail-group">
-        <div className="detail-group-title">In agenda</div>
-        <TaskEntita
-          persona={{ id: persona.id, nome, opportunitaId: leadAperto?.id ?? null }}
-          titoloSuggerito={`Ricontattare ${nome}`}
-          task={task ?? []}
-          staff={elencoStaff}
-          emailCorrente={emailCorrente}
-          eAmministratore={eAmministratore}
-        />
-      </div>
 
       <div className="detail-group">
         <div className="detail-group-title">

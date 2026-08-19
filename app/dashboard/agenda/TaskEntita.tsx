@@ -31,6 +31,7 @@ export function TaskEntita({
   staff,
   emailCorrente,
   eAmministratore,
+  etichetteCollegamento = {},
 }: {
   // Task agganciato a una singola richiesta: persona e lead li ricava il
   // server da quella richiesta (vedi creaTask).
@@ -42,6 +43,10 @@ export function TaskEntita({
   staff: { email: string; nome: string }[]
   emailCorrente: string | null
   eAmministratore: boolean
+  // "entita:id" -> nome leggibile della richiesta collegata. Serve dove gli
+  // eventi elencati possono venire da richieste diverse (la scheda persona):
+  // dentro la riga di una richiesta sono tutti suoi e non serve ripeterlo.
+  etichetteCollegamento?: Record<string, string>
 }) {
   const [aperto, setAperto] = useState(false)
   const oggi = new Date()
@@ -70,6 +75,11 @@ export function TaskEntita({
                 riga={riga}
                 emailCorrente={emailCorrente}
                 eAmministratore={eAmministratore}
+                etichettaCollegamento={
+                  riga.entita && riga.entita_id
+                    ? etichetteCollegamento[`${riga.entita}:${riga.entita_id}`] ?? null
+                    : null
+                }
               />
             ))}
           </ul>
@@ -107,10 +117,12 @@ function RigaTaskCollegato({
   riga,
   emailCorrente,
   eAmministratore,
+  etichettaCollegamento,
 }: {
   riga: RigaTask
   emailCorrente: string | null
   eAmministratore: boolean
+  etichettaCollegamento: string | null
 }) {
   const [errore, setErrore] = useState<string | null>(null)
   const [conferma, setConferma] = useState(false)
@@ -144,6 +156,7 @@ function RigaTaskCollegato({
         <span className="gestione-meta">
           {ETICHETTE_STATO_TASK[stato]}
           {riga.assegnato_a && ` · ${riga.assegnato_a}`}
+          {etichettaCollegamento && ` · ${etichettaCollegamento}`}
         </span>
       </div>
 

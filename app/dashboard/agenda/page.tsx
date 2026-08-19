@@ -99,6 +99,16 @@ export default async function AgendaPage({
     voceCalendarioDaTask(riga, { nomiStaff, emailCorrente, eAmministratore, etichetteCollegamento, nomiPersone })
   )
 
+  // Eventi collegati a ciascuna enquiry, per l'elenco dentro la riga: sono gli
+  // stessi task gia' caricati per il calendario, raggruppati per richiesta.
+  const taskPerEnquiry = new Map<string, Record<string, any>[]>()
+  for (const riga of task ?? []) {
+    if (riga.entita !== 'form_contatti' || !riga.entita_id) continue
+    const chiave = String(riga.entita_id)
+    if (!taskPerEnquiry.has(chiave)) taskPerEnquiry.set(chiave, [])
+    taskPerEnquiry.get(chiave)!.push(riga)
+  }
+
   const vociContatti: VoceCalendario[] = (contatti ?? [])
     .filter((riga) => eAppuntamento(riga))
     .filter(
@@ -106,7 +116,18 @@ export default async function AgendaPage({
         (vedeAdulti && apparteneAGruppo(riga.gruppo_attivita, 'adulti')) ||
         (vedeJunior && apparteneAGruppo(riga.gruppo_attivita, 'junior'))
     )
-    .map((riga) => voceCalendarioDaContatto(riga, { nomiStaff, puoCancellare }))
+    .map((riga) =>
+      voceCalendarioDaContatto(riga, {
+        nomiStaff,
+        puoCancellare,
+        agenda: {
+          task: taskPerEnquiry.get(String(riga.id)) ?? [],
+          staff: elencoStaff,
+          emailCorrente,
+          eAmministratore,
+        },
+      })
+    )
 
   const filtro = OPZIONI_FILTRO.some((o) => o.valore === searchParams.filtro)
     ? (searchParams.filtro as string)
