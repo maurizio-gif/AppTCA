@@ -74,8 +74,31 @@ export type Database = {
         }
         Relationships: []
       }
+      duplicati_ignorati: {
+        Row: {
+          id_a: string
+          id_b: string
+          ignorato_da: string | null
+          ignorato_il: string
+        }
+        Insert: {
+          id_a: string
+          id_b: string
+          ignorato_da?: string | null
+          ignorato_il?: string
+        }
+        Update: {
+          id_a?: string
+          id_b?: string
+          ignorato_da?: string | null
+          ignorato_il?: string
+        }
+        Relationships: []
+      }
       form_contatti: {
         Row: {
+          persona_id: string | null
+          opportunita_id: string | null
           attivita: Json | null
           cellulare: string | null
           cognome: string | null
@@ -115,6 +138,8 @@ export type Database = {
           vid: string | null
         }
         Insert: {
+          persona_id?: string | null
+          opportunita_id?: string | null
           attivita?: Json | null
           cellulare?: string | null
           cognome?: string | null
@@ -154,6 +179,8 @@ export type Database = {
           vid?: string | null
         }
         Update: {
+          persona_id?: string | null
+          opportunita_id?: string | null
           attivita?: Json | null
           cellulare?: string | null
           cognome?: string | null
@@ -196,6 +223,9 @@ export type Database = {
       }
       form_invita_amico: {
         Row: {
+          persona_id: string | null
+          persona_socio_id: string | null
+          opportunita_id: string | null
           amico_cellulare: string | null
           amico_cognome: string | null
           amico_email: string | null
@@ -230,6 +260,9 @@ export type Database = {
           vid: string | null
         }
         Insert: {
+          persona_id?: string | null
+          persona_socio_id?: string | null
+          opportunita_id?: string | null
           amico_cellulare?: string | null
           amico_cognome?: string | null
           amico_email?: string | null
@@ -264,6 +297,9 @@ export type Database = {
           vid?: string | null
         }
         Update: {
+          persona_id?: string | null
+          persona_socio_id?: string | null
+          opportunita_id?: string | null
           amico_cellulare?: string | null
           amico_cognome?: string | null
           amico_email?: string | null
@@ -301,6 +337,8 @@ export type Database = {
       }
       form_scuola_tennis: {
         Row: {
+          persona_id: string | null
+          persona_minore_id: string | null
           caricato_pgm: boolean
           caricato_pgm_da: string | null
           caricato_pgm_il: string | null
@@ -348,6 +386,8 @@ export type Database = {
           vid: string | null
         }
         Insert: {
+          persona_id?: string | null
+          persona_minore_id?: string | null
           caricato_pgm?: boolean
           caricato_pgm_da?: string | null
           caricato_pgm_il?: string | null
@@ -395,6 +435,8 @@ export type Database = {
           vid?: string | null
         }
         Update: {
+          persona_id?: string | null
+          persona_minore_id?: string | null
           caricato_pgm?: boolean
           caricato_pgm_da?: string | null
           caricato_pgm_il?: string | null
@@ -445,6 +487,8 @@ export type Database = {
       }
       form_summer_camp: {
         Row: {
+          persona_id: string | null
+          persona_minore_id: string | null
           caricato_pgm: boolean
           caricato_pgm_da: string | null
           caricato_pgm_il: string | null
@@ -487,6 +531,8 @@ export type Database = {
           vid: string | null
         }
         Insert: {
+          persona_id?: string | null
+          persona_minore_id?: string | null
           caricato_pgm?: boolean
           caricato_pgm_da?: string | null
           caricato_pgm_il?: string | null
@@ -529,6 +575,8 @@ export type Database = {
           vid?: string | null
         }
         Update: {
+          persona_id?: string | null
+          persona_minore_id?: string | null
           caricato_pgm?: boolean
           caricato_pgm_da?: string | null
           caricato_pgm_il?: string | null
@@ -574,6 +622,7 @@ export type Database = {
       }
       iscrizioni_eventi: {
         Row: {
+          persona_id: string | null
           cellulare: string | null
           cognome: string | null
           created_at: string | null
@@ -590,6 +639,7 @@ export type Database = {
           stato_contratto_pgm: string | null
         }
         Insert: {
+          persona_id?: string | null
           cellulare?: string | null
           cognome?: string | null
           created_at?: string | null
@@ -606,6 +656,7 @@ export type Database = {
           stato_contratto_pgm?: string | null
         }
         Update: {
+          persona_id?: string | null
           cellulare?: string | null
           cognome?: string | null
           created_at?: string | null
@@ -755,6 +806,108 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunita: {
+        Row: {
+          id: string
+          persona_id: string
+          stato: string
+          assegnato_a: string | null
+          assegnato_il: string | null
+          stato_da: string | null
+          stato_il: string | null
+          motivo_perso: string | null
+          chiuso_il: string | null
+          origine_entita: string | null
+          origine_id: string | null
+          note: string | null
+          creato_il: string
+        }
+        Insert: {
+          id?: string
+          persona_id: string
+          stato?: string
+          assegnato_a?: string | null
+          assegnato_il?: string | null
+          stato_da?: string | null
+          stato_il?: string | null
+          motivo_perso?: string | null
+          chiuso_il?: string | null
+          origine_entita?: string | null
+          origine_id?: string | null
+          note?: string | null
+          creato_il?: string
+        }
+        Update: {
+          id?: string
+          persona_id?: string
+          stato?: string
+          assegnato_a?: string | null
+          assegnato_il?: string | null
+          stato_da?: string | null
+          stato_il?: string | null
+          motivo_perso?: string | null
+          chiuso_il?: string | null
+          origine_entita?: string | null
+          origine_id?: string | null
+          note?: string | null
+          creato_il?: string
+        }
+        Relationships: []
+      }
+      persone: {
+        Row: {
+          id: string
+          tipo: string
+          nome: string | null
+          cognome: string | null
+          email: string | null
+          cellulare: string | null
+          cellulare_norm: string | null
+          codice_fiscale: string | null
+          data_nascita: string | null
+          pgm_member_id: string | null
+          genitore_id: string | null
+          fonte: string | null
+          storico: boolean
+          creato_il: string
+          aggiornato_il: string
+        }
+        Insert: {
+          id?: string
+          tipo?: string
+          nome?: string | null
+          cognome?: string | null
+          email?: string | null
+          cellulare?: string | null
+          cellulare_norm?: string | null
+          codice_fiscale?: string | null
+          data_nascita?: string | null
+          pgm_member_id?: string | null
+          genitore_id?: string | null
+          fonte?: string | null
+          storico?: boolean
+          creato_il?: string
+          aggiornato_il?: string
+        }
+        Update: {
+          id?: string
+          tipo?: string
+          nome?: string | null
+          cognome?: string | null
+          email?: string | null
+          cellulare?: string | null
+          cellulare_norm?: string | null
+          codice_fiscale?: string | null
+          data_nascita?: string | null
+          pgm_member_id?: string | null
+          genitore_id?: string | null
+          fonte?: string | null
+          storico?: boolean
+          creato_il?: string
+          aggiornato_il?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -814,6 +967,8 @@ export type Database = {
       }
       task: {
         Row: {
+          persona_id: string | null
+          opportunita_id: string | null
           assegnato_a: string
           completato_il: string | null
           created_at: string
@@ -831,6 +986,8 @@ export type Database = {
           titolo: string
         }
         Insert: {
+          persona_id?: string | null
+          opportunita_id?: string | null
           assegnato_a: string
           completato_il?: string | null
           created_at?: string
@@ -848,6 +1005,8 @@ export type Database = {
           titolo: string
         }
         Update: {
+          persona_id?: string | null
+          opportunita_id?: string | null
           assegnato_a?: string
           completato_il?: string | null
           created_at?: string
@@ -898,7 +1057,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      possibili_duplicati: {
+        Row: {
+          id_a: string | null
+          id_b: string | null
+          motivo: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

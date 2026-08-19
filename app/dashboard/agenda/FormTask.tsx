@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { DURATA_PREDEFINITA, OPZIONI_TIPO, eTipoValido, type TipoVoce } from '@/lib/agenda'
+import { PersonaPicker } from '../persone/PersonaPicker'
+import type { PersonaTrovata } from '../persone/ricerca-actions'
 import { creaTask } from './actions'
 
 // Form di creazione di una voce d'agenda, condiviso da chi lo apre dal
@@ -13,6 +15,7 @@ export function FormTask({
   dataProposta,
   collegabili = [],
   collegamentoFisso,
+  personaFissa,
   titoloIniziale = '',
   onFatto,
   onAnnulla,
@@ -26,6 +29,9 @@ export function FormTask({
   // Collegamento gia' deciso da chi apre il form (task creato dalla riga di
   // un invito, di un contatto…): in quel caso la tendina non serve.
   collegamentoFisso?: { valore: string; etichetta: string }
+  // Persona gia' decisa (form aperto dalla sua scheda): niente ricerca, il
+  // task nasce sulla persona e sul suo lead aperto.
+  personaFissa?: { id: string; nome: string; opportunitaId: string | null }
   titoloIniziale?: string
   onFatto?: () => void
   onAnnulla?: () => void
@@ -38,6 +44,8 @@ export function FormTask({
   const [assegnatoA, setAssegnatoA] = useState(emailCorrente ?? staff[0]?.email ?? '')
   const [note, setNote] = useState('')
   const [collegamento, setCollegamento] = useState('')
+  const [persona, setPersona] = useState<PersonaTrovata | null>(null)
+  const [opportunitaId, setOpportunitaId] = useState('')
   const [errore, setErrore] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -132,11 +140,56 @@ export function FormTask({
       </div>
 
       {collegamentoFisso ? (
-        <p className="agenda-collegamento">Collegato a: {collegamentoFisso.etichetta}</p>
+        <p className="agenda-collegamento">
+          Collegato a: {collegamentoFisso.etichetta} — persona e lead vengono presi da questa richiesta.
+        </p>
+      ) : personaFissa ? (
+        <p className="agenda-collegamento">
+          Persona: {personaFissa.nome}
+          {personaFissa.opportunitaId ? ' — collegato al suo lead aperto' : ''}
+        </p>
       ) : (
+        <>
+          <PersonaPicker
+            persona={persona}
+            onScegli={(scelta) => {
+              setPersona(scelta)
+              // Una persona ha di norma un solo lead aperto: se c'e' lo
+              // scegliamo noi, cosi' l'operatore non deve fare nulla.
+              setOpportunitaId(scelta?.opportunita[0]?.id ?? '')
+            }}
+          />
+
+          {persona && persona.opportunita.length > 1 && (
+            <div className="field">
+              <label htmlFor="task-lead">Lead</label>
+              <select
+                id="task-lead"
+                className="filter-select"
+                value={opportunitaId}
+                onChange={(e) => setOpportunitaId(e.target.value)}
+              >
+                <option value="">Nessun lead</option>
+                {persona.opportunita.map((lead) => (
+                  <option key={lead.id} value={lead.id}>
+                    {lead.etichetta}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {persona && persona.opportunita.length === 1 && (
+            <p className="agenda-collegamento">Collegato al {persona.opportunita[0].etichetta.toLowerCase()}.</p>
+          )}
+        </>
+      )}
+
+      {!collegamentoFisso &&
+        !personaFissa &&
         collegabili.length > 0 && (
           <div className="field">
-            <label htmlFor="task-collegamento">Collega a (facoltativo)</label>
+            <label htmlFor="task-collegamento">Collega a una richiesta (facoltativo)</label>
             <select
               id="task-collegamento"
               className="filter-select"
@@ -151,8 +204,7 @@ export function FormTask({
               ))}
             </select>
           </div>
-        )
-      )}
+        )}
 
       <div className="field">
         <label htmlFor="task-note">Note</label>
@@ -186,6 +238,8 @@ export function FormTask({
                 assegnatoA,
                 entita,
                 entitaId,
+                personaId: personaFissa?.id ?? persona?.id ?? null,
+                opportunitaId: personaFissa?.opportunitaId ?? opportunitaId ?? null,
               })
               if (risultato.ok) {
                 setTitolo(titoloIniziale)

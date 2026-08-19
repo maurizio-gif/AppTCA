@@ -12,6 +12,9 @@ export const SEZIONI = [
   // pagina che una consulente tiene aperta durante la giornata (vedi
   // app/dashboard/agenda).
   { chiave: 'agenda', label: 'Agenda', href: '/dashboard/agenda' },
+  // Anagrafica deduplicata: una scheda per persona, con tutte le sue
+  // richieste e il suo lead (vedi lib/persone.ts).
+  { chiave: 'persone', label: 'Persone', href: '/dashboard/persone' },
   { chiave: 'contatti-adulti', label: 'Enquiries Adulti', href: '/dashboard/contatti/adulti', gruppo: 'Moduli' },
   { chiave: 'contatti-junior', label: 'Enquiries Junior', href: '/dashboard/contatti/junior', gruppo: 'Moduli' },
   { chiave: 'invita-amico', label: 'Invita un amico', href: '/dashboard/invita-amico', gruppo: 'Moduli' },

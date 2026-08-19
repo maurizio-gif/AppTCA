@@ -2,24 +2,29 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
+import { ChipPersona } from '@/components/ChipPersona'
+import { FiltroCheckbox } from '@/components/FiltroCheckbox'
 import { FiltroSelect } from '@/components/FiltroSelect'
+import { PannelloPipeline } from '@/components/PannelloPipeline'
+import { PipelineBadge } from '@/components/PipelineBadge'
+import { VisiteContatto } from '@/components/VisiteContatto'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { puoAmministrare } from '@/lib/auth/permessi'
-import { raggruppaAccessiPerVid } from '@/lib/visite'
-import { VisiteContatto } from '@/components/VisiteContatto'
+import { nomePersona, totaleRichieste } from '@/lib/persone'
+import { conteggiRichieste } from '@/lib/persone-server'
 import { normalizzaStato, OPZIONI_FILTRO, parseFiltro, statiDelFiltro } from '@/lib/pipeline'
-import { PipelineBadge } from '@/components/PipelineBadge'
+import { raggruppaAccessiPerVid } from '@/lib/visite'
 import { TaskEntita } from '../agenda/TaskEntita'
-import { PipelineInvito } from './PipelineInvito'
-import { FiltroCheckbox } from '@/components/FiltroCheckbox'
 
 export const dynamic = 'force-dynamic'
 
 const COLONNE_TABELLA = ['Data', 'Socio (chi invita)', 'Amico invitato', 'Stato', 'Assegnato a']
 
-// Campi gia' visibili in tabella o nel pannello di gestione: nel dettaglio
-// generico della riga sarebbero solo rumore.
+// Campi gia' visibili in tabella, nel chip persona o nel pannello di
+// gestione: nel dettaglio generico della riga sarebbero solo rumore. Le
+// colonne di stato sulla richiesta sono lo specchio dell'opportunita' (vedi
+// il trigger specchia_stato_opportunita), non una seconda verita'.
 const COLONNE_VISIBILI = [
   'id',
   'created_at',
@@ -36,12 +41,12 @@ const COLONNE_VISIBILI = [
   'assegnato_il',
   'motivo_perso',
   'chiuso_il',
-  'note',
-  // Derivate dallo stato, tenute in pari solo per compatibilita' (vedi
-  // campiCompatibilita in actions.ts): mostrarle confonderebbe.
   'gestito',
   'gestito_da',
   'gestito_il',
+  'persona_id',
+  'persona_socio_id',
+  'opportunita_id',
 ]
 
 type RigaInvito = Record<string, any>
@@ -75,6 +80,29 @@ export default async function InvitaAmicoPage({
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
+  const inviti = righe ?? []
+
+  // Lo stato del lead vive sull'opportunita' (che e' della persona, non della
+  // singola richiesta): letta a parte e agganciata per id, senza dipendere dai
+  // nomi dei vincoli di chiave esterna.
+  const opportunitaIds = [...new Set(inviti.map((r) => r.opportunita_id).filter(Boolean))] as string[]
+  const personaIds = [...new Set(inviti.flatMap((r) => [r.persona_id, r.persona_socio_id]).filter(Boolean))] as string[]
+
+  const [{ data: opportunita }, { data: persone }, conteggi] = await Promise.all([
+    opportunitaIds.length > 0
+      ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
+      : Promise.resolve({ data: [] as Record<string, any>[] }),
+    personaIds.length > 0
+      ? supabase.from('persone').select('*').in('id', personaIds)
+      : Promise.resolve({ data: [] as Record<string, any>[] }),
+    conteggiRichieste(personaIds),
+  ])
+
+  const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
+  const personePerId = new Map((persone ?? []).map((p) => [p.id, p]))
+  const richiesteDi = (personaId: string) =>
+    totaleRichieste(conteggi[personaId] ?? { enquiries: 0, inviti: 0, scuolaTennis: 0, summerCamp: 0, eventi: 0 })
+
   // Nome e cognome al posto dell'email dove c'e' spazio per leggerlo: chi
   // guarda la pipeline ragiona per persone, non per indirizzi.
   const elencoStaff = (staff ?? []).map((persona) => ({
@@ -84,8 +112,7 @@ export default async function InvitaAmicoPage({
   const nomiStaff: Record<string, string> = Object.fromEntries(
     elencoStaff.map((persona) => [persona.email.toLowerCase(), persona.nome])
   )
-  const etichettaOperatore = (email: string | null) =>
-    email ? nomiStaff[email.toLowerCase()] ?? email : null
+  const etichettaOperatore = (email: string | null) => (email ? nomiStaff[email.toLowerCase()] ?? email : null)
 
   // Task raggruppati per invito, per il blocco "In agenda" di ogni riga.
   const taskPerInvito = new Map<string, Record<string, any>[]>()
@@ -97,7 +124,7 @@ export default async function InvitaAmicoPage({
 
   // Visite al sito di ciascun socio (per vid), per capire quanto e' "caldo"
   // l'invito - vedi VisiteContatto.
-  const vids = [...new Set((righe ?? []).map((riga) => riga.vid).filter((v): v is string => !!v))]
+  const vids = [...new Set(inviti.map((riga) => riga.vid).filter((v): v is string => !!v))]
   const { data: accessi } = vids.length > 0 ? await supabase.from('accessi').select('*').in('vid', vids) : { data: [] }
   const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
 
@@ -105,14 +132,21 @@ export default async function InvitaAmicoPage({
   const soloMiei = searchParams.mio === '1'
   const stati = statiDelFiltro(filtro)
 
-  const righeFiltrate = (righe ?? []).filter((riga: RigaInvito) => {
-    if (stati && !stati.includes(normalizzaStato(riga.stato))) return false
+  // Lo stato di riferimento e' quello dell'opportunita'; la colonna sulla
+  // richiesta e' il suo specchio e serve solo se l'opportunita' mancasse.
+  const statoDi = (riga: RigaInvito) =>
+    normalizzaStato(opportunitaPerId.get(riga.opportunita_id)?.stato ?? riga.stato)
+  const assegnatoDi = (riga: RigaInvito): string | null =>
+    opportunitaPerId.get(riga.opportunita_id)?.assegnato_a ?? riga.assegnato_a ?? null
+
+  const righeFiltrate = inviti.filter((riga: RigaInvito) => {
+    if (stati && !stati.includes(statoDi(riga))) return false
     if (soloMiei) {
       // "I miei" include anche i nuovi non ancora assegnati: sono il lavoro
       // che chiunque puo' prendere, nasconderli renderebbe il filtro una
       // trappola.
-      const assegnato = (riga.assegnato_a ?? '').toLowerCase()
-      if (assegnato ? assegnato !== emailCorrente : normalizzaStato(riga.stato) !== 'nuovo') return false
+      const assegnato = (assegnatoDi(riga) ?? '').toLowerCase()
+      if (assegnato ? assegnato !== emailCorrente : statoDi(riga) !== 'nuovo') return false
     }
     return true
   })
@@ -126,16 +160,16 @@ export default async function InvitaAmicoPage({
       <BoxIstruzioni titolo="Come funziona">
         <ol>
           <li>
-            Ogni riga è un invito compilato dal sito: «Socio» è chi invita (un contatto già esistente, solo
-            l'email), «Amico invitato» è la persona nuova segnalata, con tutti i suoi contatti.
+            Ogni riga è un invito compilato dal sito: «Socio» è chi invita, «Amico invitato» è la persona nuova
+            segnalata. Il nome cliccabile apre la <strong>scheda persona</strong>, con tutte le sue richieste.
           </li>
           <li>
-            Ogni invito arriva come <strong>Nuovo</strong>. Apri la riga e premi «Prendi in gestione»: da quel
-            momento l'invito è assegnato a te e solo tu (o un amministratore) puoi farlo avanzare.
+            Ogni lead arriva come <strong>Nuovo</strong>. Apri la riga e premi «Prendi in gestione»: da quel
+            momento è assegnato a te e solo tu (o un amministratore) puoi farlo avanzare.
           </li>
           <li>
             Da «In gestione» si esce in due modi: <strong>Vinto</strong> oppure <strong>Perso</strong> (con il
-            motivo). Un invito vinto si chiude davvero solo con <strong>Credito caricato</strong>.
+            motivo). Un lead vinto si chiude davvero solo con <strong>Credito caricato</strong>.
           </li>
           <li>
             Per segnare vinto o perso serve una nota salvata: è il modo per lasciare traccia di cosa è stato
@@ -147,8 +181,10 @@ export default async function InvitaAmicoPage({
           </li>
         </ol>
         <p className="box-istruzioni-nota">
-          «Perso» e «Credito caricato» sono stati finali: per riaprirli serve un amministratore, che può anche
-          riassegnare un invito a un'altra persona.
+          Lo stato è del <strong>lead della persona</strong>, non della singola richiesta: se la stessa persona ha
+          già un'opportunità aperta (per esempio da un'enquiry), l'invito si aggancia a quella invece di creare un
+          secondo lead da lavorare due volte. «Perso» e «Credito caricato» sono finali: per riaprirli serve un
+          amministratore, che può anche riassegnare.
         </p>
       </BoxIstruzioni>
 
@@ -170,9 +206,12 @@ export default async function InvitaAmicoPage({
           <AccordionGroup>
             <tbody>
               {righeFiltrate.map((riga) => {
-                const stato = normalizzaStato(riga.stato)
-                const nomeAmico =
-                  `${riga.amico_nome ?? ''} ${riga.amico_cognome ?? ''}`.trim() || riga.amico_email || 'invito'
+                const stato = statoDi(riga)
+                const lead = opportunitaPerId.get(riga.opportunita_id)
+                const amico = personePerId.get(riga.persona_id)
+                const socio = personePerId.get(riga.persona_socio_id)
+                const nomeAmico = amico ? nomePersona(amico) : `${riga.amico_nome ?? ''} ${riga.amico_cognome ?? ''}`.trim() || riga.amico_email || 'invito'
+
                 return (
                   <ExpandableRow
                     key={riga.id}
@@ -189,9 +228,11 @@ export default async function InvitaAmicoPage({
                               title: 'In agenda',
                               content: (
                                 <TaskEntita
-                                  entita="form_invita_amico"
-                                  entitaId={String(riga.id)}
-                                  etichetta={`Invita un amico · ${nomeAmico}`}
+                                  collegamento={{
+                                    entita: 'form_invita_amico',
+                                    entitaId: String(riga.id),
+                                    etichetta: `Invita un amico · ${nomeAmico}`,
+                                  }}
                                   titoloSuggerito={`Ricontattare ${nomeAmico}`}
                                   task={taskPerInvito.get(String(riga.id)) ?? []}
                                   staff={elencoStaff}
@@ -204,37 +245,62 @@ export default async function InvitaAmicoPage({
                         : []
                     }
                     extra={
-                      <PipelineInvito
-                        id={riga.id}
-                        stato={stato}
-                        assegnatoA={riga.assegnato_a ?? null}
-                        assegnatoIl={riga.assegnato_il ?? null}
-                        statoIl={riga.stato_il ?? null}
-                        motivoPerso={riga.motivo_perso ?? null}
-                        noteIniziali={riga.note ?? null}
-                        emailCorrente={emailCorrente}
-                        eAmministratore={eAmministratore}
-                        staff={elencoStaff}
-                      />
+                      lead ? (
+                        <PannelloPipeline
+                          id={lead.id}
+                          stato={stato}
+                          assegnatoA={lead.assegnato_a ?? null}
+                          assegnatoIl={lead.assegnato_il ?? null}
+                          statoIl={lead.stato_il ?? null}
+                          motivoPerso={lead.motivo_perso ?? null}
+                          noteIniziali={lead.note ?? null}
+                          emailCorrente={emailCorrente}
+                          eAmministratore={eAmministratore}
+                          staff={elencoStaff}
+                        />
+                      ) : (
+                        <p className="gestione-meta">
+                          Questo invito non ha una persona in anagrafica (manca l'email dell'amico), quindi non ha
+                          un lead da gestire.
+                        </p>
+                      )
                     }
                     cells={[
                       formatDateOra(riga.created_at),
                       <>
                         <span className="richiesta-badge richiesta-blu invito-ruolo">Socio</span>
                         <br />
-                        {riga.email_socio}
+                        {socio ? (
+                          <ChipPersona
+                            id={socio.id}
+                            nome={nomePersona(socio)}
+                            richieste={richiesteDi(socio.id)}
+                            storico={!!socio.storico}
+                          />
+                        ) : (
+                          riga.email_socio
+                        )}
                       </>,
                       <>
                         <span className="richiesta-badge richiesta-verde invito-ruolo">Amico</span>
                         <br />
-                        {riga.amico_nome} {riga.amico_cognome}
+                        {amico ? (
+                          <ChipPersona
+                            id={amico.id}
+                            nome={nomeAmico}
+                            richieste={richiesteDi(amico.id)}
+                            storico={!!amico.storico}
+                          />
+                        ) : (
+                          nomeAmico
+                        )}
                         <br />
                         <span className="muted">
                           {riga.amico_email} · {riga.amico_prefisso} {riga.amico_cellulare}
                         </span>
                       </>,
                       <PipelineBadge stato={stato} />,
-                      etichettaOperatore(riga.assegnato_a ?? null) ?? '—',
+                      etichettaOperatore(assegnatoDi(riga)) ?? '—',
                     ]}
                   />
                 )

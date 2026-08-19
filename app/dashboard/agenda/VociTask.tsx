@@ -38,6 +38,7 @@ export function voceCalendarioDaTask(
     emailCorrente,
     eAmministratore,
     etichetteCollegamento = {},
+    nomiPersone = {},
   }: {
     nomiStaff: Record<string, string>
     emailCorrente: string | null
@@ -45,6 +46,9 @@ export function voceCalendarioDaTask(
     // Chiave "entita:id" -> nome leggibile del record collegato, cosi' in
     // agenda non compare "form_invita_amico:9f2c…".
     etichetteCollegamento?: Record<string, string>
+    // id persona -> nome: in agenda conta con CHI e' l'appuntamento, prima
+    // ancora di sapere da quale modulo e' arrivato.
+    nomiPersone?: Record<string, string>
   }
 ): VoceCalendario {
   const voce = voceDaTask(riga)
@@ -58,10 +62,19 @@ export function voceCalendarioDaTask(
   const suo = !!emailCorrente && riga.assegnato_a?.toLowerCase() === emailCorrente
   const creatoDaMe = !!emailCorrente && riga.creato_da?.toLowerCase() === emailCorrente
 
+  const nomePersona = riga.persona_id ? nomiPersone[riga.persona_id] : null
+
   return {
     ...voce,
     assegnatoEtichetta,
-    sottotitolo: etichettaCollegamento ? (
+    // Con chi e' l'appuntamento viene prima di tutto: se la persona la
+    // conosciamo, si mostra lei (cliccabile), altrimenti la richiesta
+    // collegata, altrimenti la nota.
+    sottotitolo: nomePersona ? (
+      <Link href={`/dashboard/persone/${riga.persona_id}`} className="link">
+        {nomePersona}
+      </Link>
+    ) : etichettaCollegamento ? (
       paginaCollegamento ? (
         <Link href={paginaCollegamento} className="link">
           {etichettaCollegamento}

@@ -264,3 +264,90 @@ e il pulsante «+ Aggiungi in agenda» del calendario.
 Non incluso di proposito (fase successiva): promemoria push/notifica interna
 per i task in scadenza — servirebbe un cron esterno (n8n o Vercel Cron) che
 chiami una route dedicata.
+
+## Aggiornamento — anagrafica persone, opportunità e agenda collegata
+
+### Il problema
+
+Ogni modulo compilato era un lead a sé. Misurato sui dati reali: **21 persone
+avevano già più di una richiesta** (28 righe duplicate su 192 form), quindi la
+stessa persona veniva lavorata due volte da due consulenti diverse.
+
+### `persone`: una riga per persona, non per richiesta
+
+Deduplicazione a cascata, fatta dal **database** e non dall'applicazione
+(trigger `before insert` su ogni tabella modulo, che chiamano
+`trova_o_crea_persona`): così vale per chiunque scriva — n8n, il CRM, un
+inserimento a mano da Studio — e non ci si può dimenticare di collegare una
+riga.
+
+1. **`pgm_member_id`** — l'identità vera, sopravvive al cambio di email; su
+   `form_contatti` è presente sul 97% delle righe.
+2. **email normalizzata**.
+3. Il **cellulare non unisce** (in famiglia si condivide): finisce fra i
+   possibili duplicati da valutare a mano.
+
+I dati mancanti vengono riempiti, quelli già presenti mai sovrascritti:
+l'ultimo form non è più attendibile del primo.
+
+**Minori**: esistono in anagrafica come persone collegate al genitore
+(`genitore_id`), dedotte da codice fiscale o da genitore + nome + data di
+nascita — serviranno per creare le anagrafiche connesse su PerfectGym. Non
+entrano nell'indice unico sull'email, perché userebbero quella del genitore.
+
+**Storico HubSpot**: importato in anagrafica con `storico = true`, così la
+ricerca trova chi conosciamo già e una nuova richiesta si riconosce come
+ritorno. Torna `false` appena la persona si fa viva.
+
+Risultato del backfill: 220 persone attive, 55 minori collegati, 3.979
+storiche.
+
+### `opportunita`: la pipeline è della persona
+
+`persona_id`, `stato` (gli stessi di `lib/pipeline.ts`), assegnatario, note,
+chiusura. **Una sola opportunità aperta per persona**, garantita da un indice
+unico parziale (`where chiuso_il is null`): una nuova richiesta di chi ne ha
+già una aperta si aggancia a quella. Solo le sezioni che si lavorano come
+pipeline (enquiries e inviti) creano opportunità: Scuola Tennis, Summer Camp
+ed eventi sono iscrizioni, hanno il flusso di caricamento su PerfectGym.
+
+Le colonne di stato su `form_invita_amico` restano allineate da un trigger
+(`specchia_stato_opportunita`), non dall'applicazione. Su `form_contatti`
+invece **no**, di proposito: là `gestito` vuol dire «a questo messaggio ho
+risposto», che non è «il lead è in lavorazione» — allinearlo marcherebbe come
+gestita una seconda enquiry a cui nessuno ha ancora risposto. Il collegamento
+è a senso unico: segnare gestita un'enquiry prende in carico il lead.
+
+### La UX: l'operatore non collega niente
+
+- **Chip identità** su ogni riga (`components/ChipPersona.tsx`): nome, «3
+  richieste», e il link alla scheda.
+- **Scheda persona** (`/dashboard/persone/[id]`): anagrafica, famiglia, lead
+  con la pipeline, agenda, tutte le richieste in ordine di arrivo, visite al
+  sito.
+- **Task**: creato dalla riga di una richiesta, persona e lead li ricava il
+  server da quella richiesta; creato dall'Agenda, c'è un campo di ricerca
+  persona (`PersonaPicker`, cerca per nome/email/cellulare) e il lead aperto
+  viene scelto da solo.
+- **Possibili duplicati** (`/dashboard/persone/duplicati`): solo le coppie che
+  il sistema non unisce da sé, affiancate. Unire (amministratori) sposta
+  richieste, lead, task e figli sulla scheda che resta; «Sono persone diverse»
+  la fa sparire per sempre (`duplicati_ignorati`).
+
+### Nota sui dati: telefoni dello storico HubSpot
+
+L'import dello storico ha portato dentro telefoni in **notazione scientifica
+di Excel** (`3,93E+16`): togliendo i non-cifre restano 5 cifre, e 2.654
+persone risultavano avere «lo stesso numero» — 3,8 milioni di finti duplicati.
+Ora `norm_cellulare` accetta solo lunghezze plausibili (9-13 cifre) e i valori
+inutilizzabili sono stati azzerati sulle schede (il dato originale resta in
+`lead_hubspot_storico`). **Restano circa 3.800 persone storiche senza telefono
+utilizzabile**: per recuperarli va rifatto l'import dal CSV con la colonna
+telefono formattata come testo.
+
+Migrazioni applicate: `crea_persone`, `funzioni_dedup_persone`,
+`collega_moduli_a_persone`, `backfill_persone_dai_moduli`, `crea_opportunita`,
+`opportunita_trigger_e_specchio`, `enquiries_gestito_muove_opportunita`,
+`backfill_opportunita`, `task_persona_e_opportunita`,
+`possibili_duplicati_persone`, `pulizia_cellulari_non_validi`,
+`specchio_non_tocca_enquiries`.
