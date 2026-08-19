@@ -507,3 +507,50 @@ Il guadagno della fusione resta dov'era utile: il componente calendario e il
 modello dati (`lib/agenda.ts`) sono uno solo, quindi una correzione vale per
 entrambe. Da una richiesta si continua a fissare un evento dal blocco «In
 agenda» della sua riga: finisce in Agenda, dove si guarda la giornata.
+
+## Aggiornamento — import una tantum degli eventi futuri dal vecchio CRM (PerfectGym)
+
+Il CRM di PerfectGym non verrà più usato per fissare chiamate e appuntamenti:
+gli eventi già in calendario (`Crm2Events`, da oggi in avanti) sono stati
+portati in agenda una volta sola. Non c'è nessuna sincronizzazione ricorrente
+da mantenere.
+
+**Cosa è arrivato**: 353 eventi, 346 persone, dal 20/08/2026 al 05/07/2027.
+
+**Gli operatori.** In PerfectGym le due consulenti hanno due login ciascuna,
+uno disattivato: entrambi vanno sulla stessa persona del CRM.
+
+| login PerfectGym | eventi | operatore |
+| --- | --- | --- |
+| `briccobono@` (334) + `briccobono2@` (300, disattivo) | 267 | Beatrice Riccobono |
+| `fcappelleri@` (331) + `fcappelleri2@` (46, disattivo) | 86 | Francesca Cappelleri |
+
+**Il tipo di voce.** Gli 8 `Meeting` (30 minuti) sono incontri veri in sede →
+`appuntamento in sede`. Le 345 `Phone` (5 minuti) **non** erano appuntamenti
+telefonici presi col cliente ma la lista delle chiamate del giorno: 270 stanno
+nello stesso slot delle 12:00, in un caso 33 nello stesso minuto. Sono quindi
+entrate come **task**, per non riempire l'agenda di appuntamenti telefonici
+inventati — che sono la base con cui si calcolerà la disponibilità da offrire a
+chi prenota dal sito. Durate lasciate come in PerfectGym (5 e 30 minuti). Due
+`Meeting` erano a mezzanotte, cioè senza un'ora decisa («DA DEFINIRE»): restano
+senza ora, il calendario li mostra come «Tutto il giorno». I 5 eventi senza
+oggetto hanno un titolo di ripiego.
+
+**Le persone.** Ogni evento è agganciato a una persona dell'anagrafica, con la
+solita deduplicazione (`trova_o_crea_persona`): 49 riconosciute dall'id
+PerfectGym, 138 dall'email — quasi tutte erano nello storico HubSpot e ora sono
+persone attive, perché hanno una chiamata fissata — e 159 create adesso (fonte
+`CRM PerfectGym`). Una non ha email in PerfectGym: esiste comunque, tenuta
+insieme dal solo id PerfectGym.
+
+**Le opportunità.** Solo per chi in PerfectGym è `Lead` o `Guest` e non aveva
+già un'opportunità aperta: 92 aperte in stato **In gestione**, assegnate alla
+consulente dell'evento. Per i 205 `Member` no: una chiamata di scadenza o
+rinnovo è retention, non una trattativa, e 205 opportunità finte avrebbero
+solo sporcato la pipeline. Il loro task resta agganciato alla persona, dove si
+vede dalla sua scheda. In tutto 147 eventi sono finiti sotto un'opportunità.
+
+**Ripetibile senza duplicati.** Ogni task porta la sua provenienza
+(`entita = 'pgm_crm2event'`, `entita_id` = id dell'evento, e la nota con
+evento/tipo/sottotipo/consulente PerfectGym) e un indice unico parziale
+impedisce di inserire due volte lo stesso evento.

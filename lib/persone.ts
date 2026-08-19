@@ -14,6 +14,7 @@ export const ETICHETTE_FONTE: Record<string, string> = {
   form_summer_camp: 'Summer camp',
   iscrizioni_eventi: 'Iscrizione evento',
   hubspot_storico: 'Storico HubSpot',
+  perfectgym_crm: 'CRM PerfectGym',
 }
 
 export function etichettaFonte(fonte: string | null | undefined): string | null {
