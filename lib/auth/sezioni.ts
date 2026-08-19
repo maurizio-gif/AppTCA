@@ -8,6 +8,10 @@
 // una voce senza gruppo finisce comunque in cima, non richiede di
 // aggiornare nient'altro per aggiungere una nuova sezione.
 export const SEZIONI = [
+  // Senza gruppo, quindi resta in cima subito sotto la Dashboard: e' la
+  // pagina che una consulente tiene aperta durante la giornata (vedi
+  // app/dashboard/agenda).
+  { chiave: 'agenda', label: 'Agenda', href: '/dashboard/agenda' },
   { chiave: 'contatti-adulti', label: 'Enquiries Adulti', href: '/dashboard/contatti/adulti', gruppo: 'Moduli' },
   { chiave: 'contatti-junior', label: 'Enquiries Junior', href: '/dashboard/contatti/junior', gruppo: 'Moduli' },
   { chiave: 'invita-amico', label: 'Invita un amico', href: '/dashboard/invita-amico', gruppo: 'Moduli' },

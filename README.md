@@ -160,3 +160,81 @@ due cose, ora sistemate:
 Chi era stato invitato prima di questo fix va invitato di nuovo da
 "Gestione utenti" (l'upsert su `staff_users` e il reinvio dell'invito sono
 entrambi idempotenti, non creano duplicati).
+
+## Aggiornamento — pipeline "Invita un amico" e agenda condivisa
+
+### Da "gestito + nota" a "assegnato a + stato"
+
+Gli inviti non hanno più il solo booleano `gestito`: hanno una **pipeline**
+(`lib/pipeline.ts`, unico posto dove vivono stati, transizioni ed etichette,
+così portarla anche sulle Enquiries è questione di riusare quel file).
+
+```
+nuovo → in_gestione → vinto → credito_caricato   (finale)
+                    → perso                      (finale)
+```
+
+- Il **primo che preme «Prendi in gestione» diventa il titolare**
+  (`assegnato_a`, `assegnato_il`, letti dall'header `x-tca-user-email` del
+  middleware, mai da un valore passato dal client). Da lì in avanti solo lui
+  — o un amministratore — può far avanzare il lead.
+- Prendere in gestione è **un click, senza nota**: la nota diventa
+  obbligatoria per uscire da "in gestione" (vinto o perso), e su `perso`
+  serve anche il `motivo_perso`.
+- `credito_caricato` è lo step che chiude davvero la gestione di un lead
+  vinto; `perso` e `credito_caricato` sono stati finali e valorizzano
+  `chiuso_il` (utile per i tempi di ciclo in Analytics).
+- **Amministratore** = chi ha `puo_invitare` (`lib/auth/permessi.ts`): può
+  riassegnare un invito e riaprire una gestione chiusa. Se un giorno i due
+  ruoli andranno distinti basta una colonna in più su `staff_users` e una
+  modifica a quella funzione.
+- `gestito/gestito_da/gestito_il` restano scritte, allineate allo stato, solo
+  per compatibilità con ciò che le leggeva prima (n8n compreso): lo stato è
+  l'unica fonte di verità.
+
+Migrazioni applicate su Supabase: `form_invita_amico_pipeline` (colonne
+nuove, vincolo sugli stati, indici e backfill: le righe già "gestite"
+entrano come `in_gestione` assegnate a chi le aveva gestite) e
+`crea_task_agenda`.
+
+### Agenda condivisa (un solo calendario)
+
+Nuova tabella `task` e nuova sezione `/dashboard/agenda`. L'agenda **non è
+un secondo calendario**: è lo stesso calendario del tab Appuntamenti delle
+Enquiries Adulti, che mostra insieme
+
+- gli **appuntamenti prenotati dal sito** (`form_contatti`, in sede o
+  telefonici — li classifica `classificaContatto`), e
+- gli **appuntamenti e task che le consulenti si fissano** (`task`).
+
+Le tre categorie sono le stesse per entrambe le sorgenti: appuntamento in
+sede, appuntamento telefonico, task generico.
+
+File chiave:
+
+```
+lib/agenda.ts                          → modello comune delle "voci" (nessun import server-only)
+components/CalendarioAgenda.tsx        → il calendario, usato da Agenda e da Enquiries Adulti
+app/dashboard/agenda/actions.ts        → crea/completa/annulla/riapri/elimina task
+app/dashboard/agenda/VociTask.tsx      → riga task → voce di calendario + pannello di gestione
+app/dashboard/contatti/VociAppuntamenti.tsx → riga form_contatti → voce di calendario
+```
+
+- `task.entita`/`task.entita_id` sono volutamente generici (`entita_id` in
+  `text`, non `uuid`): le tabelle del CRM hanno chiavi di tipo diverso, così
+  lo stesso task serve qualsiasi sezione senza altre migrazioni. Entrambe
+  nulle = task libero. Oggi la tendina "collega a" propone gli inviti
+  ancora aperti.
+- L'agenda è **condivisa in lettura**: si vede tutto (nei limiti dei permessi
+  di sezione), ma completare/annullare/cancellare un task può farlo chi ce
+  l'ha assegnato, chi l'ha creato o un amministratore.
+- Gli appuntamenti dal sito compaiono in agenda solo a chi ha accesso alla
+  relativa sezione Enquiries (Adulti/Junior), e si gestiscono da lì con lo
+  stesso pannello (nota, «Gestito», cancellazione con permesso).
+- La sezione `agenda` è stata aggiunta a `SEZIONI` e attivata per tutti gli
+  operatori già esistenti (`sezioni_consentite`), altrimenti la voce non
+  sarebbe comparsa a nessuno finché un amministratore non la spuntava.
+
+Non incluso di proposito (fase successiva): promemoria push/notifica interna
+per i task in scadenza — servirebbe un cron esterno (n8n o Vercel Cron) che
+chiami una route dedicata.

@@ -3600,3 +3600,160 @@ table.data-table {
 .confronto-chart-tooltip-largo {
   min-width: 220px;
 }
+
+/* ---------- Pipeline di gestione (Invita un amico) ---------- */
+
+/* Percorso del lead come fila di passi: quello attuale in evidenza, quelli
+   gia' fatti spenti ma leggibili. Vedi lib/pipeline.ts. */
+.pipeline-stepper {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.pipeline-passo-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pipeline-passo {
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.pipeline-passo.fatto {
+  color: var(--color-text);
+  border-color: var(--color-text-light);
+}
+
+.pipeline-passo.attuale {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.pipeline-freccia {
+  color: var(--color-text-light);
+  font-size: 13px;
+}
+
+.pipeline-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pipeline-azioni {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.pipeline-motivo {
+  font-size: 13px;
+  color: var(--color-text);
+  margin: 0 0 8px;
+}
+
+.pipeline-motivo-box {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.pipeline-motivo-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.pipeline-riassegna {
+  margin-top: 14px;
+  border-top: 1px dashed var(--color-border);
+  padding-top: 10px;
+}
+
+/* Spunta accanto alle tendine di filtro (es. "Solo i miei"). */
+.filtro-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--color-text-light);
+  cursor: pointer;
+}
+
+/* ---------- Agenda condivisa ---------- */
+
+/* Le caselle del calendario sono <button> (si aprono da tastiera), quindi
+   vanno riportate all'aspetto delle celle: senza questo prenderebbero il
+   font e l'allineamento centrato del browser. */
+button.cal-cella {
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: inherit;
+  appearance: none;
+}
+
+.cal-nav .cal-oggi {
+  width: auto;
+  padding: 0 10px;
+  font-size: 12.5px;
+}
+
+/* Numero di voci del giorno accanto al pallino, quando sono piu' di una. */
+.cal-conteggio {
+  font-size: 11px;
+  color: var(--color-text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.agenda-nuovo {
+  margin-top: 20px;
+}
+
+.agenda-nuovo-titolo {
+  font-size: 16px;
+  margin-bottom: 14px;
+}
+
+.agenda-form-griglia {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0 14px;
+}
+
+.agenda-giorno {
+  margin-bottom: 26px;
+}
+
+/* Giorno passato con ancora qualcosa di aperto: nella vista Lista dev'essere
+   evidente prima di tutto il resto. */
+.agenda-arretrato {
+  margin-left: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-accent-dark);
+  border: 1px solid var(--color-accent-dark);
+  border-radius: 999px;
+  padding: 1px 7px;
+  vertical-align: middle;
+}

@@ -201,6 +201,9 @@ export type Database = {
           amico_email: string | null
           amico_nome: string | null
           amico_prefisso: string | null
+          assegnato_a: string | null
+          assegnato_il: string | null
+          chiuso_il: string | null
           created_at: string
           cta: string | null
           email_socio: string | null
@@ -210,8 +213,12 @@ export type Database = {
           gestito_da: string | null
           gestito_il: string | null
           id: string
+          motivo_perso: string | null
           note: string | null
           pagina: string | null
+          stato: string
+          stato_da: string | null
+          stato_il: string | null
           utm_campaign: string | null
           utm_content: string | null
           utm_email: string | null
@@ -228,6 +235,9 @@ export type Database = {
           amico_email?: string | null
           amico_nome?: string | null
           amico_prefisso?: string | null
+          assegnato_a?: string | null
+          assegnato_il?: string | null
+          chiuso_il?: string | null
           created_at?: string
           cta?: string | null
           email_socio?: string | null
@@ -237,8 +247,12 @@ export type Database = {
           gestito_da?: string | null
           gestito_il?: string | null
           id?: string
+          motivo_perso?: string | null
           note?: string | null
           pagina?: string | null
+          stato?: string
+          stato_da?: string | null
+          stato_il?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_email?: string | null
@@ -255,6 +269,9 @@ export type Database = {
           amico_email?: string | null
           amico_nome?: string | null
           amico_prefisso?: string | null
+          assegnato_a?: string | null
+          assegnato_il?: string | null
+          chiuso_il?: string | null
           created_at?: string
           cta?: string | null
           email_socio?: string | null
@@ -264,8 +281,12 @@ export type Database = {
           gestito_da?: string | null
           gestito_il?: string | null
           id?: string
+          motivo_perso?: string | null
           note?: string | null
           pagina?: string | null
+          stato?: string
+          stato_da?: string | null
+          stato_il?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_email?: string | null
@@ -788,6 +809,57 @@ export type Database = {
           puo_cancellare?: boolean
           puo_invitare?: boolean
           sezioni_consentite?: string[]
+        }
+        Relationships: []
+      }
+      task: {
+        Row: {
+          assegnato_a: string
+          completato_il: string | null
+          created_at: string
+          creato_da: string
+          data: string
+          entita: string | null
+          entita_id: string | null
+          esito: string | null
+          id: string
+          note: string | null
+          ora: string | null
+          stato: string
+          tipo: string
+          titolo: string
+        }
+        Insert: {
+          assegnato_a: string
+          completato_il?: string | null
+          created_at?: string
+          creato_da: string
+          data: string
+          entita?: string | null
+          entita_id?: string | null
+          esito?: string | null
+          id?: string
+          note?: string | null
+          ora?: string | null
+          stato?: string
+          tipo?: string
+          titolo: string
+        }
+        Update: {
+          assegnato_a?: string
+          completato_il?: string | null
+          created_at?: string
+          creato_da?: string
+          data?: string
+          entita?: string | null
+          entita_id?: string | null
+          esito?: string | null
+          id?: string
+          note?: string | null
+          ora?: string | null
+          stato?: string
+          tipo?: string
+          titolo?: string
         }
         Relationships: []
       }

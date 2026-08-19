@@ -1,17 +1,23 @@
+import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
+import { puoAmministrare } from '@/lib/auth/permessi'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
 import { VisiteContatto } from '@/components/VisiteContatto'
-import { GestioneInvito } from './GestioneInvito'
+import { CLASSE_STATO, ETICHETTE_STATO, normalizzaStato, OPZIONI_FILTRO, parseFiltro, statiDelFiltro } from '@/lib/pipeline'
+import { PipelineInvito } from './PipelineInvito'
+import { FiltroCheckbox } from '@/components/FiltroCheckbox'
 
 export const dynamic = 'force-dynamic'
 
-const COLONNE_TABELLA = ['Data', 'Socio (chi invita)', 'Amico invitato']
+const COLONNE_TABELLA = ['Data', 'Socio (chi invita)', 'Amico invitato', 'Stato', 'Assegnato a']
 
+// Campi gia' visibili in tabella o nel pannello di gestione: nel dettaglio
+// generico della riga sarebbero solo rumore.
 const COLONNE_VISIBILI = [
   'id',
   'created_at',
@@ -21,55 +27,56 @@ const COLONNE_VISIBILI = [
   'amico_email',
   'amico_prefisso',
   'amico_cellulare',
+  'stato',
+  'stato_da',
+  'stato_il',
+  'assegnato_a',
+  'assegnato_il',
+  'motivo_perso',
+  'chiuso_il',
+  'note',
+  // Derivate dallo stato, tenute in pari solo per compatibilita' (vedi
+  // campiCompatibilita in actions.ts): mostrarle confonderebbe.
   'gestito',
   'gestito_da',
   'gestito_il',
-  'note',
 ]
 
 type RigaInvito = Record<string, any>
 
-const FILTRI_VALIDI = ['da_gestire', 'gestiti', 'tutti'] as const
-type Filtro = (typeof FILTRI_VALIDI)[number]
-
-const OPZIONI_FILTRO = [
-  { valore: 'da_gestire', etichetta: 'Da gestire' },
-  { valore: 'gestiti', etichetta: 'Gestiti' },
-  { valore: 'tutti', etichetta: 'Tutti' },
-]
-
-// Singola selezione: assente (es. dal link "Invita un amico" nel menu) o non
-// valida = "da gestire", cosi' e' quello che si vede aprendo la pagina.
-function parseFiltro(raw: string | undefined): Filtro {
-  if (raw && (FILTRI_VALIDI as readonly string[]).includes(raw)) return raw as Filtro
-  return 'da_gestire'
-}
-
-function applicaFiltro(righe: RigaInvito[], filtro: Filtro): RigaInvito[] {
-  if (filtro === 'tutti') return righe
-  if (filtro === 'gestiti') return righe.filter((riga) => riga.gestito)
-  return righe.filter((riga) => !riga.gestito)
-}
-
 export default async function InvitaAmicoPage({
   searchParams,
 }: {
-  searchParams: { filtro?: string }
+  searchParams: { filtro?: string; mio?: string }
 }) {
   if (!(await utenteHaSezione('invita-amico'))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
   }
 
   const supabase = createSupabaseServiceClient()
+  const emailCorrente = (headers().get('x-tca-user-email') ?? '').toLowerCase() || null
 
-  const { data: righe, error } = await supabase
-    .from('form_invita_amico')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const [{ data: righe, error }, { data: staff }, eAmministratore] = await Promise.all([
+    supabase.from('form_invita_amico').select('*').order('created_at', { ascending: false }),
+    supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
+    puoAmministrare(emailCorrente),
+  ])
 
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
+
+  // Nome e cognome al posto dell'email dove c'e' spazio per leggerlo: chi
+  // guarda la pipeline ragiona per persone, non per indirizzi.
+  const elencoStaff = (staff ?? []).map((persona) => ({
+    email: persona.email,
+    nome: `${persona.nome ?? ''} ${persona.cognome ?? ''}`.trim() || persona.email,
+  }))
+  const nomiStaff: Record<string, string> = Object.fromEntries(
+    elencoStaff.map((persona) => [persona.email.toLowerCase(), persona.nome])
+  )
+  const etichettaOperatore = (email: string | null) =>
+    email ? nomiStaff[email.toLowerCase()] ?? email : null
 
   // Visite al sito di ciascun socio (per vid), per capire quanto e' "caldo"
   // l'invito - vedi VisiteContatto.
@@ -78,7 +85,20 @@ export default async function InvitaAmicoPage({
   const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
 
   const filtro = parseFiltro(searchParams.filtro)
-  const righeFiltrate = applicaFiltro(righe ?? [], filtro)
+  const soloMiei = searchParams.mio === '1'
+  const stati = statiDelFiltro(filtro)
+
+  const righeFiltrate = (righe ?? []).filter((riga: RigaInvito) => {
+    if (stati && !stati.includes(normalizzaStato(riga.stato))) return false
+    if (soloMiei) {
+      // "I miei" include anche i nuovi non ancora assegnati: sono il lavoro
+      // che chiunque puo' prendere, nasconderli renderebbe il filtro una
+      // trappola.
+      const assegnato = (riga.assegnato_a ?? '').toLowerCase()
+      if (assegnato ? assegnato !== emailCorrente : normalizzaStato(riga.stato) !== 'nuovo') return false
+    }
+    return true
+  })
 
   return (
     <div>
@@ -92,17 +112,28 @@ export default async function InvitaAmicoPage({
             Ogni riga è un invito compilato dal sito: «Socio» è chi invita (un contatto già esistente, solo
             l'email), «Amico invitato» è la persona nuova segnalata, con tutti i suoi contatti.
           </li>
-          <li>Filtra tra Da gestire/Gestiti/Tutti con la tendina qui sotto.</li>
-          <li>Apri una riga per vedere il dettaglio e aggiungere una nota interna.</li>
           <li>
-            Per segnare un invito come «Gestito» devi prima scrivere e salvare una nota: è il modo per lasciare
-            traccia di cosa è stato fatto (es. l'amico è stato ricontattato).
+            Ogni invito arriva come <strong>Nuovo</strong>. Apri la riga e premi «Prendi in gestione»: da quel
+            momento l'invito è assegnato a te e solo tu (o un amministratore) puoi farlo avanzare.
+          </li>
+          <li>
+            Da «In gestione» si esce in due modi: <strong>Vinto</strong> oppure <strong>Perso</strong> (con il
+            motivo). Un invito vinto si chiude davvero solo con <strong>Credito caricato</strong>.
+          </li>
+          <li>
+            Per segnare vinto o perso serve una nota salvata: è il modo per lasciare traccia di cosa è stato
+            fatto. Prendere in gestione invece è un solo click.
           </li>
         </ol>
+        <p className="box-istruzioni-nota">
+          «Perso» e «Credito caricato» sono stati finali: per riaprirli serve un amministratore, che può anche
+          riassegnare un invito a un'altra persona.
+        </p>
       </BoxIstruzioni>
 
       <div className="filtri-toolbar">
         <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
+        <FiltroCheckbox attivo={soloMiei} param="mio" etichetta="Solo i miei" />
       </div>
 
       <div className="data-table-wrap">
@@ -110,56 +141,66 @@ export default async function InvitaAmicoPage({
           <thead>
             <tr>
               <th></th>
-              <th>Data</th>
-              <th>Socio</th>
-              <th>Amico invitato</th>
+              {COLONNE_TABELLA.map((colonna) => (
+                <th key={colonna}>{colonna}</th>
+              ))}
             </tr>
           </thead>
           <AccordionGroup>
             <tbody>
-              {righeFiltrate.map((riga) => (
-                <ExpandableRow
-                  key={riga.id}
-                  id={String(riga.id)}
-                  columnCount={4}
-                  columns={COLONNE_TABELLA}
-                  record={riga}
-                  hiddenKeys={COLONNE_VISIBILI}
-                  evidenza={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
-                  extra={
-                    <GestioneInvito
-                      id={riga.id}
-                      gestito={!!riga.gestito}
-                      gestitoDa={riga.gestito_da ?? null}
-                      gestitoIl={riga.gestito_il ?? null}
-                      noteIniziali={riga.note ?? null}
-                    />
-                  }
-                  cells={[
-                    formatDateOra(riga.created_at),
-                    <>
-                      <span className="richiesta-badge richiesta-blu invito-ruolo">Socio</span>
-                      <br />
-                      {riga.email_socio}
-                    </>,
-                    <>
-                      <span className="richiesta-badge richiesta-verde invito-ruolo">Amico</span>
-                      <br />
-                      {riga.amico_nome} {riga.amico_cognome}
-                      <br />
-                      <span className="muted">
-                        {riga.amico_email} · {riga.amico_prefisso} {riga.amico_cellulare}
-                      </span>
-                    </>,
-                  ]}
-                />
-              ))}
+              {righeFiltrate.map((riga) => {
+                const stato = normalizzaStato(riga.stato)
+                return (
+                  <ExpandableRow
+                    key={riga.id}
+                    id={String(riga.id)}
+                    columnCount={COLONNE_TABELLA.length + 1}
+                    columns={COLONNE_TABELLA}
+                    record={riga}
+                    hiddenKeys={COLONNE_VISIBILI}
+                    evidenza={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
+                    extra={
+                      <PipelineInvito
+                        id={riga.id}
+                        stato={stato}
+                        assegnatoA={riga.assegnato_a ?? null}
+                        assegnatoIl={riga.assegnato_il ?? null}
+                        statoIl={riga.stato_il ?? null}
+                        motivoPerso={riga.motivo_perso ?? null}
+                        noteIniziali={riga.note ?? null}
+                        emailCorrente={emailCorrente}
+                        eAmministratore={eAmministratore}
+                        staff={elencoStaff}
+                      />
+                    }
+                    cells={[
+                      formatDateOra(riga.created_at),
+                      <>
+                        <span className="richiesta-badge richiesta-blu invito-ruolo">Socio</span>
+                        <br />
+                        {riga.email_socio}
+                      </>,
+                      <>
+                        <span className="richiesta-badge richiesta-verde invito-ruolo">Amico</span>
+                        <br />
+                        {riga.amico_nome} {riga.amico_cognome}
+                        <br />
+                        <span className="muted">
+                          {riga.amico_email} · {riga.amico_prefisso} {riga.amico_cellulare}
+                        </span>
+                      </>,
+                      <span className={`richiesta-badge ${CLASSE_STATO[stato]}`}>{ETICHETTE_STATO[stato]}</span>,
+                      etichettaOperatore(riga.assegnato_a ?? null) ?? '—',
+                    ]}
+                  />
+                )
+              })}
             </tbody>
           </AccordionGroup>
         </table>
         {righeFiltrate.length === 0 && (
           <p className="empty-state">
-            {filtro === 'tutti' ? 'Nessun invito trovato.' : 'Nessun invito in questo filtro.'}
+            {filtro === 'tutti' && !soloMiei ? 'Nessun invito trovato.' : 'Nessun invito in questo filtro.'}
           </p>
         )}
       </div>

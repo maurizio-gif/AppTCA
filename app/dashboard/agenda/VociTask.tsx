@@ -1,0 +1,90 @@
+import Link from 'next/link'
+import type { VoceCalendario } from '@/components/CalendarioAgenda'
+import { eStatoTaskValido, etichettaPersona, voceDaTask, type RigaTask, type StatoTask } from '@/lib/agenda'
+import { AzioniTask } from './AzioniTask'
+
+// Campi gia' visibili in tabella o nel pannello del task: nel dettaglio
+// generico della riga sarebbero solo rumore.
+export const CAMPI_TASK_NASCOSTI = [
+  'id',
+  'titolo',
+  'tipo',
+  'data',
+  'ora',
+  'assegnato_a',
+  'stato',
+  'completato_il',
+  'esito',
+  'note',
+  'entita',
+  'entita_id',
+]
+
+// Dove porta il record collegato a un task, per entita'. Una entita' non
+// elencata qui mostra l'etichetta senza link, non un link rotto.
+const PAGINA_ENTITA: Record<string, string> = {
+  form_invita_amico: '/dashboard/invita-amico?filtro=tutti',
+  form_contatti: '/dashboard/contatti/adulti',
+}
+
+// Da riga della tabella task a voce del calendario condiviso, pannello di
+// gestione incluso. Sta qui e non nella pagina perche' la stessa voce serve
+// sia all'Agenda sia al tab Appuntamenti delle Enquiries Adulti: sono lo
+// stesso calendario (vedi lib/agenda.ts).
+export function voceCalendarioDaTask(
+  riga: RigaTask,
+  {
+    nomiStaff,
+    emailCorrente,
+    eAmministratore,
+    etichetteCollegamento = {},
+  }: {
+    nomiStaff: Record<string, string>
+    emailCorrente: string | null
+    eAmministratore: boolean
+    // Chiave "entita:id" -> nome leggibile del record collegato, cosi' in
+    // agenda non compare "form_invita_amico:9f2c…".
+    etichetteCollegamento?: Record<string, string>
+  }
+): VoceCalendario {
+  const voce = voceDaTask(riga)
+  const stato: StatoTask = eStatoTaskValido(riga.stato) ? riga.stato : 'aperto'
+  const assegnatoEtichetta = etichettaPersona(riga.assegnato_a, nomiStaff)
+
+  const chiaveCollegamento = riga.entita && riga.entita_id ? `${riga.entita}:${riga.entita_id}` : null
+  const etichettaCollegamento = chiaveCollegamento ? etichetteCollegamento[chiaveCollegamento] : null
+  const paginaCollegamento = riga.entita ? PAGINA_ENTITA[riga.entita] : null
+
+  const suo = !!emailCorrente && riga.assegnato_a?.toLowerCase() === emailCorrente
+  const creatoDaMe = !!emailCorrente && riga.creato_da?.toLowerCase() === emailCorrente
+
+  return {
+    ...voce,
+    assegnatoEtichetta,
+    sottotitolo: etichettaCollegamento ? (
+      paginaCollegamento ? (
+        <Link href={paginaCollegamento} className="link">
+          {etichettaCollegamento}
+        </Link>
+      ) : (
+        etichettaCollegamento
+      )
+    ) : (
+      riga.note || null
+    ),
+    record: riga,
+    hiddenKeys: CAMPI_TASK_NASCOSTI,
+    extraTitle: 'Task',
+    extra: (
+      <AzioniTask
+        id={String(riga.id)}
+        stato={stato}
+        assegnatoEtichetta={assegnatoEtichetta}
+        completatoIl={riga.completato_il ?? null}
+        esito={riga.esito ?? null}
+        note={riga.note ?? null}
+        puoModificare={eAmministratore || suo || creatoDaMe}
+      />
+    ),
+  }
+}

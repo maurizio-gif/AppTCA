@@ -11,6 +11,13 @@ const ICONE: Record<string, React.ReactNode> = {
       <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.2" />
     </>
   ),
+  agenda: (
+    <>
+      <rect x="3" y="4.5" width="18" height="16" rx="1.8" />
+      <path d="M3.5 9.5h17M8 2.8v3.4M16 2.8v3.4" />
+      <path d="m8.8 14.2 1.9 1.9 3.9-3.9" />
+    </>
+  ),
   notifiche: (
     <>
       <path d="M12 3.5a5 5 0 0 0-5 5v3.2c0 .9-.35 1.77-1 2.4L5 15h14l-1-1c-.65-.63-1-1.5-1-2.4V8.5a5 5 0 0 0-5-5Z" />
