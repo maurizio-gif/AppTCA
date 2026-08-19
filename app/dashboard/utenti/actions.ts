@@ -168,6 +168,34 @@ export async function impostaPuoCancellare(email: string, puoCancellare: boolean
   return { ok: true }
 }
 
+// Diritto di passare a un altro operatore un lead che non e' il proprio: chi
+// ce l'ha in mano puo' sempre farlo, questo permesso serve a chi coordina
+// (vedi lib/auth/permessi.ts).
+export async function impostaPuoRiassegnare(email: string, puoRiassegnare: boolean): Promise<Risultato> {
+  const supabase = createSupabaseServiceClient()
+
+  if (!(await chiamanteHaPermesso(supabase))) {
+    return { ok: false, errore: 'Non hai il permesso di modificare i permessi degli altri utenti.' }
+  }
+
+  const { error } = await supabase
+    .from('staff_users')
+    .update({ puo_riassegnare: puoRiassegnare })
+    .eq('email', email)
+
+  if (error) return { ok: false, errore: error.message }
+
+  await registraLog(headers().get('x-tca-user-email'), 'permesso_riassegnare_modificato', {
+    entita: 'staff_users',
+    entitaId: email,
+    dettagli: { email_target: email, valore: puoRiassegnare },
+  })
+
+  revalidatePath('/dashboard/utenti')
+
+  return { ok: true }
+}
+
 export async function impostaSezioni(email: string, sezioni: string[]): Promise<Risultato> {
   const supabase = createSupabaseServiceClient()
 

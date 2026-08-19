@@ -10,7 +10,7 @@ import { PipelineBadge } from '@/components/PipelineBadge'
 import { VisiteContatto } from '@/components/VisiteContatto'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
-import { puoAmministrare } from '@/lib/auth/permessi'
+import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
 import { nomePersona, totaleRichieste } from '@/lib/persone'
 import { conteggiRichieste } from '@/lib/persone-server'
 import { normalizzaStato, type StatoPipeline } from '@/lib/pipeline'
@@ -113,13 +113,14 @@ export default async function InvitaAmicoPage({
   // sezione Agenda: chi non ha quel permesso vede la pipeline e basta.
   const vedeAgenda = await utenteHaSezione('agenda')
 
-  const [{ data: righe, error }, { data: staff }, { data: task }, eAmministratore] = await Promise.all([
+  const [{ data: righe, error }, { data: staff }, { data: task }, eAmministratore, puoRiassegnareLead] = await Promise.all([
     supabase.from('form_invita_amico').select('*').order('created_at', { ascending: false }),
     supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
     vedeAgenda
       ? supabase.from('task').select('*').eq('entita', 'form_invita_amico').order('data', { ascending: true })
       : Promise.resolve({ data: [] as Record<string, any>[] }),
     puoAmministrare(emailCorrente),
+    puoRiassegnare(emailCorrente),
   ])
 
   if (error) {
@@ -304,6 +305,7 @@ export default async function InvitaAmicoPage({
                           motivoPerso={lead.motivo_perso ?? null}
                           emailCorrente={emailCorrente}
                           eAmministratore={eAmministratore}
+                          puoRiassegnareLead={puoRiassegnareLead}
                           staff={elencoStaff}
                           dopoAzioni={
                             // Il credito riguarda solo i referral vinti: prima

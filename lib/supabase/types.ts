@@ -946,6 +946,7 @@ export type Database = {
       }
       staff_users: {
         Row: {
+          puo_riassegnare: boolean
           cognome: string | null
           created_at: string
           email: string
@@ -955,6 +956,7 @@ export type Database = {
           sezioni_consentite: string[]
         }
         Insert: {
+          puo_riassegnare?: boolean
           cognome?: string | null
           created_at?: string
           email: string
@@ -964,6 +966,7 @@ export type Database = {
           sezioni_consentite?: string[]
         }
         Update: {
+          puo_riassegnare?: boolean
           cognome?: string | null
           created_at?: string
           email?: string

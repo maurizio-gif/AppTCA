@@ -2,20 +2,24 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { formatDateOra, variantePillola } from '@/lib/format'
+import { ChipPersona } from '@/components/ChipPersona'
+import { FiltroCheckbox } from '@/components/FiltroCheckbox'
+import { PipelineBadge } from '@/components/PipelineBadge'
+import { normalizzaStato, type StatoPipeline } from '@/lib/pipeline'
+import { nomePersona, totaleRichieste } from '@/lib/persone'
+import { conteggiRichieste } from '@/lib/persone-server'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { apparteneAGruppo, classificaContatto, type GruppoContatto } from '@/lib/contatti'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
 import type { SezioneChiave } from '@/lib/auth/sezioni'
 import { VisiteContatto } from '@/components/VisiteContatto'
-import { GestioneSezione } from './GestioneSezione'
 import { RicercaContatti } from './RicercaContatti'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
 import { VistaTabs } from '@/components/VistaTabs'
 import { CalendarioAgenda, type VoceCalendario } from '@/components/CalendarioAgenda'
-import { puoAmministrare } from '@/lib/auth/permessi'
-import { voceCalendarioDaContatto } from './VociAppuntamenti'
+import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
+import { bloccoGestioneContatto, voceCalendarioDaContatto } from './VociAppuntamenti'
 import { voceCalendarioDaTask } from '../agenda/VociTask'
-import { TaskEntita } from '../agenda/TaskEntita'
 import { NuovoTask } from '../agenda/NuovoTask'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
@@ -24,7 +28,7 @@ import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 // data, nome, stato, attivita' e richiesta - data per prima perche' su
 // mobile diventa la riga principale della lista (vedi CSS .row-clickable).
 // Contatti e stato di gestione restano un tap di distanza nel pannello espanso.
-const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Stato', 'Attività', 'Richiesta']
+const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Lead', 'Attività', 'Richiesta']
 
 const COLONNE_VISIBILI = [
   'id',
@@ -46,34 +50,61 @@ const COLONNE_VISIBILI = [
   'ora_richiesta',
 ]
 
-const FILTRI_VALIDI = ['da_gestire', 'gestiti', 'tutti'] as const
+// La pipeline (vedi lib/pipeline.ts) piu' "Da rispondere", che e' il lavoro
+// quotidiano di questa sezione: "gestito" su un'enquiry vuol dire "a questo
+// messaggio ho risposto", e non e' lo stato del lead - la stessa persona puo'
+// avere una trattativa aperta e un messaggio nuovo ancora senza risposta.
+// "Credito caricato" non c'e': riguarda solo i referral.
+const FILTRI_VALIDI = ['da_rispondere', 'nuovi', 'in_gestione', 'vinti', 'persi', 'tutti'] as const
 type Filtro = (typeof FILTRI_VALIDI)[number]
 
 const OPZIONI_FILTRO = [
-  { valore: 'da_gestire', etichetta: 'Da gestire' },
-  { valore: 'gestiti', etichetta: 'Gestiti' },
+  { valore: 'da_rispondere', etichetta: 'Da rispondere' },
+  { valore: 'nuovi', etichetta: 'Lead nuovi' },
+  { valore: 'in_gestione', etichetta: 'Lead in gestione' },
+  { valore: 'vinti', etichetta: 'Lead vinti' },
+  { valore: 'persi', etichetta: 'Lead persi' },
   { valore: 'tutti', etichetta: 'Tutti' },
 ]
 
 type RigaContatto = Record<string, any>
 
-// Singola selezione: assente (es. dal link nel menu) o non valida = "da
-// gestire", cosi' e' quello che si vede aprendo la pagina.
+// Assente (es. dal link nel menu) o non valida = "da rispondere": e' cio' che
+// si vede aprendo la pagina, cioe' i messaggi ancora senza risposta.
 function parseFiltro(raw: string | undefined): Filtro {
   if (raw && (FILTRI_VALIDI as readonly string[]).includes(raw)) return raw as Filtro
-  return 'da_gestire'
+  return 'da_rispondere'
 }
 
-function applicaFiltro(righe: RigaContatto[], filtro: Filtro): RigaContatto[] {
-  if (filtro === 'tutti') return righe
-  if (filtro === 'gestiti') return righe.filter((riga) => riga.gestito)
-  return righe.filter((riga) => !riga.gestito)
+function nelFiltro(filtro: Filtro, riga: RigaContatto, stato: StatoPipeline): boolean {
+  switch (filtro) {
+    case 'da_rispondere':
+      return !riga.gestito
+    case 'nuovi':
+      return stato === 'nuovo'
+    case 'in_gestione':
+      return stato === 'in_gestione'
+    case 'vinti':
+      return stato === 'vinto'
+    case 'persi':
+      return stato === 'perso'
+    default:
+      return true
+  }
 }
 
 // La ricerca ignora il filtro Da gestire/Gestiti: cerca su tutti i
 // contatti della sezione, gestiti o meno, dentro nome, cognome, email e
 // cellulare.
 const CAMPI_RICERCA = ['nome', 'cognome', 'email', 'cellulare'] as const
+
+// attivita' e' una colonna jsonb: puo' arrivare come array (il caso normale)
+// o come testo, quindi si normalizza qui invece di ripetere il controllo nella
+// cella.
+function etichettaAttivita(valore: unknown): string {
+  if (Array.isArray(valore)) return valore.join(', ') || '—'
+  return typeof valore === 'string' && valore ? valore : '—'
+}
 
 function corrispondeRicerca(riga: RigaContatto, query: string): boolean {
   return CAMPI_RICERCA.some((campo) => {
@@ -103,7 +134,7 @@ export async function ContattiSezione({
   titolo: string
   permesso: SezioneChiave
   basePath: string
-  searchParams: { filtro?: string; q?: string; vista?: string }
+  searchParams: { filtro?: string; q?: string; vista?: string; mio?: string }
 }) {
   if (!(await utenteHaSezione(permesso))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
@@ -127,6 +158,7 @@ export async function ContattiSezione({
     { data: taskEnquiries },
     { data: staff },
     eAmministratore,
+    puoRiassegnareLead,
   ] = await Promise.all([
       supabase.from('form_contatti').select('*').order('created_at', { ascending: false }),
       supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
@@ -138,6 +170,7 @@ export async function ContattiSezione({
         : Promise.resolve({ data: [] as Record<string, any>[] }),
       supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
       puoAmministrare(emailCorrente),
+      puoRiassegnare(emailCorrente),
     ])
 
   if (error) {
@@ -154,6 +187,29 @@ export async function ContattiSezione({
   const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
 
   const righeSezione = (righe ?? []).filter((riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo))
+
+  // Il lead e la persona di ciascuna richiesta: la pipeline e' della persona,
+  // non della singola enquiry (vedi la tabella opportunita). Letti a parte e
+  // agganciati per id, senza dipendere dai nomi dei vincoli di chiave esterna.
+  const opportunitaIds = [...new Set(righeSezione.map((r) => r.opportunita_id).filter(Boolean))] as string[]
+  const personaIds = [...new Set(righeSezione.map((r) => r.persona_id).filter(Boolean))] as string[]
+
+  const [{ data: opportunita }, { data: persone }, conteggi] = await Promise.all([
+    opportunitaIds.length > 0
+      ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
+      : Promise.resolve({ data: [] as Record<string, any>[] }),
+    personaIds.length > 0
+      ? supabase.from('persone').select('*').in('id', personaIds)
+      : Promise.resolve({ data: [] as Record<string, any>[] }),
+    conteggiRichieste(personaIds),
+  ])
+
+  const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
+  const personePerId = new Map((persone ?? []).map((p) => [p.id, p]))
+  const statoDi = (riga: RigaContatto): StatoPipeline =>
+    normalizzaStato(opportunitaPerId.get(riga.opportunita_id)?.stato)
+  const richiesteDi = (personaId: string) =>
+    totaleRichieste(conteggi[personaId] ?? { enquiries: 0, inviti: 0, scuolaTennis: 0, summerCamp: 0, eventi: 0 })
 
   const elencoStaff = (staff ?? []).map((persona) => ({
     email: persona.email,
@@ -174,15 +230,15 @@ export async function ContattiSezione({
     taskPerEnquiry.get(chiave)!.push(riga)
   }
 
-  const agendaDi = (riga: RigaContatto) =>
-    vedeAgenda
-      ? {
-          task: taskPerEnquiry.get(String(riga.id)) ?? [],
-          staff: elencoStaff,
-          emailCorrente,
-          eAmministratore,
-        }
-      : undefined
+  const gestioneDi = (riga: RigaContatto) => ({
+    lead: opportunitaPerId.get(riga.opportunita_id) ?? null,
+    emailCorrente,
+    eAmministratore,
+    puoRiassegnareLead,
+    puoCancellare,
+    staff: elencoStaff,
+    task: vedeAgenda ? taskPerEnquiry.get(String(riga.id)) ?? [] : undefined,
+  })
 
   const messaggiSezione = conDivisioneViste
     ? righeSezione.filter((riga) => classificaContatto(riga) === 'messaggio')
@@ -195,15 +251,29 @@ export async function ContattiSezione({
 
   const query = (searchParams.q ?? '').trim().toLowerCase()
   const filtro = parseFiltro(searchParams.filtro)
+  const soloMiei = searchParams.mio === '1'
+  // Nel filtro "Da rispondere" sono tutte senza risposta: evidenziarle tutte
+  // non direbbe niente. Negli altri filtri invece un messaggio non risposto in
+  // mezzo a lead lavorati deve saltare all'occhio.
+  const evidenziaSenzaRisposta = filtro !== 'da_rispondere'
+
+  // "I miei" tiene dentro anche i lead nuovi non ancora assegnati: sono il
+  // lavoro che chiunque puo' prendere, nasconderli renderebbe il filtro una
+  // trappola.
+  const eMio = (riga: RigaContatto) => {
+    if (!soloMiei) return true
+    const assegnato = (opportunitaPerId.get(riga.opportunita_id)?.assegnato_a ?? '').toLowerCase()
+    return assegnato ? assegnato === emailCorrente : statoDi(riga) === 'nuovo'
+  }
   const righeFiltrate = query
     ? messaggiSezione.filter((riga) => corrispondeRicerca(riga, query))
-    : applicaFiltro(messaggiSezione, filtro)
+    : messaggiSezione.filter((riga) => nelFiltro(filtro, riga, statoDi(riga)) && eMio(riga))
   // Stessa ricerca del tab Messaggi, applicata anche agli appuntamenti: un
   // contatto si trova a prescindere da dove sia finito, senza dover
   // indovinare in quale dei due tab guardare.
   const appuntamentiFiltrati = query
     ? appuntamentiSezione.filter((riga) => corrispondeRicerca(riga, query))
-    : appuntamentiSezione
+    : appuntamentiSezione.filter((riga) => eMio(riga))
 
   // Appuntamenti dal sito e task nello stesso calendario (vedi lib/agenda.ts).
   // Durante una ricerca i task restano fuori: si sta cercando un contatto,
@@ -213,9 +283,8 @@ export async function ContattiSezione({
         ...appuntamentiFiltrati.map((riga) =>
           voceCalendarioDaContatto(riga, {
             nomiStaff,
-            puoCancellare,
             accessi: riga.vid ? accessiPerVid[riga.vid] ?? [] : [],
-            agenda: agendaDi(riga),
+            gestione: gestioneDi(riga),
           })
         ),
         ...(query
@@ -307,12 +376,20 @@ export async function ContattiSezione({
             <ol>
               <li>
                 Cerca per nome, cognome, email o cellulare{conDivisioneViste ? ' (trova sia Messaggi che Appuntamenti)' : ''},
-                oppure filtra tra Da gestire/Gestiti/Tutti.
+                oppure filtra per stato del lead. «Da rispondere» è il filtro di partenza: i messaggi a cui nessuno
+                ha ancora risposto.
               </li>
-              <li>Apri una riga per vedere tutti i dettagli e aggiungere una nota interna.</li>
               <li>
-                Per segnare un contatto come «Gestito» devi prima scrivere e salvare una nota: è il modo per
-                lasciare traccia di cosa è stato fatto.
+                Apri una riga: in evidenza trovi il <strong>lead</strong> con la pipeline (Nuovo → In gestione →
+                Vinto/Perso). Chi preme «Prendi in gestione» ne diventa l'assegnatario.
+              </li>
+              <li>
+                Il lead è della <strong>persona</strong>, non del singolo messaggio: se ha già una trattativa aperta
+                (magari da un altro modulo) la richiesta si aggancia a quella. Il nome cliccabile apre la sua scheda.
+              </li>
+              <li>
+                Nel blocco «Questa richiesta» segni che a <em>questo</em> messaggio hai risposto, con la nota di cosa
+                hai fatto; in «In agenda» fissi una chiamata o un appuntamento collegato.
               </li>
               {conDivisioneViste && (
                 <li>
@@ -322,8 +399,9 @@ export async function ContattiSezione({
               )}
             </ol>
             <p className="box-istruzioni-nota">
-              «Cancella record» è visibile solo a chi ha il permesso di cancellare, ed è irreversibile: chiede
-              sempre una conferma.
+              «Da rispondere» e stato del lead sono due cose diverse: una persona può avere la trattativa in
+              gestione e un messaggio nuovo ancora senza risposta — per questo la riga resta evidenziata finché non
+              la segni. «Cancella record» è visibile solo a chi ha il permesso di cancellare, ed è irreversibile.
             </p>
           </BoxIstruzioni>
 
@@ -340,7 +418,10 @@ export async function ContattiSezione({
                   </p>
                 )
               ) : (
-                <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
+                <>
+                  <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
+                  <FiltroCheckbox attivo={soloMiei} param="mio" etichetta="Solo i miei" />
+                </>
               )}
             </div>
           )}
@@ -350,77 +431,67 @@ export async function ContattiSezione({
               <thead>
                 <tr>
                   <th></th>
-                  <th>Data e ora</th>
-                  <th>Nome e cognome</th>
-                  <th>Stato</th>
-                  <th>Attività</th>
-                  <th>Richiesta</th>
+                  {COLONNE_TABELLA.map((colonna) => (
+                    <th key={colonna}>{colonna}</th>
+                  ))}
                 </tr>
               </thead>
               <AccordionGroup>
                 <tbody>
-                  {righeFiltrate.map((riga) => (
-                    <ExpandableRow
-                      key={riga.id}
-                      id={String(riga.id)}
-                      columnCount={6}
-                      columns={COLONNE_TABELLA}
-                      record={riga}
-                      hiddenKeys={COLONNE_VISIBILI}
-                      evidenza={<RichiestaEvidenza riga={riga} />}
-                      consultazione={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
-                      sections={
-                        vedeAgenda
-                          ? [
-                              {
-                                title: 'In agenda',
-                                content: (
-                                  <TaskEntita
-                                    collegamento={{
-                                      entita: 'form_contatti',
-                                      entitaId: String(riga.id),
-                                      etichetta: `Enquiry · ${
-                                        `${riga.nome ?? ''} ${riga.cognome ?? ''}`.trim() || riga.email || 'contatto'
-                                      }`,
-                                    }}
-                                    titoloSuggerito={`Ricontattare ${
-                                      `${riga.nome ?? ''} ${riga.cognome ?? ''}`.trim() || riga.email || 'il contatto'
-                                    }`}
-                                    task={taskPerEnquiry.get(String(riga.id)) ?? []}
-                                    staff={elencoStaff}
-                                    emailCorrente={emailCorrente}
-                                    eAmministratore={eAmministratore}
-                                  />
-                                ),
-                              },
-                            ]
-                          : []
-                      }
-                      extra={
-                        <GestioneSezione
-                          id={riga.id}
-                          gestito={!!riga.gestito}
-                          gestitoDa={riga.gestito_da ?? null}
-                          gestitoIl={riga.gestito_il ?? null}
-                          noteIniziali={riga.note ?? null}
-                          puoCancellare={puoCancellare}
-                        />
-                      }
-                      cells={[
-                        formatDateOra(riga.created_at),
-                        <>{riga.nome} {riga.cognome}</>,
-                        riga.stato || '—',
-                        Array.isArray(riga.attivita) ? riga.attivita.join(', ') : riga.attivita || '—',
-                        riga.tipo_richiesta ? (
-                          <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
-                            {riga.tipo_richiesta}
-                          </span>
-                        ) : (
-                          '—'
-                        ),
-                      ]}
-                    />
-                  ))}
+                  {righeFiltrate.map((riga) => {
+                    const stato = statoDi(riga)
+                    const persona = personePerId.get(riga.persona_id)
+                    const { extra, extraTitle, sections } = bloccoGestioneContatto(riga, gestioneDi(riga))
+
+                    return (
+                      <ExpandableRow
+                        key={riga.id}
+                        id={String(riga.id)}
+                        columnCount={6}
+                        columns={COLONNE_TABELLA}
+                        record={riga}
+                        hiddenKeys={COLONNE_VISIBILI}
+                        evidenziata={evidenziaSenzaRisposta && !riga.gestito}
+                        evidenza={<RichiestaEvidenza riga={riga} />}
+                        consultazione={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
+                        extra={extra}
+                        extraTitle={extraTitle}
+                        sections={sections}
+                        cells={[
+                          formatDateOra(riga.created_at),
+                          persona ? (
+                            <ChipPersona
+                              id={persona.id}
+                              nome={nomePersona(persona)}
+                              richieste={richiesteDi(persona.id)}
+                              storico={!!persona.storico}
+                            />
+                          ) : (
+                            <>
+                              {riga.nome} {riga.cognome}
+                            </>
+                          ),
+                          <>
+                            <PipelineBadge stato={stato} />
+                            {!riga.gestito && (
+                              <>
+                                <br />
+                                <span className="richiesta-badge richiesta-ambra">Da rispondere</span>
+                              </>
+                            )}
+                          </>,
+                          etichettaAttivita(riga.attivita),
+                          riga.tipo_richiesta ? (
+                            <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
+                              {riga.tipo_richiesta}
+                            </span>
+                          ) : (
+                            '—'
+                          ),
+                        ]}
+                      />
+                    )
+                  })}
                 </tbody>
               </AccordionGroup>
             </table>

@@ -393,3 +393,28 @@ sede), quindi ovunque c'è un **elenco** e non un singolo appuntamento:
 - **Sull'invito** — lo stesso blocco, come già c'era.
 - **Sulla persona** — tutti i suoi eventi, da qualunque richiesta arrivino, con
   l'indicazione di quale (`etichetteCollegamento`).
+
+## Aggiornamento — pipeline anche sulle Enquiries, e riassegnazione con permesso
+
+- **Enquiries (Adulti e Junior)**: la riga espansa ha lo stesso pannello di
+  «Invita un amico» — il **lead** con la pipeline in evidenza, poi «Questa
+  richiesta» (il vecchio «Gestito» con nota e cancellazione) e «In agenda».
+  Nessun credito: quello resta ai referral.
+- Perché entrambe le sezioni: il lead è della **persona**, e la stessa persona
+  può avere un'enquiry Adulti e una richiesta Junior — sono lo stesso lead.
+  Mostrare la pipeline solo su una delle due sembrerebbe un errore.
+- **`gestito` resta**, e non è lo stato del lead: su un'enquiry significa «a
+  questo messaggio ho risposto». La stessa persona può avere la trattativa in
+  gestione e un messaggio nuovo senza risposta, quindi i filtri sono
+  «Da rispondere» (il default, il lavoro quotidiano) più gli stati del lead, e
+  la riga senza risposta resta evidenziata negli altri filtri. Questo tiene in
+  piedi anche il tempo di presa in carico di Analytics, che legge `gestito_il`.
+- **Riassegnazione**: in fondo al pannello e chiusa, si apre con un click. La
+  vede chi ha il lead in mano (il proprio si passa sempre) e chi ha il nuovo
+  permesso **«Può riassegnare i lead»** (`staff_users.puo_riassegnare`,
+  assegnabile da Gestione utenti; chi poteva invitare lo ha già).
+- Ogni azione della pipeline mostra «Un momento…» mentre gira: una Server
+  Action che rinfresca la pagina può metterci un secondo, e senza segnale il
+  pulsante sembrava non aver fatto nulla.
+
+Migrazione applicata: `permesso_puo_riassegnare`.

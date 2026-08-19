@@ -21,3 +21,19 @@ export async function puoAmministrare(email: string | null | undefined): Promise
 
   return !!data?.puo_invitare
 }
+
+// Diritto di passare un lead a un altro operatore (colonna puo_riassegnare,
+// assegnabile da Gestione utenti). Chi ha il lead in mano puo' sempre
+// riassegnarlo: il controllo su questo permesso serve per tutti gli altri.
+export async function puoRiassegnare(email: string | null | undefined): Promise<boolean> {
+  if (!email) return false
+
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('staff_users')
+    .select('puo_riassegnare')
+    .eq('email', email.trim().toLowerCase())
+    .maybeSingle()
+
+  return !!data?.puo_riassegnare
+}

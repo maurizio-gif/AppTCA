@@ -6,6 +6,7 @@ import { invitaStaff } from './actions'
 import { RimuoviButton } from './RimuoviButton'
 import { PuoInvitareToggle } from './PuoInvitareToggle'
 import { PuoCancellareToggle } from './PuoCancellareToggle'
+import { PuoRiassegnareToggle } from './PuoRiassegnareToggle'
 import { SezioniToggle } from './SezioniToggle'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { formatDateOra } from '@/lib/format'
@@ -19,6 +20,7 @@ const COLONNE_VISIBILI = [
   'cognome',
   'puo_invitare',
   'puo_cancellare',
+  'puo_riassegnare',
   'sezioni_consentite',
   'created_at',
 ]
@@ -38,7 +40,7 @@ export default async function UtentiPage({
   const [{ data: staff, error }, { data: viewer }] = await Promise.all([
     supabase
       .from('staff_users')
-      .select('email, nome, cognome, puo_invitare, puo_cancellare, sezioni_consentite, created_at')
+      .select('email, nome, cognome, puo_invitare, puo_cancellare, puo_riassegnare, sezioni_consentite, created_at')
       // Sempre in ordine alfabetico di cognome, come ogni altro elenco di operatori.
       .order('cognome', { ascending: true })
       .order('nome', { ascending: true }),
@@ -69,6 +71,10 @@ export default async function UtentiPage({
             elencate in questa pagina (Enquiries, Scuola tennis, Timbra cartellino, ecc.).
           </li>
           <li>«Può cancellare record» dà il diritto di cancellare definitivamente le Enquiries.</li>
+          <li>
+            «Può riassegnare i lead» serve per passare a un collega un lead che non è il proprio: chi ce l'ha in
+            gestione può sempre passarlo da sé, senza questo permesso.
+          </li>
         </ol>
         <p className="box-istruzioni-nota">
           Non puoi rimuovere il tuo stesso account, e senza il permesso «Può invitare» puoi solo consultare
@@ -156,6 +162,18 @@ export default async function UtentiPage({
                             {puoInvitare ? (
                               <PuoCancellareToggle email={s.email} puoCancellare={s.puo_cancellare} />
                             ) : s.puo_cancellare ? (
+                              'Sì'
+                            ) : (
+                              '—'
+                            )}
+                          </span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Può riassegnare i lead</span>
+                          <span className="detail-value">
+                            {puoInvitare ? (
+                              <PuoRiassegnareToggle email={s.email} puoRiassegnare={s.puo_riassegnare} />
+                            ) : s.puo_riassegnare ? (
                               'Sì'
                             ) : (
                               '—'
