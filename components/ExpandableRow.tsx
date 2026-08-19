@@ -28,6 +28,7 @@ export function ExpandableRow({
   hiddenKeys = [],
   columnCount,
   evidenza,
+  consultazione,
   sections = [],
   extra,
   extraTitle = 'Gestione',
@@ -49,6 +50,9 @@ export function ExpandableRow({
   // `sections`, si occupa da solo del proprio titolo/contenitore, quindi
   // viene reso cosi' com'e', senza un wrapper ".detail-group" attorno.
   evidenza?: React.ReactNode
+  // Blocchi da consultare (le visite al sito, per esempio): stanno sotto il
+  // pannello di gestione, perche' si guardano, non si usano.
+  consultazione?: React.ReactNode
   // Sezioni su misura (es. "Richiesta") mostrate dopo evidenza, prima di
   // "Gestione" e dei gruppi generici ricavati dal record.
   sections?: { title: string; content: React.ReactNode }[]
@@ -61,6 +65,7 @@ export function ExpandableRow({
   const gruppo = useContext(AccordionContext)
   const [openLocale, setOpenLocale] = useState(false)
   const [tecniciAperti, setTecniciAperti] = useState(false)
+  const [datiAperti, setDatiAperti] = useState(false)
 
   const open = gruppo ? gruppo.openId === id : openLocale
   const alternaOpen = () => {
@@ -91,41 +96,77 @@ export function ExpandableRow({
         <tr className="row-detail">
           <td colSpan={columnCount}>
             <div className="detail-groups">
+              {/* Cosa ha chiesto la persona: due righe di contesto, prima di
+                  tutto il resto. */}
               {evidenza}
-              {sections.map(({ title, content }) => (
-                <div className="detail-group" key={title}>
-                  <div className="detail-group-title">{title}</div>
-                  {content}
-                </div>
-              ))}
-              {extra && (
-                <div className="detail-group">
-                  <div className="detail-group-title">{extraTitle}</div>
-                  {extra}
+
+              {/* Il pannello di gestione e' la ragione per cui si apre una
+                  riga: sta in un contenitore staccato e in evidenza, insieme a
+                  tutto cio' su cui si agisce (l'agenda, per esempio). I dati da
+                  consultare stanno sotto, chiusi. */}
+              {(extra || sections.length > 0) && (
+                <div className="pannello-gestione">
+                  {extra && (
+                    <div className="pannello-gestione-blocco">
+                      <div className="pannello-gestione-titolo">{extraTitle}</div>
+                      {extra}
+                    </div>
+                  )}
+                  {sections.map(({ title, content }) => (
+                    <div className="pannello-gestione-blocco" key={title}>
+                      <div className="pannello-gestione-titolo">{title}</div>
+                      {content}
+                    </div>
+                  ))}
                 </div>
               )}
-              {gruppiNormali.map((gruppo) => (
-                <GruppoDettaglio key={gruppo.titolo} titolo={gruppo.titolo} voci={gruppo.voci} />
-              ))}
 
-              {gruppiTecnici.length > 0 && (
+              {consultazione}
+
+              {/* Consultazione: chiusa per default, cosi' la gestione non
+                  finisce annegata in venti campi che si guardano di rado. */}
+              {dettagli.length > 0 && (
                 <div className="detail-group">
                   <button
                     type="button"
                     className="detail-tecnici-toggle"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setTecniciAperti((o) => !o)
+                      setDatiAperti((o) => !o)
                     }}
                   >
-                    {tecniciAperti ? '−' : '+'} {tecniciAperti ? 'Nascondi' : 'Mostra'} parametri tecnici
+                    {datiAperti ? '−' : '+'} {datiAperti ? 'Nascondi' : 'Mostra'} i dati della richiesta (
+                    {dettagli.length})
                   </button>
                 </div>
               )}
-              {tecniciAperti &&
-                gruppiTecnici.map((gruppo) => (
-                  <GruppoDettaglio key={gruppo.titolo} titolo={gruppo.titolo} voci={gruppo.voci} />
-                ))}
+
+              {datiAperti && (
+                <>
+                  {gruppiNormali.map((gruppo) => (
+                    <GruppoDettaglio key={gruppo.titolo} titolo={gruppo.titolo} voci={gruppo.voci} />
+                  ))}
+
+                  {gruppiTecnici.length > 0 && (
+                    <div className="detail-group">
+                      <button
+                        type="button"
+                        className="detail-tecnici-toggle"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setTecniciAperti((o) => !o)
+                        }}
+                      >
+                        {tecniciAperti ? '−' : '+'} {tecniciAperti ? 'Nascondi' : 'Mostra'} parametri tecnici
+                      </button>
+                    </div>
+                  )}
+                  {tecniciAperti &&
+                    gruppiTecnici.map((gruppo) => (
+                      <GruppoDettaglio key={gruppo.titolo} titolo={gruppo.titolo} voci={gruppo.voci} />
+                    ))}
+                </>
+              )}
             </div>
           </td>
         </tr>

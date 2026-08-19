@@ -269,7 +269,7 @@ export default async function InvitaAmicoPage({
                     record={riga}
                     hiddenKeys={COLONNE_VISIBILI}
                     evidenziata={daCaricare}
-                    evidenza={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
+                    consultazione={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
                     sections={
                       vedeAgenda
                         ? [

@@ -4093,3 +4093,41 @@ button.cal-cella {
   border-top: 1px dashed var(--color-border);
   padding-top: 10px;
 }
+
+/* ---------- Pannello di gestione dentro la riga espansa ---------- */
+
+/* Aprire una riga serve a fare qualcosa, non a leggere venti campi: cio' su
+   cui si agisce (stato, note, toggle, agenda) sta qui, in un contenitore
+   staccato e riconoscibile; i dati da consultare restano sotto, chiusi (vedi
+   ExpandableRow). */
+.pannello-gestione {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--color-off-white);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 4px;
+}
+
+.pannello-gestione-blocco + .pannello-gestione-blocco {
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+
+.pannello-gestione-titolo {
+  font-family: var(--font-display), sans-serif;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+  margin-bottom: 10px;
+}
+
+@media (max-width: 560px) {
+  .pannello-gestione {
+    padding: 14px;
+  }
+}

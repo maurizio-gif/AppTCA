@@ -4,6 +4,7 @@ import { VisiteContatto } from '@/components/VisiteContatto'
 import { etichettaPersona, voceDaContatto } from '@/lib/agenda'
 import { formatDateOra } from '@/lib/format'
 import type { RigaAccesso } from '@/lib/visite'
+import { TaskEntita } from '../agenda/TaskEntita'
 import { GestioneSezione } from './GestioneSezione'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
 
@@ -49,12 +50,25 @@ export function voceCalendarioDaContatto(
     nomiStaff,
     puoCancellare,
     accessi = [],
+    agenda,
   }: {
     nomiStaff: Record<string, string>
     puoCancellare: boolean
     accessi?: RigaAccesso[]
+    // Eventi in agenda collegati a questa richiesta: la stessa enquiry puo'
+    // averne piu' di uno (una chiamata, poi la visita in sede), quindi qui va
+    // l'elenco e non un singolo appuntamento. Assente = chi costruisce la voce
+    // non ha (o non puo' vedere) l'agenda.
+    agenda?: {
+      task: Record<string, any>[]
+      staff: { email: string; nome: string }[]
+      emailCorrente: string | null
+      eAmministratore: boolean
+    }
   }
 ): VoceCalendario {
+  const nome = `${riga.nome ?? ''} ${riga.cognome ?? ''}`.trim() || riga.email || 'contatto'
+
   return {
     ...voceDaContatto(riga),
     assegnatoEtichetta: riga.gestito ? etichettaPersona(riga.gestito_da, nomiStaff) : null,
@@ -65,9 +79,30 @@ export function voceCalendarioDaContatto(
       <>
         <RichiestaEvidenza riga={riga} />
         <ArrivoRichiesta riga={riga} />
-        <VisiteContatto accessi={accessi} />
       </>
     ),
+    consultazione: <VisiteContatto accessi={accessi} />,
+    sections: agenda
+      ? [
+          {
+            title: 'In agenda',
+            content: (
+              <TaskEntita
+                collegamento={{
+                  entita: 'form_contatti',
+                  entitaId: String(riga.id),
+                  etichetta: `Enquiry · ${nome}`,
+                }}
+                titoloSuggerito={`Ricontattare ${nome}`}
+                task={agenda.task}
+                staff={agenda.staff}
+                emailCorrente={agenda.emailCorrente}
+                eAmministratore={agenda.eAmministratore}
+              />
+            ),
+          },
+        ]
+      : undefined,
     extra: (
       <GestioneSezione
         id={riga.id}

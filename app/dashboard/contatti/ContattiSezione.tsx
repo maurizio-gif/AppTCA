@@ -15,6 +15,7 @@ import { CalendarioAgenda, type VoceCalendario } from '@/components/CalendarioAg
 import { puoAmministrare } from '@/lib/auth/permessi'
 import { voceCalendarioDaContatto } from './VociAppuntamenti'
 import { voceCalendarioDaTask } from '../agenda/VociTask'
+import { TaskEntita } from '../agenda/TaskEntita'
 import { NuovoTask } from '../agenda/NuovoTask'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
@@ -113,17 +114,28 @@ export async function ContattiSezione({
 
   // Solo la vista Adulti ha il calendario, ed e' la stessa agenda condivisa
   // di /dashboard/agenda: qui arrivano quindi anche i task delle consulenti
-  // (tabella task), non solo gli appuntamenti prenotati dal sito. I task
-  // pero' li vede (e li crea) solo chi ha il permesso della sezione Agenda:
+  // (tabella task), non solo gli appuntamenti prenotati dal sito. L'agenda
+  // pero' la vede (e la scrive) solo chi ha il permesso della sezione Agenda:
   // il calendario condiviso non e' una scorciatoia per aggirarlo.
   const conDivisioneViste = gruppo === 'adulti'
-  const vedeAgenda = conDivisioneViste && (await utenteHaSezione('agenda'))
+  const vedeAgenda = await utenteHaSezione('agenda')
 
-  const [{ data: righe, error }, { data: viewer }, { data: task }, { data: staff }, eAmministratore] =
-    await Promise.all([
+  const [
+    { data: righe, error },
+    { data: viewer },
+    { data: task },
+    { data: taskEnquiries },
+    { data: staff },
+    eAmministratore,
+  ] = await Promise.all([
       supabase.from('form_contatti').select('*').order('created_at', { ascending: false }),
       supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
-      vedeAgenda ? supabase.from('task').select('*') : Promise.resolve({ data: [] as Record<string, any>[] }),
+      conDivisioneViste && vedeAgenda
+        ? supabase.from('task').select('*')
+        : Promise.resolve({ data: [] as Record<string, any>[] }),
+      vedeAgenda
+        ? supabase.from('task').select('*').eq('entita', 'form_contatti').order('data', { ascending: true })
+        : Promise.resolve({ data: [] as Record<string, any>[] }),
       supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
       puoAmministrare(emailCorrente),
     ])
@@ -150,6 +162,27 @@ export async function ContattiSezione({
   const nomiStaff: Record<string, string> = Object.fromEntries(
     elencoStaff.map((persona) => [persona.email.toLowerCase(), persona.nome])
   )
+
+  // Eventi in agenda collegati a ciascuna enquiry: la stessa richiesta puo'
+  // averne piu' di uno (una chiamata e poi la visita in sede), quindi nella
+  // riga va l'elenco. Gli stessi eventi si ritrovano nella scheda della
+  // persona, che li ha tutti (vedi /dashboard/persone/[id]).
+  const taskPerEnquiry = new Map<string, Record<string, any>[]>()
+  for (const riga of taskEnquiries ?? []) {
+    const chiave = String(riga.entita_id)
+    if (!taskPerEnquiry.has(chiave)) taskPerEnquiry.set(chiave, [])
+    taskPerEnquiry.get(chiave)!.push(riga)
+  }
+
+  const agendaDi = (riga: RigaContatto) =>
+    vedeAgenda
+      ? {
+          task: taskPerEnquiry.get(String(riga.id)) ?? [],
+          staff: elencoStaff,
+          emailCorrente,
+          eAmministratore,
+        }
+      : undefined
 
   const messaggiSezione = conDivisioneViste
     ? righeSezione.filter((riga) => classificaContatto(riga) === 'messaggio')
@@ -182,6 +215,7 @@ export async function ContattiSezione({
             nomiStaff,
             puoCancellare,
             accessi: riga.vid ? accessiPerVid[riga.vid] ?? [] : [],
+            agenda: agendaDi(riga),
           })
         ),
         ...(query
@@ -333,11 +367,34 @@ export async function ContattiSezione({
                       columns={COLONNE_TABELLA}
                       record={riga}
                       hiddenKeys={COLONNE_VISIBILI}
-                      evidenza={
-                        <>
-                          <RichiestaEvidenza riga={riga} />
-                          <VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />
-                        </>
+                      evidenza={<RichiestaEvidenza riga={riga} />}
+                      consultazione={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
+                      sections={
+                        vedeAgenda
+                          ? [
+                              {
+                                title: 'In agenda',
+                                content: (
+                                  <TaskEntita
+                                    collegamento={{
+                                      entita: 'form_contatti',
+                                      entitaId: String(riga.id),
+                                      etichetta: `Enquiry · ${
+                                        `${riga.nome ?? ''} ${riga.cognome ?? ''}`.trim() || riga.email || 'contatto'
+                                      }`,
+                                    }}
+                                    titoloSuggerito={`Ricontattare ${
+                                      `${riga.nome ?? ''} ${riga.cognome ?? ''}`.trim() || riga.email || 'il contatto'
+                                    }`}
+                                    task={taskPerEnquiry.get(String(riga.id)) ?? []}
+                                    staff={elencoStaff}
+                                    emailCorrente={emailCorrente}
+                                    eAmministratore={eAmministratore}
+                                  />
+                                ),
+                              },
+                            ]
+                          : []
                       }
                       extra={
                         <GestioneSezione

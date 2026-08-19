@@ -361,3 +361,35 @@ Migrazioni applicate: `crea_persone`, `funzioni_dedup_persone`,
 `backfill_opportunita`, `task_persona_e_opportunita`,
 `possibili_duplicati_persone`, `pulizia_cellulari_non_validi`,
 `specchio_non_tocca_enquiries`.
+
+## Aggiornamento — gestione in evidenza, e gli eventi elencati su richiesta e persona
+
+### La riga espansa ha una gerarchia
+
+Aprire una riga serve a **fare** qualcosa, non a leggere venti campi. L'ordine
+del pannello espanso (`components/ExpandableRow.tsx`) ora è:
+
+1. **Contesto** (`evidenza`): cosa ha chiesto la persona, due righe.
+2. **Pannello di gestione** (`.pannello-gestione`): tutto ciò su cui si agisce —
+   stato del lead, toggle, note, *e l'agenda* — in un contenitore staccato, con
+   bordo di accento e sfondo proprio. L'agenda è gestione, non consultazione,
+   quindi le `sections` finiscono qui dentro insieme a `extra`.
+3. **Consultazione** (`consultazione`): le visite al sito e simili, che si
+   guardano e non si usano.
+4. **Dati della richiesta**: **chiusi per default**, dietro un «Mostra i dati
+   della richiesta (N)», con i parametri tecnici annidati come prima.
+
+La scheda persona segue la stessa gerarchia: lead e agenda in cima nel pannello
+in evidenza, anagrafica, famiglia, richieste e visite sotto.
+
+### Più eventi per la stessa richiesta
+
+Una richiesta può generare più eventi nel tempo (una chiamata, poi la visita in
+sede), quindi ovunque c'è un **elenco** e non un singolo appuntamento:
+
+- **Sull'enquiry** — blocco «In agenda» dentro la riga, sia nella lista
+  Messaggi sia nel calendario Appuntamenti, con gli eventi di *quella* richiesta
+  e il pulsante per crearne un altro già collegato.
+- **Sull'invito** — lo stesso blocco, come già c'era.
+- **Sulla persona** — tutti i suoi eventi, da qualunque richiesta arrivino, con
+  l'indicazione di quale (`etichetteCollegamento`).

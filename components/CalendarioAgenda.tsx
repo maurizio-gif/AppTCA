@@ -27,8 +27,12 @@ export type VoceCalendario = VoceAgenda & {
   record: Record<string, unknown>
   hiddenKeys?: string[]
   evidenza?: React.ReactNode
+  consultazione?: React.ReactNode
   extra?: React.ReactNode
   extraTitle?: string
+  // Blocchi che vanno nel pannello di gestione insieme a extra (es. l'elenco
+  // degli eventi collegati a quella richiesta).
+  sections?: { title: string; content: React.ReactNode }[]
 }
 
 const GIORNI_SETTIMANA = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
@@ -71,8 +75,10 @@ export function TabellaAgenda({ voci }: { voci: VoceCalendario[] }) {
                 record={voce.record}
                 hiddenKeys={voce.hiddenKeys}
                 evidenza={voce.evidenza}
+                consultazione={voce.consultazione}
                 extra={voce.extra}
                 extraTitle={voce.extraTitle ?? 'Gestione'}
+                sections={voce.sections}
                 cells={[
                   <span className="ora-con-puntino">
                     <span className={`puntino ${voce.daFare ? 'rosso' : 'verde'}`} />
