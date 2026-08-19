@@ -74,6 +74,7 @@ export function PannelloPipeline({
   emailCorrente,
   eAmministratore,
   staff,
+  dopoAzioni,
 }: {
   id: string
   stato: StatoPipeline
@@ -84,6 +85,11 @@ export function PannelloPipeline({
   emailCorrente: string | null
   eAmministratore: boolean
   staff: { email: string; nome: string }[]
+  // Adempimento specifico della sezione, reso subito sotto i pulsanti di
+  // stato: e' il caso del credito referral (vedi CreditoToggle), che si legge
+  // dove un attimo prima c'era il pulsante "Segna vinto" che lo rende
+  // necessario. La pipeline non sa cosa sia, lo ospita e basta.
+  dopoAzioni?: React.ReactNode
 }) {
   const [errore, setErrore] = useState<string | null>(null)
   const [chiedeMotivo, setChiedeMotivo] = useState(false)
@@ -171,6 +177,8 @@ export function PannelloPipeline({
             <span className="gestione-meta">Gestione chiusa: solo un amministratore può riaprirla.</span>
           ))}
       </div>
+
+      {dopoAzioni}
 
       {!puoOperare && (
         <p className="gestione-meta">
