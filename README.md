@@ -554,3 +554,59 @@ vede dalla sua scheda. In tutto 147 eventi sono finiti sotto un'opportunità.
 (`entita = 'pgm_crm2event'`, `entita_id` = id dell'evento, e la nota con
 evento/tipo/sottotipo/consulente PerfectGym) e un indice unico parziale
 impedisce di inserire due volte lo stesso evento.
+
+## Aggiornamento — un calendario solo, e un impegno si chiude scrivendo com'è andata
+
+Tre cose che si tenevano insieme.
+
+**Un appuntamento prenotato dal sito è una richiesta come le altre.** Le
+Enquiries Adulti erano divise in due tab, «Messaggi» e «Appuntamenti
+richiesti», e gli appuntamenti si vedevano solo in un calendario. Ma un
+appuntamento che il cliente si è fissato da solo è, prima di tutto, una
+richiesta da prendere in carico: adesso la sezione è **una lista sola**, in
+ordine di arrivo, con la ricerca e i filtri della pipeline per tutti. Il tab e
+il calendario di sezione non ci sono più.
+
+**Il calendario è uno solo: l'Agenda.** Due calendari, uno dei quali mostrava
+solo un pezzo del lavoro, si contraddicevano appena divergevano — e nel
+calendario «da gestire» finivano appuntamenti già avvenuti. Ora il diario
+condiviso è uno: `/dashboard/agenda`, con dentro gli appuntamenti dal sito, i
+task e gli appuntamenti interni di tutte le sezioni.
+
+**Un impegno si chiude scrivendo com'è andata.** I task lo facevano già
+(«Completa» + esito). Ora lo fa anche un appuntamento prenotato dal sito: nuove
+colonne `appuntamento_completato_il`, `appuntamento_completato_da`,
+`appuntamento_esito` su `form_contatti`, e un pulsante «Segna come fatto» con la
+nota. Da quel momento la voce è **verde** e non conta più fra le cose da fare.
+
+Il punto è che *fatto* e *vinto* sono cose diverse: la visita è avvenuta, la
+trattativa può restare aperta per settimane. Prima il pallino dell'agenda
+seguiva lo stato dell'opportunità, quindi una visita fatta a un cliente ancora
+in trattativa restava rossa per sempre. Ora `voceDaContatto` guarda la
+chiusura dell'appuntamento, non la pipeline; l'assegnatario continua a venire
+dall'opportunità, perché è la trattativa a dire di chi è. Chi può chiudere: se
+nessuno ha preso in carico l'opportunità chiunque veda la sezione, altrimenti
+il titolare o un amministratore — e il controllo è nella Server Action, non
+solo nella UI.
+
+**Dati esistenti**: i 26 appuntamenti già passati sono stati segnati come
+fatti, con la nota scritta allora come esito (`gestito_il` come data di
+chiusura, `gestito_da` come autore). È stata una sistemata una volta sola sui
+dati esistenti, non una regola: un appuntamento futuro lo chiude chi lo fa,
+altrimenti «passato» diventerebbe sinonimo di «andato bene».
+
+### Nella riga di una richiesta: prima la mossa, poi l'elenco
+
+Il campo «Note su questa richiesta» non c'è più. Era il posto dove si scriveva
+cosa si era fatto, ma senza una data e senza un responsabile: quello che resta
+da fare adesso si scrive come voce d'agenda, che ha entrambi. Le 130 note già
+scritte non sono perse — si leggono fra i dati della richiesta, e per gli
+appuntamenti passati sono diventate l'esito.
+
+Al loro posto, **subito sotto i pulsanti dell'opportunità**, ci sono la
+chiusura dell'appuntamento e il blocco «In agenda» — con il pulsante per
+fissare qualcosa **prima** dell'elenco di quello che è già fissato, perché si
+apre la riga per decidere la prossima mossa, non per rileggere lo storico. Il
+pannello dell'opportunità li ospita con la stessa prop `dopoAzioni` che in
+«Invita un amico» tiene il toggle del credito: la pipeline non sa cosa siano.
+Nella riga resta fuori solo «Cancella record», per chi ha il permesso.

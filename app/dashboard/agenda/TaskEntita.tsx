@@ -32,6 +32,7 @@ export function TaskEntita({
   emailCorrente,
   eAmministratore,
   etichetteCollegamento = {},
+  azioneInCima = false,
 }: {
   // Task agganciato a una singola richiesta: persona e opportunita' li ricava
   // il server da quella richiesta (vedi creaTask).
@@ -47,6 +48,11 @@ export function TaskEntita({
   // eventi elencati possono venire da richieste diverse (la scheda persona):
   // dentro la riga di una richiesta sono tutti suoi e non serve ripeterlo.
   etichetteCollegamento?: Record<string, string>
+  // Dentro il pannello dell'opportunita' il gesto viene prima dell'elenco:
+  // si apre la riga per fissare la prossima mossa, non per leggere lo storico
+  // degli eventi (che sotto resta, ma dopo). Altrove - la scheda persona, dove
+  // l'elenco E' il contenuto - vale l'ordine opposto.
+  azioneInCima?: boolean
 }) {
   const [aperto, setAperto] = useState(false)
   const oggi = new Date()
@@ -56,58 +62,71 @@ export function TaskEntita({
 
   const aperti = task.filter((riga) => (eStatoTaskValido(riga.stato) ? riga.stato : 'aperto') === 'aperto')
 
+  const elenco =
+    task.length === 0 ? (
+      <p className="gestione-meta">Nessun appuntamento o task in agenda.</p>
+    ) : (
+      <>
+        <p className="gestione-meta">
+          {task.length === 1 ? '1 voce in agenda' : `${task.length} voci in agenda`}
+          {aperti.length > 0 && ` · ${aperti.length} da fare`}
+        </p>
+        <ul className="task-elenco">
+          {task.map((riga) => (
+            <RigaTaskCollegato
+              key={riga.id}
+              riga={riga}
+              emailCorrente={emailCorrente}
+              eAmministratore={eAmministratore}
+              etichettaCollegamento={
+                riga.entita && riga.entita_id
+                  ? etichetteCollegamento[`${riga.entita}:${riga.entita_id}`] ?? null
+                  : null
+              }
+            />
+          ))}
+        </ul>
+      </>
+    )
+
+  const creazione = aperto ? (
+    <>
+      <h4 className="agenda-nuovo-titolo">Nuovo in agenda</h4>
+      <FormTask
+        staff={staff}
+        emailCorrente={emailCorrente}
+        dataProposta={dataProposta}
+        collegamentoFisso={
+          collegamento
+            ? { valore: `${collegamento.entita}:${collegamento.entitaId}`, etichetta: collegamento.etichetta }
+            : undefined
+        }
+        personaFissa={persona}
+        titoloIniziale={titoloSuggerito}
+        onFatto={() => setAperto(false)}
+        onAnnulla={() => setAperto(false)}
+      />
+    </>
+  ) : (
+    <button type="button" className="btn btn-small" onClick={() => setAperto(true)}>
+      + Crea task o appuntamento
+    </button>
+  )
+
   return (
     // stopPropagation: la riga e' cliccabile per aprire/chiudere
     // l'accordion, non vogliamo che interagire qui dentro la richiuda.
     <div className="task-entita" onClick={(e) => e.stopPropagation()}>
-      {task.length === 0 ? (
-        <p className="gestione-meta">Nessun appuntamento o task in agenda.</p>
-      ) : (
+      {azioneInCima ? (
         <>
-          <p className="gestione-meta">
-            {task.length === 1 ? '1 voce in agenda' : `${task.length} voci in agenda`}
-            {aperti.length > 0 && ` · ${aperti.length} da fare`}
-          </p>
-          <ul className="task-elenco">
-            {task.map((riga) => (
-              <RigaTaskCollegato
-                key={riga.id}
-                riga={riga}
-                emailCorrente={emailCorrente}
-                eAmministratore={eAmministratore}
-                etichettaCollegamento={
-                  riga.entita && riga.entita_id
-                    ? etichetteCollegamento[`${riga.entita}:${riga.entita_id}`] ?? null
-                    : null
-                }
-              />
-            ))}
-          </ul>
-        </>
-      )}
-
-      {aperto ? (
-        <>
-          <h4 className="agenda-nuovo-titolo">Nuovo in agenda</h4>
-          <FormTask
-            staff={staff}
-            emailCorrente={emailCorrente}
-            dataProposta={dataProposta}
-            collegamentoFisso={
-              collegamento
-                ? { valore: `${collegamento.entita}:${collegamento.entitaId}`, etichetta: collegamento.etichetta }
-                : undefined
-            }
-            personaFissa={persona}
-            titoloIniziale={titoloSuggerito}
-            onFatto={() => setAperto(false)}
-            onAnnulla={() => setAperto(false)}
-          />
+          {creazione}
+          {elenco}
         </>
       ) : (
-        <button type="button" className="btn btn-small" onClick={() => setAperto(true)}>
-          + Crea task o appuntamento
-        </button>
+        <>
+          {elenco}
+          {creazione}
+        </>
       )}
     </div>
   )

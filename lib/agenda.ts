@@ -1,7 +1,4 @@
 import { classificaContatto } from './contatti'
-// Le etichette degli stati dell'opportunita' vivono in lib/pipeline.ts: qui
-// servono solo per scrivere lo stato accanto alla voce in calendario.
-import { ETICHETTE_STATO as ETICHETTE_STATO_OPPORTUNITA, normalizzaStato as normalizzaStatoOpportunita } from './pipeline'
 
 // Agenda condivisa: un solo calendario per gli appuntamenti prenotati dal
 // sito (form_contatti, dove data/ora le scrive il cliente compilando il
@@ -160,13 +157,15 @@ export function eAppuntamento(riga: Record<string, any>): boolean {
 // la si assume da quanto dura di solito quel tipo di appuntamento, che e'
 // esattamente cio' che serve per calcolare la disponibilita'.
 //
-// "Da fare" e assegnatario vengono dall'opportunita' della persona, non da un
-// flag sulla richiesta: e' la trattativa che dice se c'e' ancora da lavorare e
-// di chi e'.
+// "Da fare" e' l'appuntamento stesso, non lo stato della trattativa: in agenda
+// conta se quell'incontro c'e' ancora da fare (vedi
+// form_contatti.appuntamento_completato_il). Una trattativa puo' restare
+// aperta per mesi dopo la visita, e vedere in agenda come "da fare" una visita
+// gia' avvenuta rendeva il calendario inutile. L'assegnatario invece resta
+// quello dell'opportunita': e' la trattativa a dire di chi e'.
 export function voceDaContatto(riga: Record<string, any>, opportunita?: Record<string, any> | null): VoceAgenda {
   const tipo = classificaContatto(riga)
-  const stato = opportunita ? normalizzaStatoOpportunita(opportunita.stato) : null
-  const aperta = !!opportunita && !opportunita.chiuso_il
+  const completato = !!riga.appuntamento_completato_il
   const nome = `${riga.nome ?? ''} ${riga.cognome ?? ''}`.trim()
   return {
     chiave: `contatto-${riga.id}`,
@@ -178,11 +177,10 @@ export function voceDaContatto(riga: Record<string, any>, opportunita?: Record<s
     ora: normalizzaOra(riga.ora_richiesta),
     assegnatoA: opportunita?.assegnato_a ?? null,
     durataMinuti: DURATA_PREDEFINITA[tipo === 'messaggio' ? 'task' : tipo],
-    // Finche' la trattativa e' aperta l'appuntamento e' lavoro da fare; senza
-    // opportunita' (richiesta senza email, quindi senza persona) si considera
-    // da fare, cosi' non sparisce dai pallini rossi.
-    daFare: opportunita ? aperta : true,
-    statoEtichetta: stato ? ETICHETTE_STATO_OPPORTUNITA[stato] : 'Senza opportunità',
+    daFare: !completato,
+    // Le stesse etichette dei task: in agenda un appuntamento del sito e un
+    // task sono la stessa cosa, un impegno che si chiude.
+    statoEtichetta: completato ? ETICHETTE_STATO_TASK.completato : ETICHETTE_STATO_TASK.aperto,
   }
 }
 

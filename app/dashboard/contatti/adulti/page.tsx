@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 export default function ContattiAdultiPage({
   searchParams,
 }: {
-  searchParams: { filtro?: string; q?: string; vista?: string }
+  searchParams: { filtro?: string; q?: string }
 }) {
   return (
     <ContattiSezione
