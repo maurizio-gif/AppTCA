@@ -618,3 +618,28 @@ apre la riga per decidere la prossima mossa, non per rileggere lo storico. Il
 pannello dell'opportunità li ospita con la stessa prop `dopoAzioni` che in
 «Invita un amico» tiene il toggle del credito: la pipeline non sa cosa siano.
 Nella riga resta fuori solo «Cancella record», per chi ha il permesso.
+
+## Aggiornamento — Email e WhatsApp in agenda, etichette più corte, chiusura automatica del passato
+
+**Due tipi nuovi.** Oltre ad appuntamento in sede, telefonata e task, ora un
+task può essere anche **Email** o **WhatsApp** — solo per quello che le
+consulenti si fissano da sole: un contatto dal sito non arriva mai per email
+o whatsapp, quindi non tocca `form_contatti`. Colori distinti (ciano e
+ambra) e durata di default 5 minuti, il tempo di scrivere un messaggio — non
+prenotano un vero slot, quindi non contano per la disponibilità del sito.
+
+**Etichette più corte.** «Appuntamento in sede» → **In sede**, «Appuntamento
+telefonico» → **Telefonata**: erano le più lunghe della tabella e si
+leggevano peggio delle altre. Il filtro «Solo appuntamenti» dell'Agenda resta
+sui due che prenotano davvero uno slot; email e whatsapp finiscono sotto
+«Solo task», che è cosa sono davvero.
+
+**Un evento passato o imminente nasce già completato.** Registrare in agenda
+qualcosa per un momento già trascorso, o per i prossimi 30 minuti, è quasi
+sempre loggare un evento già avvenuto — una telefonata appena fatta, un'email
+appena scritta — non fissare del lavoro futuro. Ora `creaTask` lo riconosce
+(`eEventoDaCompletareInAutomatico` in `lib/agenda.ts`, che confronta con
+l'ora vera di Roma, non quella del server) e la voce nasce già **completata**,
+senza dover fare due click (crea, poi completa). Il form segnala quando è
+successo, così non sembra un comportamento silenzioso. Vale anche senza
+un'ora indicata: allora conta il giorno intero, passato solo se è già finito.

@@ -9,7 +9,7 @@ import { formatDataConGiorno } from '@/lib/format'
 import { getSezioniConsentite, utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
 import { storicoOpportunita } from '@/lib/opportunita-server'
-import { chiaveGiornoDa, confrontaVoci, eAppuntamento } from '@/lib/agenda'
+import { chiaveGiornoDa, confrontaVoci, eAppuntamento, eAppuntamentoVero } from '@/lib/agenda'
 import { apparteneAGruppo } from '@/lib/contatti'
 import { nomePersona } from '@/lib/persone'
 import { voceCalendarioDaContatto } from '../contatti/VociAppuntamenti'
@@ -157,8 +157,13 @@ export default async function AgendaPage({
 
   const voci = [...vociTask, ...vociContatti].filter((voce) => {
     if (filtro === 'da_fare' && !voce.daFare) return false
-    if (filtro === 'task' && voce.tipo !== 'task') return false
-    if (filtro === 'appuntamenti' && voce.tipo === 'task') return false
+    // "Solo task" tiene dentro anche email e whatsapp: sono lavoro che la
+    // consulente si segna da sola, non un appuntamento prenotato con la
+    // persona. "Solo appuntamenti" invece resta ai due che prenotano
+    // davvero uno slot: senza questo email e whatsapp ci finivano dentro
+    // solo perche' non sono un task.
+    if (filtro === 'task' && eAppuntamentoVero(voce.tipo)) return false
+    if (filtro === 'appuntamenti' && !eAppuntamentoVero(voce.tipo)) return false
     if (soloMiei) {
       // "I miei" tiene dentro anche gli appuntamenti dal sito ancora da
       // gestire: non hanno un titolare, ma sono lavoro di tutti.
@@ -189,7 +194,12 @@ export default async function AgendaPage({
         <ol>
           <li>
             Un solo calendario per tutto: gli <strong>appuntamenti prenotati dal sito</strong> (in sede o
-            telefonici) e gli <strong>appuntamenti e task</strong> che vi fissate voi.
+            telefonata) e quello che vi fissate voi — appuntamento, telefonata, <strong>email</strong>,{' '}
+            <strong>WhatsApp</strong> o task generico.
+          </li>
+          <li>
+            Registri qualcosa per un momento già passato, o nei prossimi 30 minuti? Nasce già{' '}
+            <strong>completata</strong>: è chiaramente qualcosa già fatto, non lavoro ancora da fare.
           </li>
           <li>
             Clicca un giorno per vedere cosa c'è, poi «+ Aggiungi in agenda» per metterci qualcosa di nuovo: il

@@ -55,6 +55,11 @@ export function TaskEntita({
   azioneInCima?: boolean
 }) {
   const [aperto, setAperto] = useState(false)
+  // Il form si richiude subito dopo il salvataggio: se l'evento era per un
+  // momento gia' passato (o nei prossimi 30 minuti) ed e' quindi nato gia'
+  // completato, lo si dice qui - la voce compare gia' verde nell'elenco sopra,
+  // ma non tutti lo notano subito.
+  const [completatoInAutomatico, setCompletatoInAutomatico] = useState(false)
   const oggi = new Date()
   const dataProposta = `${oggi.getFullYear()}-${String(oggi.getMonth() + 1).padStart(2, '0')}-${String(
     oggi.getDate()
@@ -103,14 +108,31 @@ export function TaskEntita({
         }
         personaFissa={persona}
         titoloIniziale={titoloSuggerito}
-        onFatto={() => setAperto(false)}
+        onFatto={(completatoSubito) => {
+          setCompletatoInAutomatico(!!completatoSubito)
+          setAperto(false)
+        }}
         onAnnulla={() => setAperto(false)}
       />
     </>
   ) : (
-    <button type="button" className="btn btn-small" onClick={() => setAperto(true)}>
-      + Crea task o appuntamento
-    </button>
+    <>
+      <button
+        type="button"
+        className="btn btn-small"
+        onClick={() => {
+          setCompletatoInAutomatico(false)
+          setAperto(true)
+        }}
+      >
+        + Crea task o appuntamento
+      </button>
+      {completatoInAutomatico && (
+        <p className="gestione-meta">
+          Era per un momento già passato (o nei prossimi 30 minuti): salvata già come completata.
+        </p>
+      )}
+    </>
   )
 
   return (

@@ -5,9 +5,13 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { registraLog } from '@/lib/audit'
 import { puoAmministrare } from '@/lib/auth/permessi'
-import { DURATA_PREDEFINITA, eTipoValido, ETICHETTE_TIPO, normalizzaOra } from '@/lib/agenda'
+import { DURATA_PREDEFINITA, eEventoDaCompletareInAutomatico, eTipoValido, ETICHETTE_TIPO, normalizzaOra } from '@/lib/agenda'
 
 type Risultato = { ok: true } | { ok: false; errore: string }
+// creaTask segnala anche se ha chiuso la voce da sola (vedi
+// eEventoDaCompletareInAutomatico): il form lo mostra, cosi' non sembra un
+// comportamento silenzioso e strano.
+type RisultatoTask = { ok: true; completatoSubito: boolean } | { ok: false; errore: string }
 
 export type DatiNuovoTask = {
   titolo: string
@@ -63,7 +67,7 @@ async function verificaPermesso(task: { assegnato_a: string; creato_da: string }
   return puoAmministrare(email)
 }
 
-export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
+export async function creaTask(dati: DatiNuovoTask): Promise<RisultatoTask> {
   const email = emailCorrente()
   if (!email) return { ok: false, errore: 'Sessione scaduta: ricarica la pagina e rientra.' }
 
@@ -127,6 +131,9 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
     personaId = personaId ?? lead.persona_id
   }
 
+  const completatoSubito = eEventoDaCompletareInAutomatico(dati.data, ora)
+  const adesso = new Date().toISOString()
+
   const { data: creato, error } = await supabase
     .from('task')
     .insert({
@@ -142,13 +149,18 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
       entita_id: entitaId,
       persona_id: personaId,
       opportunita_id: opportunitaId,
+      // Registrarla per un momento gia' passato (o nei prossimi 30 minuti)
+      // vuol dire che l'evento e' gia' successo: nasce gia' completata,
+      // altrimenti resterebbe "da fare" in agenda per sempre.
+      stato: completatoSubito ? 'completato' : 'aperto',
+      completato_il: completatoSubito ? adesso : null,
     })
     .select('id')
     .maybeSingle()
 
   if (error) return { ok: false, errore: error.message }
 
-  await registraLog(email, 'task_creato', {
+  await registraLog(email, completatoSubito ? 'task_creato_completato' : 'task_creato', {
     entita: 'task',
     entitaId: creato?.id ?? undefined,
     dettagli: {
@@ -160,12 +172,13 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
       assegnato_a: assegnatoA,
       collegato_a: entita ? `${entita}:${entitaId}` : null,
       persona_id: personaId,
+      completato_in_automatico: completatoSubito,
     },
   })
 
   rinfrescaAgenda()
 
-  return { ok: true }
+  return { ok: true, completatoSubito }
 }
 
 async function aggiornaStato(

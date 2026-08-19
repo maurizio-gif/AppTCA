@@ -9,45 +9,68 @@ import { classificaContatto } from './contatti'
 // Nessun import server-only qui: il file e' usato sia dai Server Component
 // sia dai componenti client.
 
-// Stesse tre categorie sia per i task sia per gli appuntamenti dal sito
-// (che il form classifica in sede/telefonico, vedi classificaContatto):
-// e' il senso di unire i due calendari.
-export const TIPI = ['appuntamento_in_sede', 'appuntamento_telefonico', 'task'] as const
+// Stesse categorie sia per i task sia per gli appuntamenti dal sito (che il
+// form classifica in sede/telefonico, vedi classificaContatto): e' il senso
+// di unire i due calendari. Email e WhatsApp sono solo per i task che le
+// consulenti si fissano da sole - un contatto dal sito non arriva mai per
+// email o whatsapp.
+export const TIPI = ['appuntamento_in_sede', 'appuntamento_telefonico', 'task', 'email', 'whatsapp'] as const
 export type TipoVoce = (typeof TIPI)[number]
 
 export const ETICHETTE_TIPO: Record<TipoVoce, string> = {
-  appuntamento_in_sede: 'Appuntamento in sede',
-  appuntamento_telefonico: 'Appuntamento telefonico',
+  appuntamento_in_sede: 'In sede',
+  appuntamento_telefonico: 'Telefonata',
   task: 'Task',
+  email: 'Email',
+  whatsapp: 'WhatsApp',
 }
 
 // Etichetta corta per la cella del calendario e per la colonna "Tipo",
 // dove il nome intero non ci sta.
 export const ETICHETTE_TIPO_BREVI: Record<TipoVoce, string> = {
   appuntamento_in_sede: 'In sede',
-  appuntamento_telefonico: 'Telefonico',
+  appuntamento_telefonico: 'Telefonata',
   task: 'Task',
+  email: 'Email',
+  whatsapp: 'WhatsApp',
 }
 
 // Varianti di .richiesta-badge gia' esistenti: "in sede" verde e
-// "telefonico" blu sono gli stessi colori che le Enquiries usano da sempre
-// per i due tipi di appuntamento, il task si distingue in viola.
+// "telefonata" blu sono gli stessi colori che le Enquiries usano da sempre
+// per i due tipi di appuntamento; task, email e whatsapp si distinguono in
+// viola, ciano e ambra.
 export const CLASSE_TIPO: Record<TipoVoce, string> = {
   appuntamento_in_sede: 'richiesta-verde',
   appuntamento_telefonico: 'richiesta-blu',
   task: 'richiesta-viola',
+  email: 'richiesta-ciano',
+  whatsapp: 'richiesta-ambra',
 }
 
 export const OPZIONI_TIPO = TIPI.map((tipo) => ({ valore: tipo, etichetta: ETICHETTE_TIPO[tipo] }))
 
+// I due tipi che prenotano davvero uno slot (e che il sito puo' offrire in
+// prenotazione): li usa il filtro "Solo appuntamenti" dell'Agenda, che senza
+// questo mescolerebbe dentro anche email e whatsapp - non sono appuntamenti,
+// sono solo cose che non sono un task generico.
+export const TIPI_APPUNTAMENTO = ['appuntamento_in_sede', 'appuntamento_telefonico'] as const
+
+export function eAppuntamentoVero(tipo: TipoVoce): boolean {
+  return (TIPI_APPUNTAMENTO as readonly string[]).includes(tipo)
+}
+
 // Quanto occupa in agenda ciascun tipo, quando non e' stato indicato
 // diversamente. Non e' solo estetica: e' il dato con cui si calcolera' la
 // disponibilita' da offrire a chi prenota un appuntamento dal sito, quindi
-// una voce senza durata non e' ammessa.
+// una voce senza durata non e' ammessa. Email e whatsapp non prenotano un
+// vero slot (nessuno li offre come opzione sul sito): 5 minuti, il tempo di
+// scrivere un messaggio.
 export const DURATA_PREDEFINITA: Record<TipoVoce, number> = {
   appuntamento_in_sede: 30,
   appuntamento_telefonico: 10,
   task: 10,
+  email: 5,
+  whatsapp: 5,
 }
 
 export const STATI_TASK = ['aperto', 'completato', 'annullato'] as const
@@ -65,6 +88,55 @@ export function eTipoValido(valore: string | null | undefined): valore is TipoVo
 
 export function eStatoTaskValido(valore: string | null | undefined): valore is StatoTask {
   return !!valore && (STATI_TASK as readonly string[]).includes(valore)
+}
+
+// L'ora legale con cui gli operatori scrivono data e ora: usare l'orologio
+// del server (su Vercel e' UTC) romperebbe il confronto vicino a mezzanotte o
+// nel cambio ora legale/solare. Stesso trucco di
+// scripts/import-hubspot-leads.mjs: si legge l'ora vera di Roma con Intl e si
+// ricostruisce come se fosse UTC, cosi' si confronta alla pari con data/ora
+// naive scritte dagli operatori (nessun fuso, sempre Roma).
+function adessoRoma(): Date {
+  const parti = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Rome',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date())
+  const numero = (tipo: string) => Number(parti.find((p) => p.type === tipo)?.value)
+  return new Date(
+    Date.UTC(numero('year'), numero('month') - 1, numero('day'), numero('hour'), numero('minute'), numero('second'))
+  )
+}
+
+// Una voce inserita per un momento gia' passato, o per i prossimi 30 minuti,
+// e' quasi certamente un evento gia' avvenuto che si sta solo registrando
+// (una telefonata appena fatta, un'email appena scritta): si segna da sola
+// come completata quando si crea, altrimenti resterebbe "da fare" per
+// sempre - nessuno riapre l'agenda solo per chiudere qualcosa gia' successo.
+export function eEventoDaCompletareInAutomatico(data: string, ora: string | null): boolean {
+  const [anno, mese, giorno] = data.split('-').map(Number)
+  if ([anno, mese, giorno].some((n) => Number.isNaN(n))) return false
+
+  const adesso = adessoRoma()
+
+  if (!ora) {
+    // Senza orario la voce vale "tutto il giorno": e' passata solo se il
+    // giorno stesso e' finito, non trenta minuti dopo la sua mezzanotte.
+    const inizioGiorno = Date.UTC(anno, mese - 1, giorno)
+    const inizioOggi = Date.UTC(adesso.getUTCFullYear(), adesso.getUTCMonth(), adesso.getUTCDate())
+    return inizioGiorno < inizioOggi
+  }
+
+  const [ore, minuti] = ora.split(':').map(Number)
+  if ([ore, minuti].some((n) => Number.isNaN(n))) return false
+
+  const istante = Date.UTC(anno, mese - 1, giorno, ore, minuti)
+  return istante <= adesso.getTime() + 30 * 60 * 1000
 }
 
 export type RigaTask = Record<string, any>
