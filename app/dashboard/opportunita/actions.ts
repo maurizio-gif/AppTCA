@@ -16,9 +16,9 @@ import {
 
 type Risultato = { ok: true } | { ok: false; errore: string }
 
-// Pipeline a livello di PERSONA: l'opportunita' e' il lead, le richieste
-// (enquiries, inviti) sono cio' che l'ha generata. Cosi' due moduli compilati
-// dalla stessa persona non diventano due lead lavorati in parallelo.
+// L'opportunita' e' della PERSONA: le richieste (enquiries, inviti) sono cio'
+// che l'ha generata. Cosi' due moduli compilati dalla stessa persona non
+// diventano due trattative lavorate in parallelo.
 //
 // Le colonne di stato sulle richieste restano allineate da un trigger sul
 // database (specchia_stato_opportunita), non da qui: vale anche per una
@@ -66,7 +66,7 @@ function dettagliLog(opportunita: Record<string, any>) {
   }
 }
 
-// Il primo che prende in gestione diventa il titolare del lead. Nessuna nota
+// Il primo che la prende in carico ne diventa il titolare. Nessuna nota
 // richiesta: deve restare un click, altrimenti nessuno lo fa e il dato di
 // presa in carico non vale niente.
 export async function prendiInGestione(id: string): Promise<Risultato> {
@@ -84,8 +84,8 @@ export async function prendiInGestione(id: string): Promise<Risultato> {
     return {
       ok: false,
       errore: opportunita.assegnato_a
-        ? `Questo lead è già assegnato a ${opportunita.assegnato_a} (${ETICHETTE_STATO[stato]}).`
-        : `Questo lead non è più nuovo (${ETICHETTE_STATO[stato]}).`,
+        ? `Questa opportunità è già assegnata a ${opportunita.assegnato_a} (${ETICHETTE_STATO[stato]}).`
+        : `Questa opportunità non è più da prendere in carico (${ETICHETTE_STATO[stato]}).`,
     }
   }
 
@@ -108,7 +108,7 @@ export async function prendiInGestione(id: string): Promise<Risultato> {
 
   if (error) return { ok: false, errore: error.message }
   if (!aggiornate?.length) {
-    return { ok: false, errore: 'Un altro operatore ha preso in gestione questo lead un istante prima di te.' }
+    return { ok: false, errore: 'Un altro operatore l’ha presa in carico un istante prima di te.' }
   }
 
   await registraLog(email, 'opportunita_presa_in_gestione', {
@@ -122,7 +122,7 @@ export async function prendiInGestione(id: string): Promise<Risultato> {
   return { ok: true }
 }
 
-export async function cambiaStato(id: string, nuovoStato: string, motivoPerso?: string): Promise<Risultato> {
+export async function cambiaStato(id: string, nuovoStato: string): Promise<Risultato> {
   const email = emailCorrente()
   if (!email) return { ok: false, errore: 'Sessione scaduta: ricarica la pagina e rientra.' }
   if (!eStatoValido(nuovoStato)) return { ok: false, errore: 'Stato non riconosciuto.' }
@@ -154,13 +154,8 @@ export async function cambiaStato(id: string, nuovoStato: string, motivoPerso?: 
   if (!stessoOperatore(opportunita.assegnato_a, email) && !(await puoAmministrare(email))) {
     return {
       ok: false,
-      errore: `Questo lead è assegnato a ${opportunita.assegnato_a ?? 'un altro operatore'}: solo chi lo gestisce (o un amministratore) può cambiarne lo stato.`,
+      errore: `Questa opportunità è assegnata a ${opportunita.assegnato_a ?? 'un altro operatore'}: solo chi la gestisce (o un amministratore) può cambiarne lo stato.`,
     }
-  }
-
-  const motivo = (motivoPerso ?? '').trim()
-  if (nuovoStato === 'perso' && !motivo) {
-    return { ok: false, errore: 'Indica il motivo per cui il lead è perso.' }
   }
 
   const adesso = new Date().toISOString()
@@ -171,9 +166,6 @@ export async function cambiaStato(id: string, nuovoStato: string, motivoPerso?: 
       stato: nuovoStato,
       stato_da: email,
       stato_il: adesso,
-      // Solo quando si perde: riaprendo, il motivo vecchio non deve restare
-      // attaccato al lead.
-      motivo_perso: nuovoStato === 'perso' ? motivo : null,
       chiuso_il: eStatoFinale(nuovoStato) ? adesso : null,
     })
     .eq('id', id)
@@ -192,7 +184,6 @@ export async function cambiaStato(id: string, nuovoStato: string, motivoPerso?: 
       ...dettagliLog(opportunita),
       da: ETICHETTE_STATO[stato],
       a: ETICHETTE_STATO[nuovoStato],
-      motivo_perso: nuovoStato === 'perso' ? motivo : null,
     },
   })
 
@@ -201,14 +192,14 @@ export async function cambiaStato(id: string, nuovoStato: string, motivoPerso?: 
   return { ok: true }
 }
 
-// Perso e credito caricato sono stati finali: riaprirli e' un'eccezione e la
-// puo' fare solo un amministratore. Il lead torna in gestione allo stesso
-// titolare, non a chi riapre.
+// Vinta e persa sono stati finali: riaprire e' un'eccezione e la puo' fare solo
+// un amministratore. L'opportunita' torna in gestione allo stesso titolare, non
+// a chi riapre.
 export async function riapriGestione(id: string): Promise<Risultato> {
   const email = emailCorrente()
   if (!email) return { ok: false, errore: 'Sessione scaduta: ricarica la pagina e rientra.' }
   if (!(await puoAmministrare(email))) {
-    return { ok: false, errore: 'Solo un amministratore può riaprire un lead già chiuso.' }
+    return { ok: false, errore: 'Solo un amministratore può riaprire un’opportunità già chiusa.' }
   }
 
   const supabase = createSupabaseServiceClient()
@@ -217,7 +208,7 @@ export async function riapriGestione(id: string): Promise<Risultato> {
 
   const stato = normalizzaStato(opportunita.stato)
   if (!eStatoFinale(stato)) {
-    return { ok: false, errore: `Questo lead non è chiuso (${ETICHETTE_STATO[stato]}): non c'è nulla da riaprire.` }
+    return { ok: false, errore: `Questa opportunità non è chiusa (${ETICHETTE_STATO[stato]}): non c'è nulla da riaprire.` }
   }
 
   // Una sola opportunita' aperta per persona (indice unico parziale sul DB):
@@ -232,7 +223,7 @@ export async function riapriGestione(id: string): Promise<Risultato> {
   if (altraAperta) {
     return {
       ok: false,
-      errore: 'Questa persona ha già un lead aperto: lavora quello invece di riaprire il precedente.',
+      errore: 'Questa persona ha già un’opportunità aperta: lavora quella invece di riaprire la precedente.',
     }
   }
 
@@ -261,7 +252,7 @@ export async function riassegna(id: string, nuovoAssegnato: string): Promise<Ris
   if (!email) return { ok: false, errore: 'Sessione scaduta: ricarica la pagina e rientra.' }
 
   const destinatario = nuovoAssegnato.trim().toLowerCase()
-  if (!destinatario) return { ok: false, errore: 'Scegli a chi assegnare il lead.' }
+  if (!destinatario) return { ok: false, errore: 'Scegli a chi assegnare l’opportunità.' }
 
   const supabase = createSupabaseServiceClient()
 
@@ -276,7 +267,7 @@ export async function riassegna(id: string, nuovoAssegnato: string): Promise<Ris
   // controllo e' qui e non solo nella UI: la Server Action resta chiamabile a
   // mano.
   if (!stessoOperatore(opportunita.assegnato_a, email) && !(await puoRiassegnare(email))) {
-    return { ok: false, errore: 'Non hai il permesso di riassegnare un lead di qualcun altro.' }
+    return { ok: false, errore: 'Non hai il permesso di riassegnare un’opportunità di qualcun altro.' }
   }
 
   const stato = normalizzaStato(opportunita.stato)
@@ -289,8 +280,9 @@ export async function riassegna(id: string, nuovoAssegnato: string): Promise<Ris
       // Da qui parte il tempo di gestione del nuovo titolare; il precedente
       // resta nel registro operatori.
       assegnato_il: adesso,
-      // Un lead ancora nuovo assegnato a mano entra in gestione: senza questo
-      // resterebbe fra i nuovi pur avendo un titolare.
+      // Un'opportunita' ancora da prendere in carico, assegnata a mano, entra
+      // in gestione: senza questo resterebbe fra quelle da prendere in carico
+      // pur avendo un titolare.
       stato: stato === 'nuovo' ? 'in_gestione' : stato,
       stato_da: email,
       stato_il: adesso,

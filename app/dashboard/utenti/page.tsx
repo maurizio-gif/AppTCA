@@ -72,8 +72,8 @@ export default async function UtentiPage({
           </li>
           <li>«Può cancellare record» dà il diritto di cancellare definitivamente le Enquiries.</li>
           <li>
-            «Può riassegnare i lead» serve per passare a un collega un lead che non è il proprio: chi ce l'ha in
-            gestione può sempre passarlo da sé, senza questo permesso.
+            «Può riassegnare le opportunità» serve per passare a un collega un'opportunità che non è la propria:
+            chi ce l'ha in gestione può sempre passarla da sé, senza questo permesso.
           </li>
         </ol>
         <p className="box-istruzioni-nota">
@@ -169,7 +169,7 @@ export default async function UtentiPage({
                           </span>
                         </div>
                         <div className="detail-item">
-                          <span className="detail-label">Può riassegnare i lead</span>
+                          <span className="detail-label">Può riassegnare le opportunità</span>
                           <span className="detail-value">
                             {puoInvitare ? (
                               <PuoRiassegnareToggle email={s.email} puoRiassegnare={s.puo_riassegnare} />

@@ -8,6 +8,7 @@ import { CalendarioAgenda, TabellaAgenda, type VoceCalendario } from '@/componen
 import { formatDataConGiorno } from '@/lib/format'
 import { getSezioniConsentite, utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
+import { storicoOpportunita } from '@/lib/opportunita-server'
 import { chiaveGiornoDa, confrontaVoci, eAppuntamento } from '@/lib/agenda'
 import { apparteneAGruppo } from '@/lib/contatti'
 import { nomePersona } from '@/lib/persone'
@@ -117,12 +118,13 @@ export default async function AgendaPage({
     taskPerEnquiry.get(chiave)!.push(riga)
   }
 
-  // I lead delle enquiries mostrate: la pipeline nel pannello e' la loro.
+  // Le opportunita' delle enquiries mostrate: il pannello gestisce quelle.
   const opportunitaIds = [...new Set((contatti ?? []).map((r) => r.opportunita_id).filter(Boolean))] as string[]
   const { data: opportunita } = opportunitaIds.length
     ? await supabase.from('opportunita').select('*').in('id', opportunitaIds)
     : { data: [] as Record<string, any>[] }
   const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
+  const storicoPerOpportunita = await storicoOpportunita(opportunitaIds)
 
   const vociContatti: VoceCalendario[] = (contatti ?? [])
     .filter((riga) => eAppuntamento(riga))
@@ -141,6 +143,7 @@ export default async function AgendaPage({
           puoRiassegnareLead,
           puoCancellare,
           staff: elencoStaff,
+          storico: storicoPerOpportunita[riga.opportunita_id] ?? [],
           task: taskPerEnquiry.get(String(riga.id)) ?? [],
         },
       })

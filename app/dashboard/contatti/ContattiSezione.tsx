@@ -8,6 +8,7 @@ import { PipelineBadge } from '@/components/PipelineBadge'
 import { normalizzaStato, type StatoPipeline } from '@/lib/pipeline'
 import { nomePersona, totaleRichieste } from '@/lib/persone'
 import { conteggiRichieste } from '@/lib/persone-server'
+import { storicoOpportunita } from '@/lib/opportunita-server'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { apparteneAGruppo, classificaContatto, type GruppoContatto } from '@/lib/contatti'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
@@ -28,7 +29,10 @@ import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 // data, nome, stato, attivita' e richiesta - data per prima perche' su
 // mobile diventa la riga principale della lista (vedi CSS .row-clickable).
 // Contatti e stato di gestione restano un tap di distanza nel pannello espanso.
-const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Lead', 'Attività', 'Richiesta']
+// "Stato contatto" e' il dato verificato su PerfectGym (NUOVO, NUOVO ADULTO,
+// MAI AVUTO CONTRATTO, CURRENT…) e non ha niente a che vedere con lo stato
+// dell'opportunita': sono due colonne diverse di proposito.
+const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Stato contatto', 'Opportunità', 'Attività', 'Richiesta']
 
 const COLONNE_VISIBILI = [
   'id',
@@ -50,43 +54,38 @@ const COLONNE_VISIBILI = [
   'ora_richiesta',
 ]
 
-// La pipeline (vedi lib/pipeline.ts) piu' "Da rispondere", che e' il lavoro
-// quotidiano di questa sezione: "gestito" su un'enquiry vuol dire "a questo
-// messaggio ho risposto", e non e' lo stato del lead - la stessa persona puo'
-// avere una trattativa aperta e un messaggio nuovo ancora senza risposta.
-// "Credito caricato" non c'e': riguarda solo i referral.
-const FILTRI_VALIDI = ['da_rispondere', 'nuovi', 'in_gestione', 'vinti', 'persi', 'tutti'] as const
+// Gli stati dell'opportunita' (vedi lib/pipeline.ts). "Credito caricato" non
+// c'e': riguarda solo i referral.
+const FILTRI_VALIDI = ['da_prendere', 'in_gestione', 'vinte', 'perse', 'tutte'] as const
 type Filtro = (typeof FILTRI_VALIDI)[number]
 
 const OPZIONI_FILTRO = [
-  { valore: 'da_rispondere', etichetta: 'Da rispondere' },
-  { valore: 'nuovi', etichetta: 'Lead nuovi' },
-  { valore: 'in_gestione', etichetta: 'Lead in gestione' },
-  { valore: 'vinti', etichetta: 'Lead vinti' },
-  { valore: 'persi', etichetta: 'Lead persi' },
-  { valore: 'tutti', etichetta: 'Tutti' },
+  { valore: 'da_prendere', etichetta: 'Da prendere in carico' },
+  { valore: 'in_gestione', etichetta: 'In gestione' },
+  { valore: 'vinte', etichetta: 'Vinte' },
+  { valore: 'perse', etichetta: 'Perse' },
+  { valore: 'tutte', etichetta: 'Tutte' },
 ]
 
 type RigaContatto = Record<string, any>
 
-// Assente (es. dal link nel menu) o non valida = "da rispondere": e' cio' che
-// si vede aprendo la pagina, cioe' i messaggi ancora senza risposta.
+// Assente (es. dal link nel menu) o non valida = "da prendere in carico": e'
+// cio' che si vede aprendo la pagina, cioe' il lavoro che nessuno ha ancora
+// preso.
 function parseFiltro(raw: string | undefined): Filtro {
   if (raw && (FILTRI_VALIDI as readonly string[]).includes(raw)) return raw as Filtro
-  return 'da_rispondere'
+  return 'da_prendere'
 }
 
-function nelFiltro(filtro: Filtro, riga: RigaContatto, stato: StatoPipeline): boolean {
+function nelFiltro(filtro: Filtro, stato: StatoPipeline): boolean {
   switch (filtro) {
-    case 'da_rispondere':
-      return !riga.gestito
-    case 'nuovi':
+    case 'da_prendere':
       return stato === 'nuovo'
     case 'in_gestione':
       return stato === 'in_gestione'
-    case 'vinti':
+    case 'vinte':
       return stato === 'vinto'
-    case 'persi':
+    case 'perse':
       return stato === 'perso'
     default:
       return true
@@ -194,7 +193,7 @@ export async function ContattiSezione({
   const opportunitaIds = [...new Set(righeSezione.map((r) => r.opportunita_id).filter(Boolean))] as string[]
   const personaIds = [...new Set(righeSezione.map((r) => r.persona_id).filter(Boolean))] as string[]
 
-  const [{ data: opportunita }, { data: persone }, conteggi] = await Promise.all([
+  const [{ data: opportunita }, { data: persone }, conteggi, storicoPerOpportunita] = await Promise.all([
     opportunitaIds.length > 0
       ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
       : Promise.resolve({ data: [] as Record<string, any>[] }),
@@ -202,6 +201,7 @@ export async function ContattiSezione({
       ? supabase.from('persone').select('*').in('id', personaIds)
       : Promise.resolve({ data: [] as Record<string, any>[] }),
     conteggiRichieste(personaIds),
+    storicoOpportunita(opportunitaIds),
   ])
 
   const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
@@ -237,6 +237,7 @@ export async function ContattiSezione({
     puoRiassegnareLead,
     puoCancellare,
     staff: elencoStaff,
+    storico: storicoPerOpportunita[riga.opportunita_id] ?? [],
     task: vedeAgenda ? taskPerEnquiry.get(String(riga.id)) ?? [] : undefined,
   })
 
@@ -252,10 +253,6 @@ export async function ContattiSezione({
   const query = (searchParams.q ?? '').trim().toLowerCase()
   const filtro = parseFiltro(searchParams.filtro)
   const soloMiei = searchParams.mio === '1'
-  // Nel filtro "Da rispondere" sono tutte senza risposta: evidenziarle tutte
-  // non direbbe niente. Negli altri filtri invece un messaggio non risposto in
-  // mezzo a lead lavorati deve saltare all'occhio.
-  const evidenziaSenzaRisposta = filtro !== 'da_rispondere'
 
   // "I miei" tiene dentro anche i lead nuovi non ancora assegnati: sono il
   // lavoro che chiunque puo' prendere, nasconderli renderebbe il filtro una
@@ -267,7 +264,7 @@ export async function ContattiSezione({
   }
   const righeFiltrate = query
     ? messaggiSezione.filter((riga) => corrispondeRicerca(riga, query))
-    : messaggiSezione.filter((riga) => nelFiltro(filtro, riga, statoDi(riga)) && eMio(riga))
+    : messaggiSezione.filter((riga) => nelFiltro(filtro, statoDi(riga)) && eMio(riga))
   // Stessa ricerca del tab Messaggi, applicata anche agli appuntamenti: un
   // contatto si trova a prescindere da dove sia finito, senza dover
   // indovinare in quale dei due tab guardare.
@@ -322,12 +319,16 @@ export async function ContattiSezione({
                 // in quel tab (cosi' si vede subito dove guardare se il
                 // contatto compare in entrambi), altrimenti e' il carico di
                 // lavoro (da gestire) di sempre.
-                contatore: query ? righeFiltrate.length : messaggiSezione.filter((r) => !r.gestito).length,
+                contatore: query
+                  ? righeFiltrate.length
+                  : messaggiSezione.filter((r) => statoDi(r) === 'nuovo').length,
               },
               {
                 chiave: 'appuntamenti',
                 etichetta: 'Appuntamenti',
-                contatore: query ? appuntamentiFiltrati.length : appuntamentiSezione.filter((r) => !r.gestito).length,
+                contatore: query
+                  ? appuntamentiFiltrati.length
+                  : appuntamentiSezione.filter((r) => statoDi(r) === 'nuovo').length,
               },
             ]}
           />
@@ -376,20 +377,22 @@ export async function ContattiSezione({
             <ol>
               <li>
                 Cerca per nome, cognome, email o cellulare{conDivisioneViste ? ' (trova sia Messaggi che Appuntamenti)' : ''},
-                oppure filtra per stato del lead. «Da rispondere» è il filtro di partenza: i messaggi a cui nessuno
-                ha ancora risposto.
+                oppure filtra per stato dell'opportunità. Si parte da «Da prendere in carico»: il lavoro che nessuno
+                ha ancora preso.
               </li>
               <li>
-                Apri una riga: in evidenza trovi il <strong>lead</strong> con la pipeline (Nuovo → In gestione →
-                Vinto/Perso). Chi preme «Prendi in gestione» ne diventa l'assegnatario.
+                Apri una riga: in evidenza trovi l'<strong>opportunità</strong> (Da prendere in carico → In gestione →
+                Vinta/Persa). Chi preme «Prendi in carico» ne diventa l'assegnatario, e da lì solo lui — o un
+                amministratore — la fa avanzare.
               </li>
               <li>
-                Il lead è della <strong>persona</strong>, non del singolo messaggio: se ha già una trattativa aperta
-                (magari da un altro modulo) la richiesta si aggancia a quella. Il nome cliccabile apre la sua scheda.
+                L'opportunità è della <strong>persona</strong>, non del singolo messaggio: se ha già una trattativa
+                aperta (magari da un altro modulo) la richiesta si aggancia a quella. Il nome cliccabile apre la sua
+                scheda.
               </li>
               <li>
-                Nel blocco «Questa richiesta» segni che a <em>questo</em> messaggio hai risposto, con la nota di cosa
-                hai fatto; in «In agenda» fissi una chiamata o un appuntamento collegato.
+                Nel blocco «Questa richiesta» scrivi cosa hai fatto su <em>questo</em> messaggio; in «In agenda»
+                fissi una chiamata o un appuntamento collegato.
               </li>
               {conDivisioneViste && (
                 <li>
@@ -399,9 +402,9 @@ export async function ContattiSezione({
               )}
             </ol>
             <p className="box-istruzioni-nota">
-              «Da rispondere» e stato del lead sono due cose diverse: una persona può avere la trattativa in
-              gestione e un messaggio nuovo ancora senza risposta — per questo la riga resta evidenziata finché non
-              la segni. «Cancella record» è visibile solo a chi ha il permesso di cancellare, ed è irreversibile.
+              «Stato contatto» in tabella è il dato verificato su PerfectGym (NUOVO, MAI AVUTO CONTRATTO,
+              CURRENT…), non lo stato dell'opportunità: sono due colonne diverse. «Cancella record» è visibile solo
+              a chi ha il permesso di cancellare, ed è irreversibile: chiede sempre conferma.
             </p>
           </BoxIstruzioni>
 
@@ -447,11 +450,10 @@ export async function ContattiSezione({
                       <ExpandableRow
                         key={riga.id}
                         id={String(riga.id)}
-                        columnCount={6}
+                        columnCount={7}
                         columns={COLONNE_TABELLA}
                         record={riga}
                         hiddenKeys={COLONNE_VISIBILI}
-                        evidenziata={evidenziaSenzaRisposta && !riga.gestito}
                         evidenza={<RichiestaEvidenza riga={riga} />}
                         consultazione={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
                         extra={extra}
@@ -471,15 +473,8 @@ export async function ContattiSezione({
                               {riga.nome} {riga.cognome}
                             </>
                           ),
-                          <>
-                            <PipelineBadge stato={stato} />
-                            {!riga.gestito && (
-                              <>
-                                <br />
-                                <span className="richiesta-badge richiesta-ambra">Da rispondere</span>
-                              </>
-                            )}
-                          </>,
+                          riga.stato || '—',
+                          <PipelineBadge stato={stato} />,
                           etichettaAttivita(riga.attivita),
                           riga.tipo_richiesta ? (
                             <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>

@@ -13,6 +13,7 @@ import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
 import { nomePersona, totaleRichieste } from '@/lib/persone'
 import { conteggiRichieste } from '@/lib/persone-server'
+import { storicoOpportunita } from '@/lib/opportunita-server'
 import { normalizzaStato, type StatoPipeline } from '@/lib/pipeline'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
 import { TaskEntita } from '../agenda/TaskEntita'
@@ -20,7 +21,7 @@ import { CreditoToggle } from './CreditoToggle'
 
 export const dynamic = 'force-dynamic'
 
-const COLONNE_TABELLA = ['Data', 'Socio (chi invita)', 'Amico invitato', 'Stato', 'Assegnato a']
+const COLONNE_TABELLA = ['Data', 'Socio (chi invita)', 'Amico invitato', 'Opportunità', 'Assegnata a']
 
 // Campi gia' visibili in tabella, nel chip persona o nel pannello di
 // gestione: nel dettaglio generico della riga sarebbero solo rumore. Le
@@ -55,14 +56,14 @@ const COLONNE_VISIBILI = [
 
 type RigaInvito = Record<string, any>
 
-// I filtri sono di questa sezione e non della pipeline generale, perche' solo
-// qui esiste il credito da riconoscere al socio: "Credito da caricare" e'
-// un referral vinto col toggle ancora spento, e finche' e' li' non e' finito.
+// I filtri sono di questa sezione e non del ciclo generale, perche' solo qui
+// esiste il credito da riconoscere al socio: "Credito da caricare" e' un
+// referral vinto col toggle ancora spento, e finche' e' li' non e' finito.
 const FILTRI = ['nuovi', 'in_gestione', 'da_caricare', 'chiusi', 'tutti'] as const
 type Filtro = (typeof FILTRI)[number]
 
 const OPZIONI_FILTRO = [
-  { valore: 'nuovi', etichetta: 'Nuovi' },
+  { valore: 'nuovi', etichetta: 'Da prendere in carico' },
   { valore: 'in_gestione', etichetta: 'In gestione' },
   { valore: 'da_caricare', etichetta: 'Credito da caricare' },
   { valore: 'chiusi', etichetta: 'Chiusi (credito caricato e persi)' },
@@ -135,7 +136,7 @@ export default async function InvitaAmicoPage({
   const opportunitaIds = [...new Set(inviti.map((r) => r.opportunita_id).filter(Boolean))] as string[]
   const personaIds = [...new Set(inviti.flatMap((r) => [r.persona_id, r.persona_socio_id]).filter(Boolean))] as string[]
 
-  const [{ data: opportunita }, { data: persone }, conteggi] = await Promise.all([
+  const [{ data: opportunita }, { data: persone }, conteggi, storicoPerOpportunita] = await Promise.all([
     opportunitaIds.length > 0
       ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
       : Promise.resolve({ data: [] as Record<string, any>[] }),
@@ -143,6 +144,7 @@ export default async function InvitaAmicoPage({
       ? supabase.from('persone').select('*').in('id', personaIds)
       : Promise.resolve({ data: [] as Record<string, any>[] }),
     conteggiRichieste(personaIds),
+    storicoOpportunita(opportunitaIds),
   ])
 
   const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
@@ -210,15 +212,15 @@ export default async function InvitaAmicoPage({
             segnalata. Il nome cliccabile apre la <strong>scheda persona</strong>, con tutte le sue richieste.
           </li>
           <li>
-            Ogni lead arriva come <strong>Nuovo</strong>. Apri la riga e premi «Prendi in gestione»: da quel
-            momento è assegnato a te e solo tu (o un amministratore) puoi farlo avanzare.
+            L'opportunità è dell'<strong>amico invitato</strong>: è lui il soggetto da gestire, e vinta o persa
+            riguardano lui. Apri la riga e premi «Prendi in carico»: da quel momento è assegnata a te e solo tu (o un
+            amministratore) puoi farla avanzare.
           </li>
           <li>
-            Da «In gestione» si esce in due modi: <strong>Vinto</strong> oppure <strong>Perso</strong> (con il
-            motivo).
+            Da «In gestione» si esce in due modi: <strong>Vinta</strong> oppure <strong>Persa</strong>.
           </li>
           <li>
-            Appena segni <strong>Vinto</strong>, al posto del pulsante compare il toggle{' '}
+            Appena segni <strong>Vinta</strong>, al posto del pulsante compare il toggle{' '}
             <strong>«Credito caricato SI/NO»</strong>: finché è su NO la riga resta <strong>in evidenza</strong>, ed
             è l'unico modo per farla sparire dall'elenco — così un credito da riconoscere al socio non si perde per
             strada.
@@ -229,10 +231,10 @@ export default async function InvitaAmicoPage({
           </li>
         </ol>
         <p className="box-istruzioni-nota">
-          Lo stato è del <strong>lead della persona</strong>, non della singola richiesta: se la stessa persona ha
-          già un'opportunità aperta (per esempio da un'enquiry), l'invito si aggancia a quella invece di creare un
-          secondo lead da lavorare due volte. «Vinto» e «Perso» chiudono il lead: per riaprirlo serve un
-          amministratore, che può anche riassegnare.
+          Lo stato è dell'<strong>opportunità della persona</strong>, non della singola richiesta: se l'amico ha già
+          un'opportunità aperta (per esempio da un'enquiry), l'invito si aggancia a quella invece di creare una
+          seconda trattativa da lavorare due volte. «Vinta» e «Persa» la chiudono: per riaprirla serve un
+          amministratore, che può anche passarla a un altro operatore.
         </p>
       </BoxIstruzioni>
 
@@ -294,6 +296,10 @@ export default async function InvitaAmicoPage({
                           ]
                         : []
                     }
+                    // L'opportunita' e' dell'AMICO invitato: e' lui il
+                    // soggetto da gestire, vinto o perso riguardano lui. Il
+                    // socio resta collegato all'invito (e ne conta il credito).
+                    extraTitle={amico ? `Opportunità · ${nomeAmico}` : 'Opportunità'}
                     extra={
                       lead ? (
                         <PannelloPipeline
@@ -307,6 +313,7 @@ export default async function InvitaAmicoPage({
                           eAmministratore={eAmministratore}
                           puoRiassegnareLead={puoRiassegnareLead}
                           staff={elencoStaff}
+                          storico={storicoPerOpportunita[lead.id] ?? []}
                           dopoAzioni={
                             // Il credito riguarda solo i referral vinti: prima
                             // non c'e' nulla da caricare e il toggle non
@@ -324,7 +331,7 @@ export default async function InvitaAmicoPage({
                       ) : (
                         <p className="gestione-meta">
                           Questo invito non ha una persona in anagrafica (manca l'email dell'amico), quindi non ha
-                          un lead da gestire.
+                          un'opportunità da gestire.
                         </p>
                       )
                     }

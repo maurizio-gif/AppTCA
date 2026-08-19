@@ -168,9 +168,9 @@ export async function impostaPuoCancellare(email: string, puoCancellare: boolean
   return { ok: true }
 }
 
-// Diritto di passare a un altro operatore un lead che non e' il proprio: chi
-// ce l'ha in mano puo' sempre farlo, questo permesso serve a chi coordina
-// (vedi lib/auth/permessi.ts).
+// Diritto di passare a un altro operatore un'opportunita' che non e' la
+// propria: chi ce l'ha in mano puo' sempre farlo, questo permesso serve a chi
+// coordina (vedi lib/auth/permessi.ts).
 export async function impostaPuoRiassegnare(email: string, puoRiassegnare: boolean): Promise<Risultato> {
   const supabase = createSupabaseServiceClient()
 

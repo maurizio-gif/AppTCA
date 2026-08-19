@@ -4154,3 +4154,34 @@ button.cal-cella {
   opacity: 0.6;
   cursor: default;
 }
+
+/* Storico dei passaggi di stato (opportunita_storico): chiuso, si apre solo
+   quando serve sapere chi e quando. */
+.pipeline-storico {
+  border-top: 1px dashed var(--color-border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pipeline-storico-elenco {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+}
+
+.pipeline-storico-elenco li {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pipeline-storico-quando {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

@@ -33,8 +33,8 @@ export function TaskEntita({
   eAmministratore,
   etichetteCollegamento = {},
 }: {
-  // Task agganciato a una singola richiesta: persona e lead li ricava il
-  // server da quella richiesta (vedi creaTask).
+  // Task agganciato a una singola richiesta: persona e opportunita' li ricava
+  // il server da quella richiesta (vedi creaTask).
   collegamento?: { entita: string; entitaId: string; etichetta: string }
   // Task agganciato direttamente a una persona (dalla sua scheda).
   persona?: { id: string; nome: string; opportunitaId: string | null }

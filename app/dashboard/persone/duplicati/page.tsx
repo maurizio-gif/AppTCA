@@ -63,8 +63,8 @@ export default async function DuplicatiPage() {
             uniscono in automatico, il resto no.
           </li>
           <li>
-            Se sono la stessa persona, scegli quale scheda <strong>resta</strong>: richieste, lead, task e figli
-            vengono spostati su quella, l'altra viene cancellata. Non si torna indietro.
+            Se sono la stessa persona, scegli quale scheda <strong>resta</strong>: richieste, opportunità, task e
+            figli vengono spostati su quella, l'altra viene cancellata. Non si torna indietro.
           </li>
           <li>
             Se sono due persone diverse (tipico: familiari con lo stesso cellulare), premi «Sono persone diverse» e
@@ -72,8 +72,8 @@ export default async function DuplicatiPage() {
           </li>
         </ol>
         <p className="box-istruzioni-nota">
-          Se entrambe hanno un lead aperto, resta aperto quello più avanti nella pipeline e l'altro viene chiuso
-          come perso, con il motivo scritto: nel registro operatori resta tutto.
+          Se entrambe hanno un'opportunità aperta, resta aperta quella più avanti e l'altra viene chiusa come
+          persa, con il motivo scritto: nel registro operatori resta tutto.
         </p>
       </BoxIstruzioni>
 

@@ -1,9 +1,15 @@
-// Pipeline di gestione di un lead: stati, transizioni ed etichette stanno
-// qui e non dentro i componenti, cosi' vale per ogni sezione che lavora
-// un'opportunita' (vedi app/dashboard/opportunita/actions.ts).
+// Ciclo di gestione di un'OPPORTUNITA': stati, transizioni ed etichette
+// stanno qui e non dentro i componenti, cosi' vale per ogni sezione che ne
+// lavora una (vedi app/dashboard/opportunita/actions.ts).
 //
 //   nuovo -> in_gestione -> vinto   (finale)
 //                        -> perso   (finale)
+//
+// Le etichette non usano mai la parola "nuovo": form_contatti ha una colonna
+// "stato" verificata su PerfectGym con valori come NUOVO, NUOVO ADULTO, MAI
+// AVUTO CONTRATTO, CURRENT - due "nuovo" accanto sarebbero solo confusione.
+// E non si chiamano "lead": una richiesta dal sito e' un'enquiry, mentre
+// l'opportunita' e' la trattativa che ne nasce, ed e' della persona.
 //
 // Il caricamento del credito NON e' uno stato: riguarda solo i referral (il
 // credito da riconoscere al socio che ha invitato) ed e' un toggle sulla riga
@@ -13,10 +19,10 @@ export const STATI = ['nuovo', 'in_gestione', 'vinto', 'perso'] as const
 export type StatoPipeline = (typeof STATI)[number]
 
 export const ETICHETTE_STATO: Record<StatoPipeline, string> = {
-  nuovo: 'Nuovo',
+  nuovo: 'Da prendere in carico',
   in_gestione: 'In gestione',
-  vinto: 'Vinto',
-  perso: 'Perso',
+  vinto: 'Vinta',
+  perso: 'Persa',
 }
 
 // Varianti di .richiesta-badge gia' esistenti in globals.css: nessuna
@@ -50,10 +56,10 @@ export const TRANSIZIONI: Record<StatoPipeline, readonly StatoPipeline[]> = {
 // Etichetta del pulsante che porta a quello stato (non il nome dello
 // stato: "Prendi in gestione" e' un'azione, "In gestione" e' un risultato).
 export const ETICHETTE_AZIONE: Record<StatoPipeline, string> = {
-  nuovo: 'Riporta a nuovo',
-  in_gestione: 'Prendi in gestione',
-  vinto: 'Segna vinto',
-  perso: 'Segna perso',
+  nuovo: 'Rimetti da prendere in carico',
+  in_gestione: 'Prendi in carico',
+  vinto: 'Segna vinta',
+  perso: 'Segna persa',
 }
 
 export function eStatoValido(valore: string | null | undefined): valore is StatoPipeline {

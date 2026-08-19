@@ -11,8 +11,8 @@ export type PersonaTrovata = {
   cellulare: string | null
   storico: boolean
   // Le sue opportunita' aperte (di norma una sola, vedi l'indice unico
-  // parziale su opportunita): serve a collegare il task al lead giusto senza
-  // farlo cercare all'operatore.
+  // parziale su opportunita): serve a collegare il task alla trattativa giusta
+  // senza farla cercare all'operatore.
   opportunita: { id: string; etichetta: string }[]
 }
 
@@ -58,7 +58,7 @@ export async function cercaPersone(query: string): Promise<PersonaTrovata[]> {
     storico: !!persona.storico,
     opportunita: (opportunita ?? [])
       .filter((o) => o.persona_id === persona.id)
-      .map((o) => ({ id: o.id, etichetta: `Lead ${ETICHETTE_STATO[normalizzaStato(o.stato)]}` })),
+      .map((o) => ({ id: o.id, etichetta: `Opportunità ${ETICHETTE_STATO[normalizzaStato(o.stato)].toLowerCase()}` })),
   }))
 }
 
@@ -67,8 +67,8 @@ export type RichiestaPersona = {
   chiave: string
   // Già pronta da mostrare: data, modulo e tipo della richiesta.
   etichetta: string
-  // Il lead a cui la richiesta appartiene: collegando il task alla richiesta
-  // lo si collega anche alla trattativa, senza chiederlo all'operatore.
+  // L'opportunita' a cui la richiesta appartiene: collegando il task alla
+  // richiesta lo si collega anche alla trattativa, senza chiederlo.
   opportunitaId: string | null
 }
 

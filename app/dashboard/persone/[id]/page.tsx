@@ -10,6 +10,7 @@ import { ContactLinks } from '@/components/ContactLinks'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
+import { storicoOpportunita } from '@/lib/opportunita-server'
 import { etichettaFonte, nomePersona } from '@/lib/persone'
 import { ETICHETTE_STATO, normalizzaStato } from '@/lib/pipeline'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
@@ -89,6 +90,20 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
 
   richieste.sort((a, b) => b.quando.localeCompare(a.quando))
 
+  // Amici che questa persona ha invitato: quanti sono e quanti si sono
+  // iscritti. Lo stato lo leggiamo dalla riga dell'invito, che il trigger
+  // specchia da quello dell'opportunita' dell'amico (vedi
+  // specchia_stato_opportunita): non serve una seconda query.
+  const { data: amiciInvitati } = await supabase
+    .from('form_invita_amico')
+    .select('id, created_at, amico_nome, amico_cognome, amico_email, persona_id, stato, credito_caricato')
+    .eq('persona_socio_id', persona.id)
+    .order('created_at', { ascending: false })
+
+  const inviti = amiciInvitati ?? []
+  const amiciIscritti = inviti.filter((invito) => normalizzaStato(invito.stato) === 'vinto').length
+  const creditiCaricati = inviti.filter((invito) => invito.credito_caricato).length
+
   // Per gli eventi in agenda: da quale richiesta e' nato ciascuno.
   const etichetteRichieste: Record<string, string> = Object.fromEntries(
     richieste.map(({ modulo, riga }) => [`${modulo.tabella}:${riga.id}`, modulo.etichetta])
@@ -107,6 +122,7 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
   }))
 
   const leadAperto = (opportunita ?? []).find((o) => !o.chiuso_il) ?? null
+  const storicoPerOpportunita = await storicoOpportunita((opportunita ?? []).map((o) => o.id))
   const leadChiusi = (opportunita ?? []).filter((o) => o.chiuso_il)
   const nome = nomePersona(persona)
 
@@ -128,7 +144,7 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
 
       <div className="pannello-gestione">
         <div className="pannello-gestione-blocco">
-          <div className="pannello-gestione-titolo">Lead</div>
+          <div className="pannello-gestione-titolo">Opportunità</div>
           {leadAperto ? (
             <PannelloPipeline
               id={leadAperto.id}
@@ -141,10 +157,11 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
               eAmministratore={eAmministratore}
               puoRiassegnareLead={puoRiassegnareLead}
               staff={elencoStaff}
+              storico={storicoPerOpportunita[leadAperto.id] ?? []}
             />
           ) : (
             <p className="gestione-meta">
-              Nessun lead aperto. Ne nasce uno da solo alla prossima enquiry o invito di questa persona.
+              Nessuna opportunità aperta. Ne nasce una da sola alla prossima enquiry o invito di questa persona.
             </p>
           )}
 
@@ -246,6 +263,44 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
           </ul>
         )}
       </div>
+
+      {inviti.length > 0 && (
+        <div className="detail-group">
+          <div className="detail-group-title">
+            Amici invitati <span className="count">{inviti.length}</span>
+          </div>
+          <p className="gestione-meta">
+            {amiciIscritti === 1 ? '1 iscritto' : `${amiciIscritti} iscritti`} · {creditiCaricati} con il credito
+            caricato
+          </p>
+          <ul className="persona-richieste">
+            {inviti.map((invito) => {
+              const nomeAmico =
+                `${invito.amico_nome ?? ''} ${invito.amico_cognome ?? ''}`.trim() || invito.amico_email || 'amico'
+              const statoInvito = normalizzaStato(invito.stato)
+
+              return (
+                <li key={invito.id}>
+                  <span className="persona-richiesta-quando">{formatDateOra(invito.created_at)}</span>
+                  {invito.persona_id ? (
+                    <Link href={`/dashboard/persone/${invito.persona_id}`} className="link">
+                      {nomeAmico}
+                    </Link>
+                  ) : (
+                    nomeAmico
+                  )}
+                  <PipelineBadge stato={statoInvito} />
+                  {statoInvito === 'vinto' && (
+                    <span className="muted">
+                      credito {invito.credito_caricato ? 'caricato' : 'da caricare'}
+                    </span>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       <VisiteContatto accessi={tuttiAccessi} />
     </div>
