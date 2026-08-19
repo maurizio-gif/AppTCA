@@ -37,7 +37,10 @@ export function FormTask({
   // sue richieste si possono comunque collegare.
   personaFissa?: { id: string; nome: string; opportunitaId: string | null }
   titoloIniziale?: string
-  onFatto?: () => void
+  // Riceve se il salvataggio si e' chiuso da solo (vedi
+  // eEventoDaCompletareInAutomatico): chi apre il form decide se e come
+  // dirlo, perche' di solito lo richiude subito dopo.
+  onFatto?: (completatoSubito?: boolean) => void
   onAnnulla?: () => void
 }) {
   const [tipo, setTipo] = useState<TipoVoce>('task')
@@ -268,7 +271,7 @@ export function FormTask({
                 setNote('')
                 setOra('')
                 setRichiestaScelta('')
-                onFatto?.()
+                onFatto?.(risultato.completatoSubito)
               } else {
                 setErrore(risultato.errore)
               }

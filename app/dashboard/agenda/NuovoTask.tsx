@@ -17,15 +17,31 @@ export function NuovoTask({
 }) {
   const giornoSelezionato = useGiornoSelezionato()
   const [aperto, setAperto] = useState(false)
+  // Il form si richiude subito dopo il salvataggio: se l'evento era per un
+  // momento gia' passato (o nei prossimi 30 minuti) ed e' quindi nato gia'
+  // completato, lo si dice qui, dove il pulsante torna visibile.
+  const [completatoInAutomatico, setCompletatoInAutomatico] = useState(false)
   const giorno = giornoSelezionato ?? chiaveGiornoDa(new Date())
 
   if (!aperto) {
     return (
       <div className="agenda-nuovo">
-        <button type="button" className="btn" onClick={() => setAperto(true)}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setCompletatoInAutomatico(false)
+            setAperto(true)
+          }}
+        >
           + Aggiungi in agenda
           {giornoSelezionato && ` (${new Date(`${giornoSelezionato}T00:00:00`).toLocaleDateString('it-IT')})`}
         </button>
+        {completatoInAutomatico && (
+          <p className="gestione-meta">
+            Era per un momento già passato (o nei prossimi 30 minuti): salvata già come completata.
+          </p>
+        )}
       </div>
     )
   }
@@ -37,7 +53,10 @@ export function NuovoTask({
         staff={staff}
         emailCorrente={emailCorrente}
         dataProposta={giorno}
-        onFatto={() => setAperto(false)}
+        onFatto={(completatoSubito) => {
+          setCompletatoInAutomatico(!!completatoSubito)
+          setAperto(false)
+        }}
         onAnnulla={() => setAperto(false)}
       />
     </div>
