@@ -3768,6 +3768,25 @@ table.data-table {
   padding-top: 10px;
 }
 
+/* Blocchi che il pannello dell'opportunita' ospita subito sotto i pulsanti di
+   stato (prop dopoAzioni): la chiusura dell'appuntamento prenotato dal sito e
+   le voci d'agenda collegate. Fissare la prossima mossa e' la continuazione
+   naturale del prendere in carico, non una sezione a parte piu' in basso. */
+.pipeline-appuntamento,
+.pipeline-agenda {
+  margin-top: 14px;
+  border-top: 1px dashed var(--color-border);
+  padding-top: 10px;
+}
+
+.pipeline-agenda-titolo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-light);
+  margin: 0 0 8px;
+}
+
 /* Spunta accanto alle tendine di filtro (es. "Solo i miei"). */
 .filtro-checkbox {
   display: inline-flex;

@@ -200,13 +200,18 @@ export default async function AgendaPage({
             cancellarlo può farlo chi ce l'ha in mano, chi l'ha creato o un amministratore.
           </li>
           <li>
-            Gli appuntamenti arrivati dal sito si gestiscono anche da qui, esattamente come nelle Enquiries: nota,
-            «Gestito», cancellazione se hai il permesso.
+            Quando una cosa è fatta, aprila e chiudila scrivendo <strong>com'è andata</strong>: un task si
+            «Completa», un appuntamento dal sito si segna come fatto. Da quel momento è verde e non conta più fra
+            le cose da fare — è l'unico modo per non trovarsi in agenda impegni già passati.
+          </li>
+          <li>
+            Gli appuntamenti arrivati dal sito portano con sé la loro opportunità: la si gestisce da qui
+            esattamente come nelle Enquiries.
           </li>
         </ol>
         <p className="box-istruzioni-nota">
           Vedi in agenda solo gli appuntamenti delle sezioni Enquiries a cui hai accesso. Pallino rosso su un
-          giorno = lì c'è ancora qualcosa da fare.
+          giorno = lì c'è ancora qualcosa da fare; verde = tutto chiuso.
         </p>
       </BoxIstruzioni>
 

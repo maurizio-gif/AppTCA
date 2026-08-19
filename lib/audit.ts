@@ -20,6 +20,8 @@ export const AZIONI_LOG: Record<string, string> = {
   sezioni_modificate: 'Sezioni visibili modificate',
   contatto_gestito: 'Contatto: stato gestione modificato',
   contatto_nota_salvata: 'Contatto: nota salvata',
+  appuntamento_completato: 'Appuntamento: segnato come fatto',
+  appuntamento_riaperto: 'Appuntamento: riaperto',
   contatto_cancellato: 'Contatto: cancellato definitivamente',
   // Azione di prima della pipeline (vecchio toggle Da gestire/Gestito):
   // resta qui per i record storici del registro.

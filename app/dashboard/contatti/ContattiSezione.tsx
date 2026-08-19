@@ -11,16 +11,14 @@ import { nomePersona, totaleRichieste } from '@/lib/persone'
 import { conteggiRichieste } from '@/lib/persone-server'
 import { storicoOpportunita } from '@/lib/opportunita-server'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
-import { apparteneAGruppo, classificaContatto, type GruppoContatto } from '@/lib/contatti'
+import { apparteneAGruppo, type GruppoContatto } from '@/lib/contatti'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
 import type { SezioneChiave } from '@/lib/auth/sezioni'
 import { VisiteContatto } from '@/components/VisiteContatto'
 import { RicercaContatti } from './RicercaContatti'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
-import { VistaTabs } from '@/components/VistaTabs'
-import { CalendarioAgenda, type VoceCalendario } from '@/components/CalendarioAgenda'
 import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
-import { bloccoGestioneContatto, voceCalendarioDaContatto } from './VociAppuntamenti'
+import { bloccoGestioneContatto } from './VociAppuntamenti'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 
@@ -44,7 +42,6 @@ const COLONNE_VISIBILI = [
   'gestito',
   'gestito_da',
   'gestito_il',
-  'note',
   'gruppo_attivita',
   // Mostrati in evidenza appena si apre la riga (vedi RichiestaEvidenza),
   // non nella griglia generica dei dettagli.
@@ -116,11 +113,11 @@ function corrispondeRicerca(riga: RigaContatto, query: string): boolean {
 // lib/contatti.ts) e gestita separatamente cosi' da poter dare il permesso
 // di accesso a operatori diversi per Adulti e per Junior.
 //
-// Solo per Adulti, la sezione si divide in due viste (vedi VistaTabs):
-// Messaggi (da smaltire subito, in ordine di arrivo) e Appuntamenti richiesti
-// (quelli che i clienti hanno prenotato dal sito, nel giorno fissato e non in
-// quello di arrivo della richiesta). Su Junior non c'e' questa distinzione,
-// resta l'unica lista di sempre.
+// Una lista sola, in ordine di arrivo: un appuntamento prenotato dal sito e'
+// una richiesta come le altre e va preso in carico come le altre, non messo
+// in un calendario a parte. Il calendario e' uno solo, /dashboard/agenda:
+// avere anche qui un calendario "da gestire" significava vedere in mezzo al
+// lavoro da fare appuntamenti gia' fatti.
 export async function ContattiSezione({
   gruppo,
   titolo,
@@ -132,7 +129,7 @@ export async function ContattiSezione({
   titolo: string
   permesso: SezioneChiave
   basePath: string
-  searchParams: { filtro?: string; q?: string; vista?: string; mio?: string }
+  searchParams: { filtro?: string; q?: string; mio?: string }
 }) {
   if (!(await utenteHaSezione(permesso))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
@@ -148,7 +145,6 @@ export async function ContattiSezione({
   // appuntamenti interni, di tutte le sezioni - e' /dashboard/agenda. Due
   // viste, due mestieri: il componente calendario e' lo stesso, il contenuto
   // no, altrimenti sarebbero due porte sulla stessa stanza.
-  const conDivisioneViste = gruppo === 'adulti'
   const vedeAgenda = await utenteHaSezione('agenda')
 
   const [
@@ -238,15 +234,6 @@ export async function ContattiSezione({
     task: vedeAgenda ? taskPerEnquiry.get(String(riga.id)) ?? [] : undefined,
   })
 
-  const messaggiSezione = conDivisioneViste
-    ? righeSezione.filter((riga) => classificaContatto(riga) === 'messaggio')
-    : righeSezione
-  const appuntamentiSezione = conDivisioneViste
-    ? righeSezione.filter((riga) => classificaContatto(riga) !== 'messaggio')
-    : []
-
-  const vista = conDivisioneViste && searchParams.vista === 'appuntamenti' ? 'appuntamenti' : 'messaggi'
-
   const query = (searchParams.q ?? '').trim().toLowerCase()
   const filtro = parseFiltro(searchParams.filtro)
   const soloMiei = searchParams.mio === '1'
@@ -260,24 +247,8 @@ export async function ContattiSezione({
     return assegnato ? assegnato === emailCorrente : statoDi(riga) === 'nuovo'
   }
   const righeFiltrate = query
-    ? messaggiSezione.filter((riga) => corrispondeRicerca(riga, query))
-    : messaggiSezione.filter((riga) => nelFiltro(filtro, statoDi(riga)) && eMio(riga))
-  // Stessa ricerca del tab Messaggi, applicata anche agli appuntamenti: un
-  // contatto si trova a prescindere da dove sia finito, senza dover
-  // indovinare in quale dei due tab guardare.
-  const appuntamentiFiltrati = query
-    ? appuntamentiSezione.filter((riga) => corrispondeRicerca(riga, query))
-    : appuntamentiSezione.filter((riga) => eMio(riga))
-
-  const vociCalendario: VoceCalendario[] = conDivisioneViste
-    ? appuntamentiFiltrati.map((riga) =>
-        voceCalendarioDaContatto(riga, {
-          nomiStaff,
-          accessi: riga.vid ? accessiPerVid[riga.vid] ?? [] : [],
-          gestione: gestioneDi(riga),
-        })
-      )
-    : []
+    ? righeSezione.filter((riga) => corrispondeRicerca(riga, query))
+    : righeSezione.filter((riga) => nelFiltro(filtro, statoDi(riga)) && eMio(riga))
 
   return (
     <div>
@@ -285,206 +256,128 @@ export async function ContattiSezione({
         <h1>{titolo}</h1>
       </div>
 
-      {conDivisioneViste && (
-        <>
-          <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
-          {query && (
-            <p className="search-note">
-              Ricerca su Messaggi e Appuntamenti —{' '}
-              <a href={basePath} className="link">
-                annulla ricerca
-              </a>
-            </p>
-          )}
-          <VistaTabs
-            vista={vista}
-            tabs={[
-              {
-                chiave: 'messaggi',
-                etichetta: 'Messaggi',
-                // Durante una ricerca il numero e' quanti risultati ci sono
-                // in quel tab (cosi' si vede subito dove guardare se il
-                // contatto compare in entrambi), altrimenti e' il carico di
-                // lavoro (da gestire) di sempre.
-                contatore: query
-                  ? righeFiltrate.length
-                  : messaggiSezione.filter((r) => statoDi(r) === 'nuovo').length,
-              },
-              {
-                chiave: 'appuntamenti',
-                etichetta: 'Appuntamenti richiesti',
-                contatore: query
-                  ? appuntamentiFiltrati.length
-                  : appuntamentiSezione.filter((r) => statoDi(r) === 'nuovo').length,
-              },
-            ]}
-          />
-        </>
-      )}
+      <BoxIstruzioni titolo="Come funziona">
+        <ol>
+          <li>
+            Cerca per nome, cognome, email o cellulare, oppure filtra per stato dell'opportunità. Si parte da «Da
+            prendere in carico»: il lavoro che nessuno ha ancora preso.
+          </li>
+          <li>
+            Apri una riga: in evidenza trovi l'<strong>opportunità</strong> (Da prendere in carico → In gestione →
+            Vinta/Persa). Chi preme «Prendi in carico» ne diventa l'assegnatario, e da lì solo lui — o un
+            amministratore — la fa avanzare.
+          </li>
+          <li>
+            L'opportunità è della <strong>persona</strong>, non del singolo messaggio: se ha già una trattativa
+            aperta (magari da un altro modulo) la richiesta si aggancia a quella. Il nome cliccabile apre la sua
+            scheda.
+          </li>
+          <li>
+            Subito sotto i pulsanti dell'opportunità c'è <strong>«In agenda»</strong>: da lì fissi la prossima
+            mossa — una chiamata, un appuntamento — e vedi l'elenco di quelle già fissate su questa richiesta.
+          </li>
+          <li>
+            Qui ci sono <strong>tutte</strong> le richieste della sezione, messaggi e appuntamenti prenotati dal
+            sito: un appuntamento è una richiesta da prendere in carico come le altre. Il calendario è uno solo,
+            l'
+            <Link href="/dashboard/agenda" className="link">
+              <strong>Agenda</strong>
+            </Link>
+            , dove un appuntamento si segna come fatto con la nota di com'è andata.
+          </li>
+        </ol>
+        <p className="box-istruzioni-nota">
+          «Stato contatto» in tabella è il dato verificato su PerfectGym (NUOVO, MAI AVUTO CONTRATTO,
+          CURRENT…), non lo stato dell'opportunità: sono due colonne diverse. «Cancella record» è visibile solo
+          a chi ha il permesso di cancellare, ed è irreversibile: chiede sempre conferma.
+        </p>
+      </BoxIstruzioni>
 
-      {vista === 'appuntamenti' ? (
-        <>
-          <BoxIstruzioni titolo="Come funziona">
-            <ol>
-              <li>
-                Qui ci sono <strong>solo gli appuntamenti che i clienti hanno prenotato dal sito</strong> per questa
-                sezione: in sede o telefonici. Quello che vi fissate voi (chiamate, task, appuntamenti interni) sta
-                nell'
-                <Link href="/dashboard/agenda" className="link">
-                  <strong>Agenda</strong>
-                </Link>
-                , che raccoglie tutto insieme a questi.
-              </li>
-              <li>
-                Ogni appuntamento compare nel giorno <strong>fissato</strong>, non nel giorno in cui è arrivata la
-                richiesta. Pallino rosso: quel giorno c'è ancora un'opportunità aperta; pallino verde: tutto chiuso.
-              </li>
-              <li>Clicca un giorno per aprire sotto l'elenco degli appuntamenti di quel giorno.</li>
-              <li>
-                Apri una riga per gestire l'opportunità, scrivere cosa hai fatto o fissare in agenda una chiamata
-                collegata.
-              </li>
-            </ol>
-            <p className="box-istruzioni-nota">
-              Un appuntamento senza una data registrata finisce nella sezione «Senza data» in fondo alla pagina,
-              così non resta invisibile.
-            </p>
-          </BoxIstruzioni>
-          {/* Niente form di creazione qui: cio' che si fissa in proprio va in
-              Agenda, o nel blocco "In agenda" della singola richiesta. */}
-          <CalendarioAgenda voci={vociCalendario} />
-          {query && appuntamentiFiltrati.length === 0 && (
-            <p className="empty-state">Nessun risultato per la ricerca negli appuntamenti.</p>
-          )}
-        </>
-      ) : (
-        <>
-          <BoxIstruzioni titolo="Come funziona">
-            <ol>
-              <li>
-                Cerca per nome, cognome, email o cellulare{conDivisioneViste ? ' (trova sia Messaggi che Appuntamenti)' : ''},
-                oppure filtra per stato dell'opportunità. Si parte da «Da prendere in carico»: il lavoro che nessuno
-                ha ancora preso.
-              </li>
-              <li>
-                Apri una riga: in evidenza trovi l'<strong>opportunità</strong> (Da prendere in carico → In gestione →
-                Vinta/Persa). Chi preme «Prendi in carico» ne diventa l'assegnatario, e da lì solo lui — o un
-                amministratore — la fa avanzare.
-              </li>
-              <li>
-                L'opportunità è della <strong>persona</strong>, non del singolo messaggio: se ha già una trattativa
-                aperta (magari da un altro modulo) la richiesta si aggancia a quella. Il nome cliccabile apre la sua
-                scheda.
-              </li>
-              <li>
-                Nel blocco «Questa richiesta» scrivi cosa hai fatto su <em>questo</em> messaggio; in «In agenda»
-                fissi una chiamata o un appuntamento collegato.
-              </li>
-              {conDivisioneViste && (
-                <li>
-                  Solo qui trovi i messaggi (richiamami, domande generiche): gli appuntamenti fissati sono
-                  nell'altro tab, nel calendario.
-                </li>
-              )}
-            </ol>
-            <p className="box-istruzioni-nota">
-              «Stato contatto» in tabella è il dato verificato su PerfectGym (NUOVO, MAI AVUTO CONTRATTO,
-              CURRENT…), non lo stato dell'opportunità: sono due colonne diverse. «Cancella record» è visibile solo
-              a chi ha il permesso di cancellare, ed è irreversibile: chiede sempre conferma.
-            </p>
-          </BoxIstruzioni>
+      <div className="filtri-toolbar">
+        <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
+        {query ? (
+          <p className="search-note">
+            Ricerca su tutte le richieste della sezione, in qualunque stato —{' '}
+            <a href={basePath} className="link">
+              annulla ricerca
+            </a>
+          </p>
+        ) : (
+          <>
+            <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
+            <FiltroCheckbox attivo={soloMiei} param="mio" etichetta="Solo i miei" />
+          </>
+        )}
+      </div>
 
-          {(!conDivisioneViste || !query) && (
-            <div className="filtri-toolbar">
-              {!conDivisioneViste && <RicercaContatti valoreIniziale={searchParams.q ?? ''} />}
-              {query ? (
-                !conDivisioneViste && (
-                  <p className="search-note">
-                    Ricerca su tutti i contatti, gestiti e da gestire —{' '}
-                    <a href={basePath} className="link">
-                      annulla ricerca
-                    </a>
-                  </p>
+      <div className="data-table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th></th>
+              {COLONNE_TABELLA.map((colonna) => (
+                <th key={colonna}>{colonna}</th>
+              ))}
+            </tr>
+          </thead>
+          <AccordionGroup>
+            <tbody>
+              {righeFiltrate.map((riga) => {
+                const stato = statoDi(riga)
+                const persona = personePerId.get(riga.persona_id)
+                const { extra, extraTitle, sections } = bloccoGestioneContatto(riga, gestioneDi(riga))
+
+                return (
+                  <ExpandableRow
+                    key={riga.id}
+                    id={String(riga.id)}
+                    columnCount={7}
+                    columns={COLONNE_TABELLA}
+                    record={riga}
+                    hiddenKeys={COLONNE_VISIBILI}
+                    evidenza={<RichiestaEvidenza riga={riga} />}
+                    consultazione={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
+                    extra={extra}
+                    extraTitle={extraTitle}
+                    sections={sections}
+                    cells={[
+                      formatDateOra(riga.created_at),
+                      persona ? (
+                        <ChipPersona
+                          id={persona.id}
+                          nome={nomePersona(persona)}
+                          richieste={richiesteDi(persona.id)}
+                          storico={!!persona.storico}
+                        />
+                      ) : (
+                        <>
+                          {riga.nome} {riga.cognome}
+                        </>
+                      ),
+                      riga.stato || '—',
+                      <PipelineBadge stato={stato} />,
+                      etichettaAttivita(riga.attivita),
+                      riga.tipo_richiesta ? (
+                        <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
+                          {riga.tipo_richiesta}
+                        </span>
+                      ) : (
+                        '—'
+                      ),
+                    ]}
+                  />
                 )
-              ) : (
-                <>
-                  <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
-                  <FiltroCheckbox attivo={soloMiei} param="mio" etichetta="Solo i miei" />
-                </>
-              )}
-            </div>
-          )}
+              })}
+            </tbody>
+          </AccordionGroup>
+        </table>
 
-          <div className="data-table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  {COLONNE_TABELLA.map((colonna) => (
-                    <th key={colonna}>{colonna}</th>
-                  ))}
-                </tr>
-              </thead>
-              <AccordionGroup>
-                <tbody>
-                  {righeFiltrate.map((riga) => {
-                    const stato = statoDi(riga)
-                    const persona = personePerId.get(riga.persona_id)
-                    const { extra, extraTitle, sections } = bloccoGestioneContatto(riga, gestioneDi(riga))
-
-                    return (
-                      <ExpandableRow
-                        key={riga.id}
-                        id={String(riga.id)}
-                        columnCount={7}
-                        columns={COLONNE_TABELLA}
-                        record={riga}
-                        hiddenKeys={COLONNE_VISIBILI}
-                        evidenza={<RichiestaEvidenza riga={riga} />}
-                        consultazione={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
-                        extra={extra}
-                        extraTitle={extraTitle}
-                        sections={sections}
-                        cells={[
-                          formatDateOra(riga.created_at),
-                          persona ? (
-                            <ChipPersona
-                              id={persona.id}
-                              nome={nomePersona(persona)}
-                              richieste={richiesteDi(persona.id)}
-                              storico={!!persona.storico}
-                            />
-                          ) : (
-                            <>
-                              {riga.nome} {riga.cognome}
-                            </>
-                          ),
-                          riga.stato || '—',
-                          <PipelineBadge stato={stato} />,
-                          etichettaAttivita(riga.attivita),
-                          riga.tipo_richiesta ? (
-                            <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>
-                              {riga.tipo_richiesta}
-                            </span>
-                          ) : (
-                            '—'
-                          ),
-                        ]}
-                      />
-                    )
-                  })}
-                </tbody>
-              </AccordionGroup>
-            </table>
-
-            {righeFiltrate.length === 0 && (
-              <p className="empty-state">
-                {query ? 'Nessun risultato per la ricerca.' : 'Nessuna richiesta trovata.'}
-              </p>
-            )}
-          </div>
-        </>
-      )}
+        {righeFiltrate.length === 0 && (
+          <p className="empty-state">
+            {query ? 'Nessun risultato per la ricerca.' : 'Nessuna richiesta trovata.'}
+          </p>
+        )}
+      </div>
     </div>
   )
 }

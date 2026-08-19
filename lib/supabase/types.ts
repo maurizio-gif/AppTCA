@@ -97,6 +97,9 @@ export type Database = {
       }
       form_contatti: {
         Row: {
+          appuntamento_completato_il: string | null
+          appuntamento_completato_da: string | null
+          appuntamento_esito: string | null
           persona_id: string | null
           opportunita_id: string | null
           attivita: Json | null
@@ -138,6 +141,9 @@ export type Database = {
           vid: string | null
         }
         Insert: {
+          appuntamento_completato_il?: string | null
+          appuntamento_completato_da?: string | null
+          appuntamento_esito?: string | null
           persona_id?: string | null
           opportunita_id?: string | null
           attivita?: Json | null
@@ -179,6 +185,9 @@ export type Database = {
           vid?: string | null
         }
         Update: {
+          appuntamento_completato_il?: string | null
+          appuntamento_completato_da?: string | null
+          appuntamento_esito?: string | null
           persona_id?: string | null
           opportunita_id?: string | null
           attivita?: Json | null

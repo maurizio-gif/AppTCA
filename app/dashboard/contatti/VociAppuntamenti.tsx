@@ -2,12 +2,13 @@ import type { VoceCalendario } from '@/components/CalendarioAgenda'
 import { ContactLinks } from '@/components/ContactLinks'
 import { PannelloPipeline } from '@/components/PannelloPipeline'
 import { VisiteContatto } from '@/components/VisiteContatto'
-import { etichettaPersona, voceDaContatto } from '@/lib/agenda'
+import { eAppuntamento, etichettaPersona, voceDaContatto } from '@/lib/agenda'
 import { formatDateOra } from '@/lib/format'
 import { normalizzaStato } from '@/lib/pipeline'
 import type { RigaAccesso } from '@/lib/visite'
 import { TaskEntita } from '../agenda/TaskEntita'
-import { GestioneRichiesta } from './GestioneRichiesta'
+import { AzioniAppuntamento } from './AzioniAppuntamento'
+import { EliminaContattoButton } from './EliminaContattoButton'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
 
 type RigaContatto = Record<string, any>
@@ -32,9 +33,11 @@ export const CAMPI_CONTATTO_NASCOSTI = [
   'gestito',
   'gestito_da',
   'gestito_il',
-  'note',
   'persona_id',
   'opportunita_id',
+  'appuntamento_completato_il',
+  'appuntamento_completato_da',
+  'appuntamento_esito',
 ]
 
 // Il punto del calendario e' distinguere quando e' arrivata la richiesta da
@@ -66,14 +69,57 @@ export type OpzioniGestione = {
 // lista dei Messaggi sia il calendario degli Appuntamenti, che sono due viste
 // della stessa cosa e non devono divergere.
 //
-// Tre blocchi, in ordine di importanza: l'opportunita' (la trattativa, che e'
-// della persona), la singola richiesta (la nota di cosa e' stato fatto, e la
-// cancellazione per chi ne ha il permesso) e l'agenda.
+// Tutto cio' su cui si agisce sta in un blocco solo: l'opportunita' della
+// persona e, subito sotto i suoi pulsanti, l'agenda - fissare la prossima
+// mossa e' la naturale continuazione del prendere in carico, non una sezione
+// a parte piu' in basso. Resta fuori la sola cancellazione del record.
+//
+// Il campo "note su questa richiesta" non c'e' piu': cosa si e' fatto e cosa
+// resta da fare si scrive come voce d'agenda, che ha una data e un
+// responsabile. Le note gia' scritte si leggono fra i dati della richiesta.
 export function bloccoGestioneContatto(
   riga: RigaContatto,
   { lead, emailCorrente, eAmministratore, puoRiassegnareLead, puoCancellare, staff, storico, task }: OpzioniGestione
 ): { extra: React.ReactNode; extraTitle: string; sections: { title: string; content: React.ReactNode }[] } {
   const nome = `${riga.nome ?? ''} ${riga.cognome ?? ''}`.trim() || riga.email || 'contatto'
+
+  // Un'enquiry puo' avere piu' voci in agenda (una chiamata, poi la visita in
+  // sede): sono l'elenco, non un campo. Assente = chi costruisce la riga non
+  // ha accesso all'agenda.
+  // Chi puo' chiudere l'appuntamento: se nessuno ha preso in carico
+  // l'opportunita' chiunque veda la sezione, altrimenti il titolare o un
+  // amministratore - lo stesso criterio dei pulsanti della pipeline. Il
+  // controllo vero e' comunque nella Server Action.
+  const assegnato = (lead?.assegnato_a ?? '').trim().toLowerCase()
+  const mio = !!assegnato && assegnato === (emailCorrente ?? '').trim().toLowerCase()
+  const bloccoAppuntamento = eAppuntamento(riga) ? (
+    <AzioniAppuntamento
+      id={String(riga.id)}
+      completatoIl={riga.appuntamento_completato_il ?? null}
+      completatoDa={riga.appuntamento_completato_da ?? null}
+      esito={riga.appuntamento_esito ?? null}
+      puoModificare={!assegnato || mio || eAmministratore}
+    />
+  ) : null
+
+  const bloccoAgenda = task ? (
+    <div className="pipeline-agenda">
+      <h4 className="pipeline-agenda-titolo">In agenda</h4>
+      <TaskEntita
+        collegamento={{
+          entita: 'form_contatti',
+          entitaId: String(riga.id),
+          etichetta: `Enquiry · ${nome}`,
+        }}
+        titoloSuggerito={`Ricontattare ${nome}`}
+        task={task}
+        staff={staff}
+        emailCorrente={emailCorrente}
+        eAmministratore={eAmministratore}
+        azioneInCima
+      />
+    </div>
+  ) : null
 
   return {
     extraTitle: 'Opportunità',
@@ -90,40 +136,29 @@ export function bloccoGestioneContatto(
         puoRiassegnareLead={puoRiassegnareLead}
         staff={staff}
         storico={storico}
+        dopoAzioni={
+          <>
+            {bloccoAppuntamento}
+            {bloccoAgenda}
+          </>
+        }
       />
     ) : (
-      <p className="gestione-meta">
-        Questa richiesta non è collegata a una persona in anagrafica (manca l'email), quindi non ha un'opportunità
-        da gestire.
-      </p>
+      // Senza email non c'e' una persona in anagrafica, quindi non c'e'
+      // un'opportunita': l'agenda serve comunque, la richiesta esiste e
+      // qualcuno la deve richiamare.
+      <div className="gestione-box">
+        <p className="gestione-meta">
+          Questa richiesta non è collegata a una persona in anagrafica (manca l'email), quindi non ha un'opportunità
+          da gestire.
+        </p>
+        {bloccoAppuntamento}
+        {bloccoAgenda}
+      </div>
     ),
-    sections: [
-      {
-        title: 'Questa richiesta',
-        content: <GestioneRichiesta id={riga.id} noteIniziali={riga.note ?? null} puoCancellare={puoCancellare} />,
-      },
-      ...(task
-        ? [
-            {
-              title: 'In agenda',
-              content: (
-                <TaskEntita
-                  collegamento={{
-                    entita: 'form_contatti',
-                    entitaId: String(riga.id),
-                    etichetta: `Enquiry · ${nome}`,
-                  }}
-                  titoloSuggerito={`Ricontattare ${nome}`}
-                  task={task}
-                  staff={staff}
-                  emailCorrente={emailCorrente}
-                  eAmministratore={eAmministratore}
-                />
-              ),
-            },
-          ]
-        : []),
-    ],
+    sections: puoCancellare
+      ? [{ title: 'Questa richiesta', content: <EliminaContattoButton id={riga.id} /> }]
+      : [],
   }
 }
 

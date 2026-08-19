@@ -101,10 +101,13 @@ export function PannelloPipeline({
   // Passaggi di stato in ordine di data (dal piu' recente): li scrive un
   // trigger sul database, vedi opportunita_storico.
   storico?: { stato: string; statoPrecedente: string | null; cambiatoDa: string | null; cambiatoIl: string }[]
-  // Adempimento specifico della sezione, reso subito sotto i pulsanti di
-  // stato: e' il caso del credito referral (vedi CreditoToggle), che si legge
-  // dove un attimo prima c'era il pulsante "Segna vinto" che lo rende
-  // necessario. La pipeline non sa cosa sia, lo ospita e basta.
+  // Quello che la sezione ha da mettere subito sotto i pulsanti di stato: il
+  // credito referral in "Invita un amico" (vedi CreditoToggle), che si legge
+  // dove un attimo prima c'era il pulsante "Segna vinta" che lo rende
+  // necessario; nelle Enquiries la chiusura dell'appuntamento e le voci
+  // d'agenda della richiesta, perche' fissare la prossima mossa e' la
+  // continuazione naturale del prendere in carico. La pipeline non sa cosa
+  // siano, li ospita e basta.
   dopoAzioni?: React.ReactNode
 }) {
   const [errore, setErrore] = useState<string | null>(null)
@@ -194,15 +197,18 @@ export function PannelloPipeline({
           ))}
       </div>
 
-      {dopoAzioni}
-
       {!puoOperare && (
         <p className="gestione-meta">
           Questa opportunità è in gestione a {assegnatoA}: puoi vederla, ma non cambiarne lo stato.
         </p>
       )}
 
+      {/* L'errore di un'azione sta attaccato ai pulsanti che l'hanno prodotto:
+          dopoAzioni puo' essere un blocco alto (le voci d'agenda della
+          richiesta) e piu' in basso il messaggio non si vedrebbe. */}
       {errore && <p className="gestione-errore">{errore}</p>}
+
+      {dopoAzioni}
 
       {/* Quando e' cambiato cosa: chiuso, perche' serve quando qualcuno chiede
           "chi l'ha presa e quando", non ogni volta che si apre la riga. */}
