@@ -223,6 +223,9 @@ export type Database = {
       }
       form_invita_amico: {
         Row: {
+          credito_caricato: boolean
+          credito_caricato_da: string | null
+          credito_caricato_il: string | null
           persona_id: string | null
           persona_socio_id: string | null
           opportunita_id: string | null
@@ -260,6 +263,9 @@ export type Database = {
           vid: string | null
         }
         Insert: {
+          credito_caricato?: boolean
+          credito_caricato_da?: string | null
+          credito_caricato_il?: string | null
           persona_id?: string | null
           persona_socio_id?: string | null
           opportunita_id?: string | null
@@ -297,6 +303,9 @@ export type Database = {
           vid?: string | null
         }
         Update: {
+          credito_caricato?: boolean
+          credito_caricato_da?: string | null
+          credito_caricato_il?: string | null
           persona_id?: string | null
           persona_socio_id?: string | null
           opportunita_id?: string | null

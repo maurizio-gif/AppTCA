@@ -28,6 +28,7 @@ export const AZIONI_LOG: Record<string, string> = {
   invito_amico_stato_cambiato: 'Invita un amico: stato pipeline cambiato',
   invito_amico_riaperto: 'Invita un amico: gestione riaperta',
   invito_amico_riassegnato: 'Invita un amico: riassegnato a un altro operatore',
+  invito_amico_credito_caricato: 'Invita un amico: credito al socio caricato',
   opportunita_presa_in_gestione: 'Lead: preso in gestione',
   opportunita_stato_cambiato: 'Lead: stato pipeline cambiato',
   opportunita_riaperta: 'Lead: gestione riaperta',

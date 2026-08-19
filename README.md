@@ -170,8 +170,8 @@ Gli inviti non hanno più il solo booleano `gestito`: hanno una **pipeline**
 così portarla anche sulle Enquiries è questione di riusare quel file).
 
 ```
-nuovo → in_gestione → vinto → credito_caricato   (finale)
-                    → perso                      (finale)
+nuovo → in_gestione → vinto   (finale)
+                    → perso   (finale)
 ```
 
 - Il **primo che preme «Prendi in gestione» diventa il titolare**
@@ -181,9 +181,15 @@ nuovo → in_gestione → vinto → credito_caricato   (finale)
 - Prendere in gestione è **un click, senza nota**: la nota diventa
   obbligatoria per uscire da "in gestione" (vinto o perso), e su `perso`
   serve anche il `motivo_perso`.
-- `credito_caricato` è lo step che chiude davvero la gestione di un lead
-  vinto; `perso` e `credito_caricato` sono stati finali e valorizzano
-  `chiuso_il` (utile per i tempi di ciclo in Analytics).
+- `vinto` e `perso` sono gli stati finali e valorizzano `chiuso_il` (utile per
+  i tempi di ciclo in Analytics).
+- Il **credito da riconoscere al socio non è uno stato**: riguarda solo i
+  referral, quindi è un toggle sulla riga dell'invito
+  (`form_invita_amico.credito_caricato`, stesso componente del «Caricato su
+  PerfectGym» di Scuola Tennis). Finché è spento, un referral vinto resta **in
+  evidenza** nell'elenco ed è l'unico modo per farlo sparire: così un credito
+  non si perde per strada. Una pipeline generale non deve portarsi dietro
+  l'adempimento di una sola sezione.
 - **Amministratore** = chi ha `puo_invitare` (`lib/auth/permessi.ts`): può
   riassegnare un invito e riaprire una gestione chiusa. Se un giorno i due
   ruoli andranno distinti basta una colonna in più su `staff_users` e una
