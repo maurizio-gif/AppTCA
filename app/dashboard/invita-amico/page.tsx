@@ -217,9 +217,10 @@ export default async function InvitaAmicoPage({
             motivo).
           </li>
           <li>
-            Appena un referral è <strong>Vinto</strong> compare il toggle <strong>«Credito caricato SI/NO»</strong>:
-            finché è su NO la riga resta <strong>in evidenza</strong>, ed è l'unico modo per farla sparire
-            dall'elenco — così un credito da riconoscere al socio non si perde per strada.
+            Appena segni <strong>Vinto</strong>, al posto del pulsante compare il toggle{' '}
+            <strong>«Credito caricato SI/NO»</strong>: finché è su NO la riga resta <strong>in evidenza</strong>, ed
+            è l'unico modo per farla sparire dall'elenco — così un credito da riconoscere al socio non si perde per
+            strada.
           </li>
           <li>
             Nel blocco <strong>«In agenda»</strong> della riga crei un task o un appuntamento già collegato a
@@ -270,26 +271,6 @@ export default async function InvitaAmicoPage({
                     evidenziata={daCaricare}
                     evidenza={<VisiteContatto accessi={riga.vid ? accessiPerVid[riga.vid] ?? [] : []} />}
                     sections={
-                      [
-                        // Il credito riguarda solo i referral vinti: prima di
-                        // allora non c'e' nulla da caricare, quindi il toggle
-                        // non compare affatto.
-                        ...(stato === 'vinto'
-                          ? [
-                              {
-                                title: 'Credito caricato',
-                                content: (
-                                  <CreditoToggle
-                                    id={riga.id}
-                                    caricato={!!riga.credito_caricato}
-                                    caricatoDa={riga.credito_caricato_da ?? null}
-                                    caricatoIl={riga.credito_caricato_il ?? null}
-                                  />
-                                ),
-                              },
-                            ]
-                          : []),
-                      ].concat(
                       vedeAgenda
                         ? [
                             {
@@ -311,7 +292,6 @@ export default async function InvitaAmicoPage({
                             },
                           ]
                         : []
-                      )
                     }
                     extra={
                       lead ? (
@@ -325,6 +305,19 @@ export default async function InvitaAmicoPage({
                           emailCorrente={emailCorrente}
                           eAmministratore={eAmministratore}
                           staff={elencoStaff}
+                          dopoAzioni={
+                            // Il credito riguarda solo i referral vinti: prima
+                            // non c'e' nulla da caricare e il toggle non
+                            // compare affatto.
+                            stato === 'vinto' ? (
+                              <CreditoToggle
+                                id={riga.id}
+                                caricato={!!riga.credito_caricato}
+                                caricatoDa={riga.credito_caricato_da ?? null}
+                                caricatoIl={riga.credito_caricato_il ?? null}
+                              />
+                            ) : undefined
+                          }
                         />
                       ) : (
                         <p className="gestione-meta">

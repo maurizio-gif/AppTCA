@@ -4081,3 +4081,15 @@ button.cal-cella {
 .row-clickable.riga-evidenza:hover > td {
   background: #fbeed2;
 }
+
+/* Adempimento ospitato dentro il pannello della pipeline, subito sotto i
+   pulsanti di stato (vedi la prop dopoAzioni di PannelloPipeline): oggi il
+   credito referral. Staccato da sopra, cosi' non si legge come parte della
+   riga di pulsanti. */
+.pipeline-credito {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px dashed var(--color-border);
+  padding-top: 10px;
+}
