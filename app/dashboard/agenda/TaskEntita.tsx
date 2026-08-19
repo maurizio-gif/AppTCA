@@ -24,19 +24,19 @@ import { FormTask } from './FormTask'
 // Generico di proposito (entita/entita_id, vedi la tabella task): per
 // usarlo su un'altra sezione basta passare entita ed etichetta diverse.
 export function TaskEntita({
-  entita,
-  entitaId,
-  etichetta,
+  collegamento,
+  persona,
   titoloSuggerito,
   task,
   staff,
   emailCorrente,
   eAmministratore,
 }: {
-  entita: string
-  entitaId: string
-  // Nome leggibile del record, mostrato nel form come "Collegato a: …".
-  etichetta: string
+  // Task agganciato a una singola richiesta: persona e lead li ricava il
+  // server da quella richiesta (vedi creaTask).
+  collegamento?: { entita: string; entitaId: string; etichetta: string }
+  // Task agganciato direttamente a una persona (dalla sua scheda).
+  persona?: { id: string; nome: string; opportunitaId: string | null }
   titoloSuggerito: string
   task: RigaTask[]
   staff: { email: string; nome: string }[]
@@ -56,7 +56,7 @@ export function TaskEntita({
     // l'accordion, non vogliamo che interagire qui dentro la richiuda.
     <div className="task-entita" onClick={(e) => e.stopPropagation()}>
       {task.length === 0 ? (
-        <p className="gestione-meta">Nessun appuntamento o task in agenda per questo record.</p>
+        <p className="gestione-meta">Nessun appuntamento o task in agenda.</p>
       ) : (
         <>
           <p className="gestione-meta">
@@ -83,7 +83,12 @@ export function TaskEntita({
             staff={staff}
             emailCorrente={emailCorrente}
             dataProposta={dataProposta}
-            collegamentoFisso={{ valore: `${entita}:${entitaId}`, etichetta }}
+            collegamentoFisso={
+              collegamento
+                ? { valore: `${collegamento.entita}:${collegamento.entitaId}`, etichetta: collegamento.etichetta }
+                : undefined
+            }
+            personaFissa={persona}
             titoloIniziale={titoloSuggerito}
             onFatto={() => setAperto(false)}
             onAnnulla={() => setAperto(false)}

@@ -10,6 +10,7 @@ import { getSezioniConsentite, utenteHaSezione } from '@/lib/auth/sezioni-server
 import { puoAmministrare } from '@/lib/auth/permessi'
 import { chiaveGiornoDa, confrontaVoci, eAppuntamento } from '@/lib/agenda'
 import { apparteneAGruppo } from '@/lib/contatti'
+import { nomePersona } from '@/lib/persone'
 import { voceCalendarioDaContatto } from '../contatti/VociAppuntamenti'
 import { voceCalendarioDaTask } from './VociTask'
 import { NuovoTask } from './NuovoTask'
@@ -89,8 +90,17 @@ export default async function AgendaPage({
     collegabili.map((opzione) => [opzione.valore, opzione.etichetta])
   )
 
+  // Nome delle persone dei task: in agenda conta con chi e' l'appuntamento.
+  const personaIds = [...new Set((task ?? []).map((riga) => riga.persona_id).filter(Boolean))] as string[]
+  const { data: persone } = personaIds.length
+    ? await supabase.from('persone').select('id, nome, cognome, email').in('id', personaIds)
+    : { data: [] as Record<string, any>[] }
+  const nomiPersone: Record<string, string> = Object.fromEntries(
+    (persone ?? []).map((persona) => [persona.id, nomePersona(persona)])
+  )
+
   const vociTask: VoceCalendario[] = (task ?? []).map((riga) =>
-    voceCalendarioDaTask(riga, { nomiStaff, emailCorrente, eAmministratore, etichetteCollegamento })
+    voceCalendarioDaTask(riga, { nomiStaff, emailCorrente, eAmministratore, etichetteCollegamento, nomiPersone })
   )
 
   const vociContatti: VoceCalendario[] = (contatti ?? [])

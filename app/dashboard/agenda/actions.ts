@@ -20,11 +20,18 @@ export type DatiNuovoTask = {
   note?: string | null
   assegnatoA?: string | null
   // Collegamento opzionale a un record di un'altra sezione (vedi la tabella
-  // task): oggi lo usa la tendina "collega a" del form, domani serve per i
-  // task creati direttamente da una riga di un'altra tabella.
+  // task): lo usa il blocco "In agenda" dentro la riga di un record, e la
+  // tendina "collega a" del form.
   entita?: string | null
   entitaId?: string | null
+  // Persona e lead: se non arrivano ma il task e' collegato a una richiesta,
+  // si ricavano da quella (vedi sotto) - l'operatore non deve ridirli.
+  personaId?: string | null
+  opportunitaId?: string | null
 }
+
+// Richieste da cui si puo' ricavare persona e lead di un task collegato.
+const TABELLE_CON_PERSONA = ['form_contatti', 'form_invita_amico'] as const
 
 // Le pagine che mostrano voci d'agenda: un task nuovo o completato deve
 // comparire nella sezione Agenda, nel calendario delle Enquiries Adulti (che
@@ -84,6 +91,37 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
     return { ok: false, errore: 'Collegamento incompleto: scegli un record o lascia il task libero.' }
   }
 
+  // Persona e opportunita': quelle passate dal form, altrimenti quelle della
+  // richiesta collegata. Cosi' un task creato dalla riga di un invito nasce
+  // gia' agganciato alla persona e al suo lead, senza chiedere nulla.
+  let personaId = dati.personaId?.trim() || null
+  let opportunitaId = dati.opportunitaId?.trim() || null
+
+  if (!personaId && entita && entitaId && (TABELLE_CON_PERSONA as readonly string[]).includes(entita)) {
+    const { data: richiesta } = await supabase
+      .from(entita as 'form_contatti')
+      .select('persona_id, opportunita_id')
+      .eq('id', entitaId)
+      .maybeSingle()
+    personaId = richiesta?.persona_id ?? null
+    opportunitaId = opportunitaId ?? richiesta?.opportunita_id ?? null
+  }
+
+  // Il lead deve essere di quella persona: un task agganciato all'opportunita'
+  // di qualcun altro comparirebbe nella scheda sbagliata.
+  if (opportunitaId) {
+    const { data: lead } = await supabase
+      .from('opportunita')
+      .select('id, persona_id')
+      .eq('id', opportunitaId)
+      .maybeSingle()
+    if (!lead) return { ok: false, errore: 'Il lead collegato non esiste piu\': ricarica la pagina.' }
+    if (personaId && lead.persona_id !== personaId) {
+      return { ok: false, errore: 'Il lead scelto non è di quella persona.' }
+    }
+    personaId = personaId ?? lead.persona_id
+  }
+
   const { data: creato, error } = await supabase
     .from('task')
     .insert({
@@ -97,6 +135,8 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
       creato_da: email,
       entita,
       entita_id: entitaId,
+      persona_id: personaId,
+      opportunita_id: opportunitaId,
     })
     .select('id')
     .maybeSingle()
@@ -114,6 +154,7 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
       durata_minuti: durata,
       assegnato_a: assegnatoA,
       collegato_a: entita ? `${entita}:${entitaId}` : null,
+      persona_id: personaId,
     },
   })
 

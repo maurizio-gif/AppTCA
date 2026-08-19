@@ -22,6 +22,8 @@ type TabellaCollegata =
   | 'form_summer_camp'
   | 'staff_users'
   | 'task'
+  | 'persone'
+  | 'opportunita'
 
 const TABELLE_COLLEGATE: Record<TabellaCollegata, { chiaveId: string; select: string }> = {
   form_contatti: {
@@ -50,6 +52,14 @@ const TABELLE_COLLEGATE: Record<TabellaCollegata, { chiaveId: string; select: st
   task: {
     chiaveId: 'id',
     select: 'id, created_at, titolo, tipo, data, ora, assegnato_a, creato_da, stato, esito, entita, entita_id',
+  },
+  persone: {
+    chiaveId: 'id',
+    select: 'id, nome, cognome, email, cellulare, tipo, pgm_member_id, fonte, storico',
+  },
+  opportunita: {
+    chiaveId: 'id',
+    select: 'id, persona_id, stato, assegnato_a, assegnato_il, motivo_perso, chiuso_il, note',
   },
 }
 

@@ -12,7 +12,7 @@ import {
   eStatoFinale,
   type StatoPipeline,
 } from '@/lib/pipeline'
-import { cambiaStato, prendiInGestione, riapriGestione, riassegna, salvaNote } from './actions'
+import { cambiaStato, prendiInGestione, riapriGestione, riassegna, salvaNota } from '@/app/dashboard/opportunita/actions'
 
 // Avanzamento come fila di pallini numerati con l'etichetta sotto: quelli
 // fatti spuntati, quello attuale in evidenza, i prossimi spenti. Un lead
@@ -56,12 +56,16 @@ function Stepper({ stato }: { stato: StatoPipeline }) {
   )
 }
 
-// Pannello di gestione di un invito: al posto del vecchio toggle "Da
-// gestire/Gestito" c'e' la pipeline (vedi lib/pipeline.ts). Chi prende in
-// gestione l'invito ne diventa il titolare e da quel momento solo lui - o
-// un amministratore - lo fa avanzare; i controlli veri stanno comunque
-// nelle Server Action, qui evitiamo solo giri di rete inutili.
-export function PipelineInvito({
+// Pannello di gestione di un lead (opportunita'): al posto del vecchio
+// toggle "Da gestire/Gestito" c'e' la pipeline di lib/pipeline.ts. Chi prende
+// in gestione il lead ne diventa il titolare e da quel momento solo lui - o
+// un amministratore - lo fa avanzare; i controlli veri stanno comunque nelle
+// Server Action, qui evitiamo solo giri di rete inutili.
+//
+// L'opportunita' e' della PERSONA, non della singola richiesta: lo stesso
+// pannello serve quindi ogni sezione che mostra un lead (oggi Invita un
+// amico, domani le Enquiries).
+export function PannelloPipeline({
   id,
   stato,
   assegnatoA,
@@ -188,7 +192,7 @@ export function PipelineInvito({
 
       {!puoOperare && (
         <p className="gestione-meta">
-          Questo invito è in gestione a {assegnatoA}: puoi leggerlo, ma non cambiarne lo stato.
+          Questo lead è in gestione a {assegnatoA}: puoi leggerlo, ma non cambiarne lo stato.
         </p>
       )}
 
@@ -230,11 +234,11 @@ export function PipelineInvito({
 
       {errore && <p className="gestione-errore">{errore}</p>}
 
-      <label className="gestione-note-label" htmlFor={`note-invito-${id}`}>
-        Note {!noteSalvata || !note.trim() ? '(obbligatoria per segnare vinto o perso)' : ''}
+      <label className="gestione-note-label" htmlFor={`note-lead-${id}`}>
+        Note sul lead {!noteSalvata || !note.trim() ? '(obbligatoria per segnare vinto o perso)' : ''}
       </label>
       <textarea
-        id={`note-invito-${id}`}
+        id={`note-lead-${id}`}
         className="gestione-note"
         rows={3}
         value={note}
@@ -242,7 +246,7 @@ export function PipelineInvito({
           setNote(e.target.value)
           setNoteSalvata(false)
         }}
-        placeholder="Cosa è stato fatto con questo invito…"
+        placeholder="Cosa è stato fatto con questa persona…"
       />
       <button
         type="button"
@@ -251,7 +255,7 @@ export function PipelineInvito({
         onClick={() => {
           setErrore(null)
           startTransition(async () => {
-            const risultato = await salvaNote(id, note)
+            const risultato = await salvaNota(id, note)
             if (risultato.ok) setNoteSalvata(true)
             else setErrore(risultato.errore)
           })
