@@ -5,9 +5,13 @@ import { formatDateOra } from '@/lib/format'
 import { ETICHETTE_STATO_TASK, type StatoTask } from '@/lib/agenda'
 import { annullaTask, completaTask, eliminaTask, riapriTask } from './actions'
 
-// Pannello di gestione di un task dentro la riga del calendario. Chi non ha
-// il task in mano (e non e' amministratore) legge e basta: l'agenda e'
-// condivisa in lettura, non in scrittura.
+// Pannello di gestione di un task dentro la riga del calendario. Completarlo
+// (con l'esito), annullarlo o riaprirlo lo puo' fare chiunque, anche se il
+// task e' di una collega: l'agenda e' condivisa anche in scrittura, e chi
+// risponde al telefono al posto di un'altra deve poter scrivere subito com'e'
+// andata. Chi ha fatto cosa resta nel registro operatori. Solo la
+// cancellazione, che e' irreversibile, resta di chi ce l'ha in mano, di chi lo
+// ha creato o di un amministratore.
 export function AzioniTask({
   id,
   stato,
@@ -15,7 +19,7 @@ export function AzioniTask({
   completatoIl,
   esito,
   note,
-  puoModificare,
+  puoEliminare,
 }: {
   id: string
   stato: StatoTask
@@ -23,7 +27,8 @@ export function AzioniTask({
   completatoIl: string | null
   esito: string | null
   note: string | null
-  puoModificare: boolean
+  // Solo per il pulsante Elimina: tutto il resto e' aperto a chiunque.
+  puoEliminare: boolean
 }) {
   const [esitoNuovo, setEsitoNuovo] = useState('')
   const [errore, setErrore] = useState<string | null>(null)
@@ -50,9 +55,7 @@ export function AzioniTask({
 
       {errore && <p className="gestione-errore">{errore}</p>}
 
-      {!puoModificare ? (
-        <p className="gestione-meta">Non è un tuo task: puoi vederlo, ma non modificarlo.</p>
-      ) : stato === 'aperto' ? (
+      {stato === 'aperto' ? (
         <>
           <label className="gestione-note-label" htmlFor={`esito-${id}`}>
             Esito (facoltativo, si salva completando)
@@ -81,7 +84,7 @@ export function AzioniTask({
             >
               Annulla task
             </button>
-            <BottoneElimina id={id} isPending={isPending} esegui={esegui} />
+            {puoEliminare && <BottoneElimina id={id} isPending={isPending} esegui={esegui} />}
           </div>
         </>
       ) : (
@@ -94,7 +97,7 @@ export function AzioniTask({
           >
             Riapri
           </button>
-          <BottoneElimina id={id} isPending={isPending} esegui={esegui} />
+          {puoEliminare && <BottoneElimina id={id} isPending={isPending} esegui={esegui} />}
         </div>
       )}
     </div>

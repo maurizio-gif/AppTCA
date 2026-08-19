@@ -96,7 +96,7 @@ export function voceCalendarioDaTask(
         completatoIl={riga.completato_il ?? null}
         esito={riga.esito ?? null}
         note={riga.note ?? null}
-        puoModificare={eAmministratore || suo || creatoDaMe}
+        puoEliminare={eAmministratore || suo || creatoDaMe}
       />
     ),
   }

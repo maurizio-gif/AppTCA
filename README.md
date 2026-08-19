@@ -584,10 +584,18 @@ trattativa può restare aperta per settimane. Prima il pallino dell'agenda
 seguiva lo stato dell'opportunità, quindi una visita fatta a un cliente ancora
 in trattativa restava rossa per sempre. Ora `voceDaContatto` guarda la
 chiusura dell'appuntamento, non la pipeline; l'assegnatario continua a venire
-dall'opportunità, perché è la trattativa a dire di chi è. Chi può chiudere: se
-nessuno ha preso in carico l'opportunità chiunque veda la sezione, altrimenti
-il titolare o un amministratore — e il controllo è nella Server Action, non
-solo nella UI.
+dall'opportunità, perché è la trattativa a dire di chi è.
+
+**Chiudere una voce d'agenda lo può fare chiunque**, task e appuntamenti,
+anche se sono di una collega: chi risponde al telefono o è in sede al posto di
+un'altra deve poter scrivere subito com'è andata, altrimenti l'esito non lo
+scrive nessuno e l'agenda si riempie di roba passata. Chi ha chiuso cosa resta
+scritto nella voce e nel registro operatori. Resta riservata la sola
+*eliminazione* di un task — a chi ce l'ha in mano, a chi l'ha creato o a un
+amministratore — perché è irreversibile e non c'è nessuna fretta che la
+giustifichi al posto di un collega. Anche nell'elenco compatto dentro la riga
+di una richiesta «Completa» chiede prima com'è andata: una nota chiesta dopo è
+una nota che non esiste.
 
 **Dati esistenti**: i 26 appuntamenti già passati sono stati segnati come
 fatti, con la nota scritta allora come esito (`gestito_il` come data di

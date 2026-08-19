@@ -48,10 +48,15 @@ function emailCorrente(): string | null {
   return email ? email.trim().toLowerCase() : null
 }
 
-// Un task lo puo' chiudere/annullare/cancellare chi ce l'ha in mano, chi lo
-// ha creato (tipico: la segreteria fissa un appuntamento per una collega e
-// poi lo sposta) o un amministratore. Gli altri lo vedono e basta:
-// l'agenda e' condivisa in lettura, non in scrittura.
+// L'agenda e' condivisa anche in scrittura: chiudere un task o annullarlo lo
+// puo' fare chiunque, non solo l'assegnatario. Chi risponde al telefono al
+// posto di una collega deve poter scrivere com'e' andata subito, altrimenti
+// l'esito non viene scritto da nessuno - e chi ha fatto cosa resta comunque
+// nel registro operatori.
+//
+// La CANCELLAZIONE resta di chi ce l'ha in mano, di chi lo ha creato o di un
+// amministratore: e' irreversibile, e non c'e' nessun motivo di fretta che la
+// giustifichi al posto di un collega.
 async function verificaPermesso(task: { assegnato_a: string; creato_da: string }, email: string): Promise<boolean> {
   if (task.assegnato_a.toLowerCase() === email) return true
   if (task.creato_da.toLowerCase() === email) return true
@@ -182,10 +187,6 @@ async function aggiornaStato(
 
   if (fetchError) return { ok: false, errore: fetchError.message }
   if (!task) return { ok: false, errore: 'Task non trovato: forse è stato cancellato.' }
-
-  if (!(await verificaPermesso(task, email))) {
-    return { ok: false, errore: `Questo task è di ${task.assegnato_a}: non puoi modificarlo.` }
-  }
 
   const { error } = await supabase
     .from('task')

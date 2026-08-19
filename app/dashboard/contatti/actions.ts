@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { etichettaRecord, registraLog } from '@/lib/audit'
-import { puoAmministrare } from '@/lib/auth/permessi'
 import { eAppuntamento } from '@/lib/agenda'
 
 // Le tre pagine che mostrano una richiesta: le due sezioni Enquiries e
@@ -31,36 +30,27 @@ type Risultato = { ok: true } | { ok: false; errore: string }
 // Chiudere un appuntamento e' cosa diversa dal chiudere la trattativa: la
 // visita e' avvenuta, la trattativa puo' restare aperta per settimane. Senza
 // questo, in agenda un appuntamento di ieri restava "da fare" per sempre.
-async function chiPuoChiudere(email: string | null, id: string) {
+//
+// Lo puo' fare chiunque veda la sezione, anche se l'opportunita' e' in mano a
+// una collega: chi era in sede quando il cliente e' arrivato deve poter
+// scrivere com'e' andata, altrimenti non lo scrive nessuno. Chi ha chiuso
+// cosa resta nel registro operatori, e in "Da fare" ci resta solo quello che
+// c'e' davvero da fare.
+async function leggiAppuntamento(id: string) {
   const supabase = createSupabaseServiceClient()
 
   const { data: contatto } = await supabase
     .from('form_contatti')
-    .select('nome, cognome, email, data_richiesta, ora_richiesta, tipo_richiesta, opportunita_id')
+    .select('nome, cognome, email, data_richiesta, ora_richiesta, tipo_richiesta')
     .eq('id', id)
     .maybeSingle()
 
   if (!contatto) return { errore: 'Richiesta non trovata: ricarica la pagina.' as string, contatto: null }
 
+  // Una richiesta che non e' un appuntamento non ha niente da chiudere:
+  // controllo qui perche' la Server Action resta chiamabile a mano.
   if (!eAppuntamento(contatto)) {
     return { errore: 'Questa richiesta non è un appuntamento: non c’è niente da segnare come fatto.', contatto: null }
-  }
-
-  const { data: opportunita } = contatto.opportunita_id
-    ? await supabase.from('opportunita').select('assegnato_a').eq('id', contatto.opportunita_id).maybeSingle()
-    : { data: null }
-
-  const assegnato = (opportunita?.assegnato_a ?? '').trim().toLowerCase()
-  const mio = !!assegnato && assegnato === (email ?? '').trim().toLowerCase()
-
-  // Stesso criterio del pannello dell'opportunita': se nessuno l'ha in mano
-  // puo' farlo chiunque veda la sezione, altrimenti il titolare o un
-  // amministratore. Il controllo sta qui e non solo nella UI.
-  if (assegnato && !mio && !(await puoAmministrare(email))) {
-    return {
-      errore: `Questo appuntamento è in gestione a ${opportunita?.assegnato_a}: solo chi lo gestisce (o un amministratore) può chiuderlo.`,
-      contatto: null,
-    }
   }
 
   return { errore: null, contatto }
@@ -68,7 +58,7 @@ async function chiPuoChiudere(email: string | null, id: string) {
 
 export async function completaAppuntamento(id: string, esito: string): Promise<Risultato> {
   const email = headers().get('x-tca-user-email')
-  const { errore, contatto } = await chiPuoChiudere(email, id)
+  const { errore, contatto } = await leggiAppuntamento(id)
   if (errore) return { ok: false, errore }
 
   const supabase = createSupabaseServiceClient()
@@ -103,7 +93,7 @@ export async function completaAppuntamento(id: string, esito: string): Promise<R
 
 export async function riapriAppuntamento(id: string): Promise<Risultato> {
   const email = headers().get('x-tca-user-email')
-  const { errore, contatto } = await chiPuoChiudere(email, id)
+  const { errore, contatto } = await leggiAppuntamento(id)
   if (errore) return { ok: false, errore }
 
   const supabase = createSupabaseServiceClient()
