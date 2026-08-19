@@ -32,6 +32,11 @@ export const CLASSE_STATO: Record<StatoPipeline, string> = {
   perso: 'richiesta-neutro',
 }
 
+// Percorso "buono" del lead, quello che si mostra come avanzamento: perso e'
+// un'uscita laterale, non un passo avanti, quindi resta fuori da questa fila
+// (vedi components/PipelineBadge.tsx e PipelineInvito).
+export const PASSI_AVANZAMENTO: readonly StatoPipeline[] = ['nuovo', 'in_gestione', 'vinto', 'credito_caricato']
+
 // Stati finali: la gestione e' chiusa, la riga non e' piu' carico di
 // lavoro. Ci si torna solo riaprendo il lead (e puo' farlo solo un
 // amministratore, vedi lib/auth/permessi.ts).

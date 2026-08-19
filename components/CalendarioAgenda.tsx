@@ -7,6 +7,7 @@ import {
   ETICHETTE_TIPO_BREVI,
   chiaveGiorno,
   chiaveGiornoDa,
+  intervalloOrario,
   raggruppaPerGiorno,
   type VoceAgenda,
 } from '@/lib/agenda'
@@ -75,7 +76,7 @@ export function TabellaAgenda({ voci }: { voci: VoceCalendario[] }) {
                 cells={[
                   <span className="ora-con-puntino">
                     <span className={`puntino ${voce.daFare ? 'rosso' : 'verde'}`} />
-                    {voce.ora ?? 'Tutto il giorno'}
+                    {intervalloOrario(voce.ora, voce.durataMinuti) ?? 'Tutto il giorno'}
                   </span>,
                   <span className={`richiesta-badge ${CLASSE_TIPO[voce.tipo]}`}>
                     {ETICHETTE_TIPO_BREVI[voce.tipo]}

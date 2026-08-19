@@ -3603,46 +3603,125 @@ table.data-table {
 
 /* ---------- Pipeline di gestione (Invita un amico) ---------- */
 
-/* Percorso del lead come fila di passi: quello attuale in evidenza, quelli
-   gia' fatti spenti ma leggibili. Vedi lib/pipeline.ts. */
-.pipeline-stepper {
+/* Avanzamento del lead: pallini numerati collegati da una linea, etichetta
+   sotto. Vedi PipelineInvito e lib/pipeline.ts. */
+.pipeline-track {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 10px;
+  align-items: flex-start;
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
 }
 
-.pipeline-passo-wrap {
+.pipeline-nodo-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-align: center;
+  min-width: 0;
+}
+
+/* La linea che unisce due pallini: parte dal centro del precedente e arriva
+   al centro di questo, quindi non ce n'e' una prima del primo. */
+.pipeline-nodo-wrap + .pipeline-nodo-wrap::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 50%;
+  left: -50%;
+  height: 2px;
+  background: var(--color-border);
+}
+
+.pipeline-nodo-wrap.fatto + .pipeline-nodo-wrap::before,
+.pipeline-nodo-wrap.attuale::before,
+.pipeline-nodo-wrap.uscita::before {
+  background: var(--color-accent);
+}
+
+.pipeline-nodo {
+  position: relative;
+  z-index: 1;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-light);
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-}
-
-.pipeline-passo {
+  justify-content: center;
   font-size: 12px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-light);
-  white-space: nowrap;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.pipeline-passo.fatto {
-  color: var(--color-text);
-  border-color: var(--color-text-light);
-}
-
-.pipeline-passo.attuale {
-  background: var(--color-accent);
+.pipeline-nodo-wrap.fatto .pipeline-nodo {
   border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.pipeline-nodo-wrap.attuale .pipeline-nodo {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
   color: #fff;
+}
+
+/* Uscita dalla pipeline (perso): stesso peso visivo dello stato attuale ma
+   in scuro, cosi' non si confonde con un passo raggiunto. */
+.pipeline-nodo-wrap.uscita .pipeline-nodo {
+  border-color: var(--color-accent-dark);
+  background: var(--color-accent-dark);
+  color: #fff;
+}
+
+.pipeline-etichetta {
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: var(--color-text-light);
+}
+
+.pipeline-nodo-wrap.attuale .pipeline-etichetta,
+.pipeline-nodo-wrap.uscita .pipeline-etichetta {
+  color: var(--color-text);
   font-weight: 600;
 }
 
-.pipeline-freccia {
-  color: var(--color-text-light);
-  font-size: 13px;
+/* Stato in tabella: badge piu' barretta di avanzamento (PipelineBadge). */
+.pipeline-badge-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+}
+
+.pipeline-mini {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.pipeline-mini-seg {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+
+.pipeline-mini-seg.pieno {
+  background: var(--color-accent);
+  opacity: 0.45;
+}
+
+.pipeline-mini-seg.attuale {
+  opacity: 1;
+}
+
+.pipeline-mini-seg.perso {
+  background: var(--color-accent-dark);
+  opacity: 0.35;
 }
 
 .pipeline-meta {
@@ -3756,4 +3835,74 @@ button.cal-cella {
   border-radius: 999px;
   padding: 1px 7px;
   vertical-align: middle;
+}
+
+/* ---------- Voci d'agenda dentro la riga di un record (TaskEntita) ---------- */
+
+.task-entita {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.task-elenco {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-riga {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--color-bg);
+}
+
+/* Completato o annullato: resta leggibile ma non compete con quello da fare. */
+.task-riga.chiuso {
+  opacity: 0.65;
+}
+
+.task-riga-testo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.task-riga-quando {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.task-riga-titolo {
+  font-size: 13px;
+}
+
+.task-riga-azioni {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.agenda-form {
+  width: 100%;
+  max-width: 560px;
+}
+
+.agenda-collegamento {
+  font-size: 12.5px;
+  color: var(--color-text-light);
+  margin: 0 0 12px;
 }

@@ -5,7 +5,7 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { registraLog } from '@/lib/audit'
 import { puoAmministrare } from '@/lib/auth/permessi'
-import { eTipoValido, ETICHETTE_TIPO, normalizzaOra } from '@/lib/agenda'
+import { DURATA_PREDEFINITA, eTipoValido, ETICHETTE_TIPO, normalizzaOra } from '@/lib/agenda'
 
 type Risultato = { ok: true } | { ok: false; errore: string }
 
@@ -14,6 +14,9 @@ export type DatiNuovoTask = {
   tipo: string
   data: string
   ora?: string | null
+  // Minuti occupati in agenda: se non arriva, si usa il default del tipo
+  // (vedi DURATA_PREDEFINITA). Serve per il calcolo della disponibilita'.
+  durataMinuti?: number | null
   note?: string | null
   assegnatoA?: string | null
   // Collegamento opzionale a un record di un'altra sezione (vedi la tabella
@@ -23,10 +26,11 @@ export type DatiNuovoTask = {
   entitaId?: string | null
 }
 
-// Le pagine che mostrano l'agenda: un task nuovo o completato deve
-// comparire sia nella sezione Agenda sia nel calendario delle Enquiries
-// Adulti, che e' lo stesso calendario (vedi lib/agenda.ts).
-const PAGINE_AGENDA = ['/dashboard/agenda', '/dashboard/contatti/adulti']
+// Le pagine che mostrano voci d'agenda: un task nuovo o completato deve
+// comparire nella sezione Agenda, nel calendario delle Enquiries Adulti (che
+// e' lo stesso calendario, vedi lib/agenda.ts) e nel blocco "In agenda"
+// dentro la riga dei record collegati (vedi TaskEntita).
+const PAGINE_AGENDA = ['/dashboard/agenda', '/dashboard/contatti/adulti', '/dashboard/invita-amico']
 
 function rinfrescaAgenda() {
   for (const pagina of PAGINE_AGENDA) revalidatePath(pagina)
@@ -59,6 +63,11 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
   const ora = normalizzaOra(dati.ora)
   if (dati.ora && !ora) return { ok: false, errore: 'Orario non valido: usa il formato HH:MM.' }
 
+  const durata = Math.round(dati.durataMinuti ?? DURATA_PREDEFINITA[dati.tipo])
+  if (!Number.isFinite(durata) || durata < 5 || durata > 480) {
+    return { ok: false, errore: 'La durata deve essere fra 5 e 480 minuti.' }
+  }
+
   const supabase = createSupabaseServiceClient()
 
   // Assegnare a se stessi e' il caso normale; assegnare a una collega deve
@@ -82,6 +91,7 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
       tipo: dati.tipo,
       data: dati.data,
       ora,
+      durata_minuti: durata,
       note: dati.note?.trim() || null,
       assegnato_a: assegnatoA,
       creato_da: email,
@@ -101,6 +111,7 @@ export async function creaTask(dati: DatiNuovoTask): Promise<Risultato> {
       tipo: ETICHETTE_TIPO[dati.tipo],
       data: dati.data,
       ora,
+      durata_minuti: durata,
       assegnato_a: assegnatoA,
       collegato_a: entita ? `${entita}:${entitaId}` : null,
     },
