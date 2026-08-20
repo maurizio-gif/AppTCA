@@ -163,6 +163,36 @@ export type VoceAgenda = {
   // Guida il pallino del giorno: c'e' ancora qualcosa da fare o no.
   daFare: boolean
   statoEtichetta: string
+  // Testo su cui cerca la Vista Lista (nome, cognome, email, cellulare, gia'
+  // in minuscolo): precalcolato qui perche' le due sorgenti hanno campi
+  // diversi per lo stesso concetto, e chi cerca non deve saperlo.
+  ricerca: string
+}
+
+// Stringa di ricerca per una voce d'agenda: nome, cognome, "nome cognome"
+// insieme (altrimenti cercando "mario rossi" non troverebbe una riga con
+// nome="Mario" e cognome="Rossi" in due campi separati), email, cellulare, e
+// qualunque testo extra rilevante per quella sorgente (es. il titolo di un
+// task). Sempre in minuscolo: chi cerca confronta gia' in minuscolo, qui si
+// prepara una volta invece che ad ogni digitazione.
+export function testoRicerca({
+  nome,
+  cognome,
+  email,
+  cellulare,
+  extra,
+}: {
+  nome?: string | null
+  cognome?: string | null
+  email?: string | null
+  cellulare?: string | null
+  extra?: (string | null | undefined)[]
+}): string {
+  const pulito = (v: string | null | undefined) => (v ?? '').trim()
+  const n = pulito(nome)
+  const c = pulito(cognome)
+  const pezzi = [n, c, n && c ? `${n} ${c}` : '', pulito(email), pulito(cellulare), ...(extra ?? []).map(pulito)]
+  return pezzi.filter(Boolean).join(' ').toLowerCase()
 }
 
 // Fine di una voce, per mostrare "09:30 - 10:00" invece della sola ora di
@@ -215,6 +245,10 @@ export function voceDaTask(riga: RigaTask): VoceAgenda {
     durataMinuti: Number(riga.durata_minuti) > 0 ? Number(riga.durata_minuti) : DURATA_PREDEFINITA.task,
     daFare: stato === 'aperto',
     statoEtichetta: ETICHETTE_STATO_TASK[stato],
+    // Un task non ha di per se' nome/email/cellulare: solo il titolo e la
+    // nota. Se e' collegato a una persona, chi costruisce la voce completa
+    // (vedi voceCalendarioDaTask in app/dashboard/agenda/VociTask.tsx).
+    ricerca: testoRicerca({ extra: [riga.titolo, riga.note] }),
   }
 }
 
@@ -253,6 +287,7 @@ export function voceDaContatto(riga: Record<string, any>, opportunita?: Record<s
     // Le stesse etichette dei task: in agenda un appuntamento del sito e un
     // task sono la stessa cosa, un impegno che si chiude.
     statoEtichetta: completato ? ETICHETTE_STATO_TASK.completato : ETICHETTE_STATO_TASK.aperto,
+    ricerca: testoRicerca({ nome: riga.nome, cognome: riga.cognome, email: riga.email, cellulare: riga.cellulare }),
   }
 }
 

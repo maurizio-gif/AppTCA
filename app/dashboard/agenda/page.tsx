@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { FiltroCheckbox } from '@/components/FiltroCheckbox'
+import { FiltroData } from '@/components/FiltroData'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { VistaTabs } from '@/components/VistaTabs'
 import { CalendarioAgenda, TabellaAgenda, type VoceCalendario } from '@/components/CalendarioAgenda'
@@ -9,9 +10,10 @@ import { formatDataConGiorno } from '@/lib/format'
 import { getSezioniConsentite, utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
 import { storicoOpportunita } from '@/lib/opportunita-server'
-import { chiaveGiornoDa, confrontaVoci, eAppuntamento, eAppuntamentoVero } from '@/lib/agenda'
+import { chiaveGiornoDa, confrontaVoci, eAppuntamento, eAppuntamentoVero, testoRicerca } from '@/lib/agenda'
 import { apparteneAGruppo } from '@/lib/contatti'
 import { nomePersona } from '@/lib/persone'
+import { RicercaContatti } from '../contatti/RicercaContatti'
 import { voceCalendarioDaContatto } from '../contatti/VociAppuntamenti'
 import { voceCalendarioDaTask } from './VociTask'
 import { NuovoTask } from './NuovoTask'
@@ -33,7 +35,7 @@ const OPZIONI_FILTRO = [
 export default async function AgendaPage({
   searchParams,
 }: {
-  searchParams: { filtro?: string; mio?: string; vista?: string }
+  searchParams: { filtro?: string; mio?: string; vista?: string; q?: string; dal?: string; al?: string }
 }) {
   if (!(await utenteHaSezione('agenda'))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
@@ -98,14 +100,29 @@ export default async function AgendaPage({
   // Nome delle persone dei task: in agenda conta con chi e' l'appuntamento.
   const personaIds = [...new Set((task ?? []).map((riga) => riga.persona_id).filter(Boolean))] as string[]
   const { data: persone } = personaIds.length
-    ? await supabase.from('persone').select('id, nome, cognome, email').in('id', personaIds)
+    ? await supabase.from('persone').select('id, nome, cognome, email, cellulare').in('id', personaIds)
     : { data: [] as Record<string, any>[] }
   const nomiPersone: Record<string, string> = Object.fromEntries(
     (persone ?? []).map((persona) => [persona.id, nomePersona(persona)])
   )
+  // Un task non ha nome/email/cellulare propri: li eredita dalla persona
+  // collegata, se c'e' una (vedi voceCalendarioDaTask).
+  const ricercaPersone: Record<string, string> = Object.fromEntries(
+    (persone ?? []).map((persona) => [
+      persona.id,
+      testoRicerca({ nome: persona.nome, cognome: persona.cognome, email: persona.email, cellulare: persona.cellulare }),
+    ])
+  )
 
   const vociTask: VoceCalendario[] = (task ?? []).map((riga) =>
-    voceCalendarioDaTask(riga, { nomiStaff, emailCorrente, eAmministratore, etichetteCollegamento, nomiPersone })
+    voceCalendarioDaTask(riga, {
+      nomiStaff,
+      emailCorrente,
+      eAmministratore,
+      etichetteCollegamento,
+      nomiPersone,
+      ricercaPersone,
+    })
   )
 
   // Eventi collegati a ciascuna enquiry, per l'elenco dentro la riga: sono gli
@@ -174,11 +191,21 @@ export default async function AgendaPage({
   })
 
   const oggi = chiaveGiornoDa(new Date())
-  // Vista lista: gli arretrati ancora aperti e tutto quello che viene da
-  // oggi in avanti. Cio' che e' passato ed e' stato gestito qui non serve
-  // piu', resta nel calendario.
-  const vociLista = voci
-    .filter((voce) => !voce.data || voce.data >= oggi || voce.daFare)
+  const query = (searchParams.q ?? '').trim().toLowerCase()
+  const dal = searchParams.dal ?? ''
+  const al = searchParams.al ?? ''
+  // Una ricerca o un intervallo di date e' una richiesta esplicita di
+  // guardare oltre il "da fare": in quel caso non si limita piu' agli
+  // arretrati ancora aperti e al futuro, altrimenti cercare un nome non
+  // troverebbe una visita del mese scorso gia' segnata come fatta (stessa
+  // logica di ContattiSezione: la ricerca sostituisce lo scope predefinito,
+  // non si aggiunge sopra).
+  const ricercaAttiva = !!query || !!dal || !!al
+  const vociListaBase = ricercaAttiva ? voci : voci.filter((voce) => !voce.data || voce.data >= oggi || voce.daFare)
+  const vociLista = vociListaBase
+    .filter((voce) => !query || voce.ricerca.includes(query))
+    .filter((voce) => !dal || (voce.data ?? '') >= dal)
+    .filter((voce) => !al || (voce.data ?? '9999-99-99') <= al)
     .sort((a, b) => (a.data ?? '9999-99-99').localeCompare(b.data ?? '9999-99-99') || confrontaVoci(a, b))
   const giorniLista = [...new Set(vociLista.map((voce) => voce.data ?? 'senza-data'))]
 
@@ -249,6 +276,21 @@ export default async function AgendaPage({
         />
       ) : (
         <div>
+          <div className="filtri-toolbar">
+            <RicercaContatti
+              valoreIniziale={searchParams.q ?? ''}
+              placeholder="Cerca per nome, cognome, email o cellulare"
+            />
+            <FiltroData dal={dal} al={al} />
+          </div>
+          {ricercaAttiva && (
+            <p className="search-note">
+              Ricerca su tutta l'agenda, passato incluso —{' '}
+              <a href="/dashboard/agenda?vista=lista" className="link">
+                annulla ricerca
+              </a>
+            </p>
+          )}
           {giorniLista.map((giorno) => {
             const vociGiorno = vociLista.filter((voce) => (voce.data ?? 'senza-data') === giorno)
             return (

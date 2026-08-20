@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { VoceCalendario } from '@/components/CalendarioAgenda'
-import { eStatoTaskValido, etichettaPersona, voceDaTask, type RigaTask, type StatoTask } from '@/lib/agenda'
+import { eStatoTaskValido, etichettaPersona, testoRicerca, voceDaTask, type RigaTask, type StatoTask } from '@/lib/agenda'
 import { AzioniTask } from './AzioniTask'
 
 // Campi gia' visibili in tabella o nel pannello del task: nel dettaglio
@@ -39,6 +39,7 @@ export function voceCalendarioDaTask(
     eAmministratore,
     etichetteCollegamento = {},
     nomiPersone = {},
+    ricercaPersone = {},
   }: {
     nomiStaff: Record<string, string>
     emailCorrente: string | null
@@ -49,9 +50,14 @@ export function voceCalendarioDaTask(
     // id persona -> nome: in agenda conta con CHI e' l'appuntamento, prima
     // ancora di sapere da quale modulo e' arrivato.
     nomiPersone?: Record<string, string>
+    // id persona -> testoRicerca gia' calcolato (nome, cognome, email,
+    // cellulare): un task non ha questi campi propri, li eredita dalla
+    // persona collegata, se c'e' una.
+    ricercaPersone?: Record<string, string>
   }
 ): VoceCalendario {
   const voce = voceDaTask(riga)
+  const ricercaPersona = riga.persona_id ? ricercaPersone[riga.persona_id] : null
   const stato: StatoTask = eStatoTaskValido(riga.stato) ? riga.stato : 'aperto'
   const assegnatoEtichetta = etichettaPersona(riga.assegnato_a, nomiStaff)
 
@@ -66,6 +72,7 @@ export function voceCalendarioDaTask(
 
   return {
     ...voce,
+    ricerca: ricercaPersona ? `${voce.ricerca} ${ricercaPersona}`.trim() : voce.ricerca,
     assegnatoEtichetta,
     // Con chi e' l'appuntamento viene prima di tutto: se la persona la
     // conosciamo, si mostra lei (cliccabile), altrimenti la richiesta
