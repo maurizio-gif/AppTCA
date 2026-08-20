@@ -1,4 +1,4 @@
-import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { rigaStaffCorrente } from './staff-server'
 
 // "Amministratore" nel CRM e' chi ha puo_invitare: e' il permesso che in
 // Gestione utenti da' anche il diritto di cambiare i permessi altrui,
@@ -10,30 +10,17 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 // Server-only (usa il client service role): importare solo da Server
 // Action/Server Component, mai da un file "use client".
 export async function puoAmministrare(email: string | null | undefined): Promise<boolean> {
-  if (!email) return false
-
-  const supabase = createSupabaseServiceClient()
-  const { data } = await supabase
-    .from('staff_users')
-    .select('puo_invitare')
-    .eq('email', email.trim().toLowerCase())
-    .maybeSingle()
-
-  return !!data?.puo_invitare
+  return !!(await rigaStaffCorrente(email))?.puo_invitare
 }
 
 // Diritto di passare a un altro operatore un'opportunita' che non e' la propria
 // (colonna puo_riassegnare, assegnabile da Gestione utenti). Chi ce l'ha in mano
 // puo' sempre passarla: il controllo serve per tutte le altre.
 export async function puoRiassegnare(email: string | null | undefined): Promise<boolean> {
-  if (!email) return false
+  return !!(await rigaStaffCorrente(email))?.puo_riassegnare
+}
 
-  const supabase = createSupabaseServiceClient()
-  const { data } = await supabase
-    .from('staff_users')
-    .select('puo_riassegnare')
-    .eq('email', email.trim().toLowerCase())
-    .maybeSingle()
-
-  return !!data?.puo_riassegnare
+// Diritto di cancellare definitivamente un record (colonna puo_cancellare).
+export async function puoCancellare(email: string | null | undefined): Promise<boolean> {
+  return !!(await rigaStaffCorrente(email))?.puo_cancellare
 }

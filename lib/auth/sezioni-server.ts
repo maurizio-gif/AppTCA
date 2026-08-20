@@ -1,18 +1,10 @@
 import { headers } from 'next/headers'
-import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import type { SezioneChiave } from './sezioni'
+import { rigaStaffCorrente } from './staff-server'
 
 export async function getSezioniConsentite(email: string | null | undefined): Promise<string[]> {
-  if (!email) return []
-
-  const supabase = createSupabaseServiceClient()
-  const { data } = await supabase
-    .from('staff_users')
-    .select('sezioni_consentite')
-    .eq('email', email.trim().toLowerCase())
-    .maybeSingle()
-
-  return data?.sezioni_consentite ?? []
+  const riga = await rigaStaffCorrente(email)
+  return riga?.sezioni_consentite ?? []
 }
 
 // Per le pagine sotto /dashboard: legge l'email gia' validata dal middleware
@@ -27,15 +19,7 @@ export async function utenteHaSezione(chiave: SezioneChiave): Promise<boolean> {
 // e /imposta-password): usato per il badge utente nell'header, al posto
 // della sola email.
 export async function getNomeUtente(email: string | null | undefined): Promise<string | null> {
-  if (!email) return null
-
-  const supabase = createSupabaseServiceClient()
-  const { data } = await supabase
-    .from('staff_users')
-    .select('nome, cognome')
-    .eq('email', email.trim().toLowerCase())
-    .maybeSingle()
-
-  const nomeCompleto = `${data?.nome ?? ''} ${data?.cognome ?? ''}`.trim()
+  const riga = await rigaStaffCorrente(email)
+  const nomeCompleto = `${riga?.nome ?? ''} ${riga?.cognome ?? ''}`.trim()
   return nomeCompleto || null
 }

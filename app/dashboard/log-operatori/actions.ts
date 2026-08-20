@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { registraLog } from '@/lib/audit'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
+import { puoCancellare as puoCancellareRecord } from '@/lib/auth/permessi'
 import { isoDaOraRoma } from '@/lib/timbratura'
 
 // Risultato come valore di ritorno e non un throw, per lo stesso motivo
@@ -23,12 +24,6 @@ async function chiamante(): Promise<{ email: string } | { errore: string }> {
     return { errore: 'Non hai accesso a Controllo Operatori.' }
   }
   return { email }
-}
-
-async function puoCancellare(email: string): Promise<boolean> {
-  const supabase = createSupabaseServiceClient()
-  const { data } = await supabase.from('staff_users').select('puo_cancellare').eq('email', email).maybeSingle()
-  return !!data?.puo_cancellare
 }
 
 function formattaPerLog(iso: string): string {
@@ -143,7 +138,7 @@ export async function eliminaTurno(idEntrata: number, idUscita: number | null): 
   const chi = await chiamante()
   if ('errore' in chi) return { ok: false, errore: chi.errore }
 
-  if (!(await puoCancellare(chi.email))) {
+  if (!(await puoCancellareRecord(chi.email))) {
     return { ok: false, errore: 'Non hai il permesso di cancellare i record.' }
   }
 
