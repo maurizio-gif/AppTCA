@@ -204,8 +204,15 @@ function RigaTaskCollegato({
           {riga.assegnato_a && ` · ${riga.assegnato_a}`}
           {etichettaCollegamento && ` · ${etichettaCollegamento}`}
         </span>
-        {riga.esito && <span className="task-riga-esito">{riga.esito}</span>}
+        {riga.esito && <span className="task-riga-esito">Esito: {riga.esito}</span>}
       </div>
+
+      {/* La nota scritta creando il task (es. il resoconto di una chiamata
+          gia' avvenuta) non compariva qui: si vedeva solo aprendo la voce
+          nel pannello "Gestione" dell'Agenda (vedi AzioniTask), non sulla
+          scheda della persona. Riga propria perche' spesso e' un testo
+          lungo, a differenza delle etichette corte qui sopra. */}
+      {riga.note && <p className="task-riga-nota">{riga.note}</p>}
 
       <div className="task-riga-azioni">
         {stato === 'aperto' ? (

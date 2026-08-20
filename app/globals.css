@@ -3949,6 +3949,18 @@ button.cal-cella {
   color: var(--color-text);
 }
 
+/* Nota scritta creando il task: riga propria (a differenza delle etichette
+   corte sopra), spesso un testo lungo. flex: 1 0 100% forza il salto a
+   capo dentro .task-riga (flex-wrap: wrap), cosi' le azioni restano sotto
+   invece di accavallarsi al testo. */
+.task-riga-nota {
+  flex: 1 0 100%;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-text-light);
+  margin: 2px 0 0;
+}
+
 .task-riga-azioni {
   display: flex;
   gap: 6px;
