@@ -76,17 +76,25 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
     })
   )
 
-  for (const [tabella, colonna, ruolo] of [
-    ['form_scuola_tennis', 'persona_minore_id', 'Iscritto'],
-    ['form_summer_camp', 'persona_minore_id', 'Iscritto'],
-    ['form_invita_amico', 'persona_socio_id', 'Ha invitato'],
-  ] as const) {
-    const modulo = MODULI.find((m) => m.tabella === tabella)!
-    const { data } = await supabase.from(tabella as any).select('*').eq(colonna, persona.id)
-    for (const riga of (data ?? []) as Record<string, any>[]) {
-      richieste.push({ modulo, riga, quando: riga.created_at ?? '', ruolo })
-    }
-  }
+  // In parallelo come il blocco sopra: una query per tabella invece di
+  // attendere l'una dopo l'altra, che qui non aveva motivo di essere
+  // sequenziale (sono tabelle diverse, nessuna dipende dal risultato di
+  // un'altra).
+  await Promise.all(
+    (
+      [
+        ['form_scuola_tennis', 'persona_minore_id', 'Iscritto'],
+        ['form_summer_camp', 'persona_minore_id', 'Iscritto'],
+        ['form_invita_amico', 'persona_socio_id', 'Ha invitato'],
+      ] as const
+    ).map(async ([tabella, colonna, ruolo]) => {
+      const modulo = MODULI.find((m) => m.tabella === tabella)!
+      const { data } = await supabase.from(tabella as any).select('*').eq(colonna, persona.id)
+      for (const riga of (data ?? []) as Record<string, any>[]) {
+        richieste.push({ modulo, riga, quando: riga.created_at ?? '', ruolo })
+      }
+    })
+  )
 
   richieste.sort((a, b) => b.quando.localeCompare(a.quando))
 

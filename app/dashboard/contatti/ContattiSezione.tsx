@@ -18,7 +18,7 @@ import { VisiteContatto } from '@/components/VisiteContatto'
 import { NuovoContattoManuale } from './NuovoContattoManuale'
 import { RicercaContatti } from './RicercaContatti'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
-import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
+import { puoAmministrare, puoCancellare as puoCancellareLo, puoRiassegnare } from '@/lib/auth/permessi'
 import { bloccoGestioneContatto } from './VociAppuntamenti'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
@@ -147,27 +147,27 @@ export async function ContattiSezione({
 
   const [
     { data: righe, error },
-    { data: viewer },
     { data: taskEnquiries },
     { data: staff },
     eAmministratore,
     puoRiassegnareLead,
+    eCancellare,
   ] = await Promise.all([
       supabase.from('form_contatti').select('*').order('created_at', { ascending: false }),
-      supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
       vedeAgenda
         ? supabase.from('task').select('*').eq('entita', 'form_contatti').order('data', { ascending: true })
         : Promise.resolve({ data: [] as Record<string, any>[] }),
       supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
       puoAmministrare(emailCorrente),
       puoRiassegnare(emailCorrente),
+      puoCancellareLo(emailCorrente),
     ])
 
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
 
-  const puoCancellare = !!viewer?.puo_cancellare
+  const puoCancellare = eCancellare
 
   // Visite al sito di ciascun contatto (per vid), per capire quanto e'
   // "caldo" il lead prima di richiamarlo - vedi VisiteContatto. Interrogata

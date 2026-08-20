@@ -8,6 +8,7 @@ import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { confrontaOperatori } from '@/lib/format'
 import { accoppiaTurni, formattaDurata, giornoRoma, oraRomaLocale, type Turno } from '@/lib/timbratura'
 import { RigaTurno } from './RigaTurno'
+import { puoCancellare as puoCancellareRecord } from '@/lib/auth/permessi'
 
 const COLONNE_TABELLA = 6
 
@@ -90,17 +91,15 @@ export async function TimbratureReport({
 
   const emailCorrente = headers().get('x-tca-user-email')
 
-  const [{ data: righe, error }, { data: staffAll }, { data: chiGuarda }] = await Promise.all([
+  const [{ data: righe, error }, { data: staffAll }, puoCancellare] = await Promise.all([
     supabase.from('timbrature').select('id, email, tipo, created_at').order('created_at', { ascending: true }),
     supabase.from('staff_users').select('email, nome, cognome'),
-    supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
+    puoCancellareRecord(emailCorrente),
   ])
 
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
-
-  const puoCancellare = !!chiGuarda?.puo_cancellare
   const mappaStaff = new Map((staffAll ?? []).map((s) => [s.email, s]))
   function nomeOperatore(email: string): string {
     const s = mappaStaff.get(email)

@@ -643,3 +643,30 @@ l'ora vera di Roma, non quella del server) e la voce nasce già **completata**,
 senza dover fare due click (crea, poi completa). Il form segnala quando è
 successo, così non sembra un comportamento silenzioso. Vale anche senza
 un'ora indicata: allora conta il giorno intero, passato solo se è già finito.
+
+## Aggiornamento — perché l'app era diventata lenta ai click
+
+Ogni pagina, e ogni Server Action dietro un pulsante, controllava i permessi
+dell'operatore corrente rifacendo da capo la stessa interrogazione: allowlist,
+sezioni consentite, nome utente, "può amministrare", "può riassegnare", "può
+cancellare" leggevano ciascuna per conto proprio la riga di `staff_users` per
+quella email. Sono cresciute nel tempo, sezione dopo sezione, senza che
+nessuno le mettesse insieme: una pagina come le Enquiries arrivava a farne
+5-6, tutte sulla stessa riga, prima ancora di leggere un dato vero.
+
+Ora `lib/auth/staff-server.ts` legge quella riga **una sola volta per
+richiesta** (`rigaStaffCorrente`, con `cache()` di React: stesso argomento
+→ stessa risposta, senza una seconda interrogazione, per tutta la durata di
+una pagina o di un'esecuzione di Server Action). `isSegreteriaEmail`,
+`getSezioniConsentite`, `getNomeUtente`, `puoAmministrare`, `puoRiassegnare` e
+il nuovo `puoCancellare` (in `lib/auth/permessi.ts`) leggono tutti da lì:
+zero cambi di comportamento, cinque interrogazioni diventano una.
+
+Sistemato anche un giro sequenziale rimasto tale per dimenticanza nella
+scheda persona (`app/dashboard/persone/[id]/page.tsx`): tre tabelle diverse
+lette una dopo l'altra invece che in parallelo, come il blocco identico
+subito sopra faceva già correttamente.
+
+Le tabelle restano piccole (poche migliaia di righe anche le più grandi):
+non è mai stato un problema di volume di dati, ma di quante interrogazioni
+inutili si accumulavano a ogni click.

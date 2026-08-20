@@ -8,7 +8,7 @@ import { VistaTabs } from '@/components/VistaTabs'
 import { CalendarioAgenda, TabellaAgenda, type VoceCalendario } from '@/components/CalendarioAgenda'
 import { formatDataConGiorno } from '@/lib/format'
 import { getSezioniConsentite, utenteHaSezione } from '@/lib/auth/sezioni-server'
-import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
+import { puoAmministrare, puoCancellare as puoCancellareRecord, puoRiassegnare } from '@/lib/auth/permessi'
 import { storicoOpportunita } from '@/lib/opportunita-server'
 import { chiaveGiornoDa, confrontaVoci, eAppuntamento, eAppuntamentoVero, testoRicerca } from '@/lib/agenda'
 import { apparteneAGruppo } from '@/lib/contatti'
@@ -57,9 +57,9 @@ export default async function AgendaPage({
     { data: contatti },
     { data: staff },
     { data: inviti },
-    { data: viewer },
     eAmministratore,
     puoRiassegnareLead,
+    puoCancellare,
   ] = await Promise.all([
       supabase.from('task').select('*'),
       vedeContatti
@@ -67,16 +67,14 @@ export default async function AgendaPage({
         : Promise.resolve({ data: [] as Record<string, any>[] }),
       supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
       supabase.from('form_invita_amico').select('id, amico_nome, amico_cognome, amico_email'),
-      supabase.from('staff_users').select('puo_cancellare').eq('email', emailCorrente ?? '').maybeSingle(),
       puoAmministrare(emailCorrente),
       puoRiassegnare(emailCorrente),
+      puoCancellareRecord(emailCorrente),
     ])
 
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
-
-  const puoCancellare = !!viewer?.puo_cancellare
 
   const elencoStaff = (staff ?? []).map((persona) => ({
     email: persona.email,
