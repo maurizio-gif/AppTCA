@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
-import { DURATA_PREDEFINITA, normalizzaOra } from '@/lib/agenda'
+import { DURATA_PREDEFINITA, eAppuntamentoVero, eTipoValido, normalizzaOra } from '@/lib/agenda'
 import { classificaContatto } from '@/lib/contatti'
 
 export const dynamic = 'force-dynamic'
@@ -13,9 +13,18 @@ export const dynamic = 'force-dynamic'
 // impara nulla su chi ha un appuntamento, quindi non serve autenticazione né
 // una anon key con RLS dedicata.
 //
-// Stessa "agenda condivisa" di lib/agenda.ts: un task e un appuntamento dal
-// sito occupano lo stesso calendario, quindi una richiamata prenotabile deve
-// evitare anche gli orari già presi da una visita in sede (e viceversa).
+// Stessa "agenda condivisa" di lib/agenda.ts: un appuntamento fissato da una
+// consulente e uno prenotato dal sito occupano lo stesso calendario, quindi una
+// richiamata prenotabile deve evitare anche gli orari già presi da una visita in
+// sede (e viceversa).
+//
+// Togliere disponibilità è solo degli appuntamenti veri (in sede o telefonici,
+// vedi TIPI_APPUNTAMENTO): un task generico, un'email o un WhatsApp sono cose da
+// fare entro quel giorno, non un impegno preso con qualcuno. Contarli portava
+// via slot senza motivo — decine di follow-up creati in blocco finiscono tutti
+// alle 12:00, l'ora di default, e bruciavano quello slot quasi ogni giorno.
+// Se una consulente vuole difendere davvero un momento, il task va messo come
+// appuntamento telefonico o in sede.
 
 // Oltre il massimo davvero offerto dal sito (giorniRichiamata/giorniVisita in
 // src/content/moduli/dati-stagionali.md, oggi 7-14 gg): un intervallo più
@@ -64,7 +73,7 @@ export async function GET(request: Request) {
     { data: task, error: erroreTask },
     { data: contatti, error: erroreContatti },
   ] = await Promise.all([
-    supabase.from('task').select('data, ora, durata_minuti, stato').gte('data', da).lte('data', a),
+    supabase.from('task').select('data, ora, durata_minuti, stato, tipo').gte('data', da).lte('data', a),
     supabase
       .from('form_contatti')
       .select('data_richiesta, ora_richiesta, tipo_richiesta')
@@ -89,11 +98,16 @@ export async function GET(request: Request) {
     occupati[chiave].push({ ora: oraPulita, durataMinuti })
   }
 
-  // Solo "annullato" libera lo slot: un task già "completato" ha comunque
-  // occupato quel momento (stessa logica di voceDaTask in lib/agenda.ts).
+  // Solo "annullato" libera lo slot: un appuntamento già "completato" ha
+  // comunque occupato quel momento (stessa logica di voceDaTask in
+  // lib/agenda.ts).
   for (const riga of task ?? []) {
     if (riga.stato === 'annullato') continue
-    const durata = Number(riga.durata_minuti) > 0 ? Number(riga.durata_minuti) : DURATA_PREDEFINITA.task
+    // Un tipo mancante o non riconosciuto vale 'task' (come voceDaTask), quindi
+    // non è un appuntamento: nel dubbio si lascia lo slot prenotabile.
+    if (!eTipoValido(riga.tipo) || !eAppuntamentoVero(riga.tipo)) continue
+    const durata =
+      Number(riga.durata_minuti) > 0 ? Number(riga.durata_minuti) : DURATA_PREDEFINITA[riga.tipo]
     aggiungi(riga.data, riga.ora, durata)
   }
 
