@@ -3861,6 +3861,15 @@ button.cal-cella {
   gap: 0 14px;
 }
 
+/* Gruppo di .filtro-checkbox usato dal form contatto manuale (attività di
+   interesse): stesse spunte del filtro "Solo i miei", solo più di una vicine. */
+.agenda-form-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-bottom: 8px;
+}
+
 .agenda-giorno {
   margin-bottom: 26px;
 }

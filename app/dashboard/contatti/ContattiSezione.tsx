@@ -15,6 +15,7 @@ import { apparteneAGruppo, type GruppoContatto } from '@/lib/contatti'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
 import type { SezioneChiave } from '@/lib/auth/sezioni'
 import { VisiteContatto } from '@/components/VisiteContatto'
+import { NuovoContattoManuale } from './NuovoContattoManuale'
 import { RicercaContatti } from './RicercaContatti'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
 import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
@@ -289,6 +290,8 @@ export async function ContattiSezione({
           a chi ha il permesso di cancellare, ed è irreversibile: chiede sempre conferma.
         </p>
       </BoxIstruzioni>
+
+      <NuovoContattoManuale />
 
       <div className="filtri-toolbar">
         <RicercaContatti valoreIniziale={searchParams.q ?? ''} />
