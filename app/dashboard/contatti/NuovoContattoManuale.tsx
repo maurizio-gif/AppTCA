@@ -9,6 +9,7 @@ import { FormContattoManuale } from './FormContattoManuale'
 export function NuovoContattoManuale() {
   const [aperto, setAperto] = useState(false)
   const [salvato, setSalvato] = useState(false)
+  const [avvisoPgm, setAvvisoPgm] = useState<string | null>(null)
 
   if (!aperto) {
     return (
@@ -18,12 +19,18 @@ export function NuovoContattoManuale() {
           className="btn"
           onClick={() => {
             setSalvato(false)
+            setAvvisoPgm(null)
             setAperto(true)
           }}
         >
           + Inserisci enquiry manuale
         </button>
-        {salvato && <p className="gestione-meta">Contatto salvato: compare nell'elenco qui sotto.</p>}
+        {salvato &&
+          (avvisoPgm ? (
+            <p className="gestione-errore">{avvisoPgm}</p>
+          ) : (
+            <p className="gestione-meta">Contatto salvato: compare nell'elenco qui sotto.</p>
+          ))}
       </div>
     )
   }
@@ -32,8 +39,9 @@ export function NuovoContattoManuale() {
     <div className="agenda-nuovo">
       <h3 className="agenda-nuovo-titolo">Nuovo contatto arrivato per telefono</h3>
       <FormContattoManuale
-        onFatto={() => {
+        onFatto={(avviso) => {
           setSalvato(true)
+          setAvvisoPgm(avviso)
           setAperto(false)
         }}
         onAnnulla={() => setAperto(false)}

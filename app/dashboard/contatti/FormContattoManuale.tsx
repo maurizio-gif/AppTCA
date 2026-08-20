@@ -43,7 +43,16 @@ function isValidEmail(v: string): boolean {
 // del sito, compilati dalla segreteria mentre parla con la persona invece
 // che da lei stessa. Vedi creaContattoManuale per cosa succede al salvataggio
 // (privacy/marketing nascono già accettati, utm marca la provenienza).
-export function FormContattoManuale({ onFatto, onAnnulla }: { onFatto: () => void; onAnnulla: () => void }) {
+export function FormContattoManuale({
+  onFatto,
+  onAnnulla,
+}: {
+  // avvisoPgm: null se la sincronizzazione con PerfectGym e' andata bene
+  // (nuovo lead creato o gia' esistente), altrimenti il motivo del
+  // fallimento — il contatto e' comunque salvato nel CRM interno.
+  onFatto: (avvisoPgm: string | null) => void
+  onAnnulla: () => void
+}) {
   const [nome, setNome] = useState('')
   const [cognome, setCognome] = useState('')
   const [email, setEmail] = useState('')
@@ -93,7 +102,7 @@ export function FormContattoManuale({ onFatto, onAnnulla }: { onFatto: () => voi
         motivo: motivo.trim() || null,
       })
       if (risultato.ok) {
-        onFatto()
+        onFatto(risultato.avvisoPgm)
       } else {
         setErrore(risultato.errore)
       }

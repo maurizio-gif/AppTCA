@@ -6,6 +6,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { etichettaRecord, registraLog } from '@/lib/audit'
 import { eAppuntamento } from '@/lib/agenda'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
+import { sincronizzaPgm } from '@/lib/perfectgym'
 
 // Le tre pagine che mostrano una richiesta: le due sezioni Enquiries e
 // l'agenda condivisa, dove gli appuntamenti prenotati dal sito compaiono nel
@@ -108,7 +109,9 @@ export type DatiContattoManuale = {
   motivo?: string | null
 }
 
-type RisultatoContattoManuale = { ok: true; id: string } | { ok: false; errore: string }
+type RisultatoContattoManuale =
+  | { ok: true; id: string; avvisoPgm: string | null }
+  | { ok: false; errore: string }
 
 // Lead inserito a mano dalla segreteria quando arriva per telefono: stesso
 // percorso e stessa tabella di un contatto arrivato dal sito (form_contatti),
@@ -126,6 +129,17 @@ type RisultatoContattoManuale = { ok: true; id: string } | { ok: false; errore: 
 // form, quel passaggio dovra' escludere chi ha utm_medium = "manuale" - qui
 // la richiesta non arriva da chi l'ha scritta, ma da chi ha gia' parlato con
 // lei al telefono.
+//
+// Prima di scrivere su Supabase si sincronizza con PerfectGym (vedi
+// lib/perfectgym.ts): se l'email non esiste ancora la' viene creata come
+// nuovo lead (stessa logica del nodo ADD LEAD del workflow n8n "2.
+// CONTATTACI: FORM COMPILATO"), altrimenti si riusa il suo id e - stessa
+// scelta del workflow - PerfectGym diventa la fonte di verita' per
+// nome/cognome/cellulare, per non duplicare la stessa persona con un nome
+// scritto diverso al telefono. Se PerfectGym non risponde, il contatto si
+// salva comunque nel CRM interno (fail-open: la richiesta non va persa solo
+// perche' PGM e' irraggiungibile), con un avviso da far vedere a chi lo sta
+// inserendo.
 export async function creaContattoManuale(dati: DatiContattoManuale): Promise<RisultatoContattoManuale> {
   const email = headers().get('x-tca-user-email')
   if (!email) return { ok: false, errore: 'Sessione scaduta: ricarica la pagina e rientra.' }
@@ -154,15 +168,23 @@ export async function creaContattoManuale(dati: DatiContattoManuale): Promise<Ri
     return { ok: false, errore: 'Scegli il giorno della richiamata o della visita.' }
   }
 
+  const cognome = dati.cognome?.trim() || null
+  const cellulare = dati.cellulare?.trim() || null
+
+  const pgm = await sincronizzaPgm({ nome, cognome, email: contattoEmail, cellulare, privacy: true, marketing: true })
+
+  const statoPgm =
+    pgm.esitoVerificaPgm === 'NUOVO' ? (dati.gruppoAttivita === 'adulti' ? 'NUOVO ADULTO' : 'NUOVO') : pgm.esitoVerificaPgm
+
   const supabase = createSupabaseServiceClient()
 
   const { data: creato, error } = await supabase
     .from('form_contatti')
     .insert({
-      nome,
-      cognome: dati.cognome?.trim() || null,
+      nome: pgm.nomePgm ?? nome,
+      cognome: pgm.cognomePgm ?? cognome,
       email: contattoEmail,
-      cellulare: dati.cellulare?.trim() || null,
+      cellulare: pgm.cellularePgm ?? cellulare,
       gruppo_attivita: dati.gruppoAttivita,
       attivita: dati.attivita,
       tipo_richiesta: dati.tipoRichiesta,
@@ -176,6 +198,11 @@ export async function creaContattoManuale(dati: DatiContattoManuale): Promise<Ri
       utm_source: 'segreteria',
       utm_medium: 'manuale',
       gestito: false,
+      is_new_user: pgm.esitoVerificaPgm === 'NUOVO',
+      stato: statoPgm,
+      esito_verifica_pgm: statoPgm,
+      pgm_member_id: pgm.pgmMemberId,
+      pgm_profile_url: pgm.pgmProfileUrl,
     })
     .select('id')
     .maybeSingle()
@@ -191,12 +218,20 @@ export async function creaContattoManuale(dati: DatiContattoManuale): Promise<Ri
       email: contattoEmail,
       tipo_richiesta: dati.tipoRichiesta,
       gruppo_attivita: dati.gruppoAttivita,
+      pgm_lead_creato: pgm.leadCreato,
+      pgm_errore: pgm.errore,
     },
   })
 
   rinfresca()
 
-  return { ok: true, id: creato!.id }
+  return {
+    ok: true,
+    id: creato!.id,
+    avvisoPgm: pgm.errore
+      ? `Salvato nel CRM, ma la sincronizzazione con PerfectGym è fallita (${pgm.errore}): verifica a mano su PerfectGym.`
+      : null,
+  }
 }
 
 export async function riapriAppuntamento(id: string): Promise<Risultato> {
