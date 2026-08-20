@@ -7,6 +7,9 @@ import { etichettaRecord, registraLog } from '@/lib/audit'
 import { eAppuntamento } from '@/lib/agenda'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
 import { sincronizzaPgm } from '@/lib/perfectgym'
+import { nomePersona } from '@/lib/persone'
+import { ETICHETTE_STATO, normalizzaStato } from '@/lib/pipeline'
+import { formatDateOra } from '@/lib/format'
 
 // Le tre pagine che mostrano una richiesta: le due sezioni Enquiries e
 // l'agenda condivisa, dove gli appuntamenti prenotati dal sito compaiono nel
@@ -112,6 +115,50 @@ export type DatiContattoManuale = {
 type RisultatoContattoManuale =
   | { ok: true; id: string; avvisoPgm: string | null }
   | { ok: false; errore: string }
+
+export type ContattoEsistente = {
+  nome: string
+  stato: string
+  assegnatoA: string | null
+  quando: string
+} | null
+
+// Avviso "soft" prima di salvare: se quell'email ha gia' un'opportunita'
+// aperta (presa in carico o no), il form del sito non lo sa - chi chiama al
+// telefono non e' li' a scegliere - ma chi la inserisce a mano si', ed e'
+// facile non ricordarsi di aver gia' registrato quella persona. Non blocca
+// nulla: la richiesta esiste comunque (vedi commento su creaContattoManuale
+// sul perche' form_contatti non deve avere un vincolo di unicita' sull'
+// email), e' solo un "occhio, forse la conosci gia'" prima di procedere.
+export async function verificaContattoEsistente(email: string): Promise<ContattoEsistente> {
+  const emailPulita = email.trim().toLowerCase()
+  if (!EMAIL_VALIDA.test(emailPulita)) return null
+
+  const supabase = createSupabaseServiceClient()
+
+  const { data: persona } = await supabase
+    .from('persone')
+    .select('id, nome, cognome')
+    .eq('tipo', 'adulto')
+    .ilike('email', emailPulita)
+    .maybeSingle()
+  if (!persona) return null
+
+  const { data: opportunita } = await supabase
+    .from('opportunita')
+    .select('stato, assegnato_a, assegnato_il, creato_il')
+    .eq('persona_id', persona.id)
+    .is('chiuso_il', null)
+    .maybeSingle()
+  if (!opportunita) return null
+
+  return {
+    nome: nomePersona(persona),
+    stato: ETICHETTE_STATO[normalizzaStato(opportunita.stato)],
+    assegnatoA: opportunita.assegnato_a,
+    quando: formatDateOra(opportunita.assegnato_il ?? opportunita.creato_il),
+  }
+}
 
 // Lead inserito a mano dalla segreteria quando arriva per telefono: stesso
 // percorso e stessa tabella di un contatto arrivato dal sito (form_contatti),

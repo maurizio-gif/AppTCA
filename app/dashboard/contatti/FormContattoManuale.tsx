@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { creaContattoManuale } from './actions'
+import { creaContattoManuale, verificaContattoEsistente, type ContattoEsistente } from './actions'
 
 // Stesse attivita' e stessa regola di classificazione del form del sito
 // (vedi ATTIVITA_LABELS e gruppoDa in src/lib/leadForm.client.js su
@@ -63,12 +63,41 @@ export function FormContattoManuale({
   const [ora, setOra] = useState('')
   const [motivo, setMotivo] = useState('')
   const [errore, setErrore] = useState<string | null>(null)
+  // Avviso "soft" da verificaContattoEsistente: non null = quell'email ha
+  // gia' un'opportunita' aperta, si mostra prima di salvare e si procede
+  // solo con una conferma esplicita (vedi confermaComunque).
+  const [duplicato, setDuplicato] = useState<ContattoEsistente>(null)
   const [isPending, startTransition] = useTransition()
 
   const richiedeData = tipoRichiesta !== 'messaggio'
 
   function toggleAttivita(id: string) {
     setAttivitaScelte((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]))
+  }
+
+  function costruisciPayload() {
+    const etichette = ATTIVITA_OPZIONI.filter((a) => attivitaScelte.includes(a.id)).map((a) => a.label)
+    return {
+      nome: nome.trim(),
+      cognome: cognome.trim() || null,
+      email: email.trim(),
+      cellulare: cellulare.trim() || null,
+      gruppoAttivita: gruppoDa(attivitaScelte),
+      attivita: etichette,
+      tipoRichiesta,
+      dataRichiesta: richiedeData ? data : null,
+      oraRichiesta: richiedeData ? ora.trim() || null : null,
+      motivo: motivo.trim() || null,
+    }
+  }
+
+  async function salvaSulServer() {
+    const risultato = await creaContattoManuale(costruisciPayload())
+    if (risultato.ok) {
+      onFatto(risultato.avvisoPgm)
+    } else {
+      setErrore(risultato.errore)
+    }
   }
 
   function salva() {
@@ -86,32 +115,47 @@ export function FormContattoManuale({
       return
     }
 
-    const etichette = ATTIVITA_OPZIONI.filter((a) => attivitaScelte.includes(a.id)).map((a) => a.label)
-
     startTransition(async () => {
-      const risultato = await creaContattoManuale({
-        nome: nome.trim(),
-        cognome: cognome.trim() || null,
-        email: email.trim(),
-        cellulare: cellulare.trim() || null,
-        gruppoAttivita: gruppoDa(attivitaScelte),
-        attivita: etichette,
-        tipoRichiesta,
-        dataRichiesta: richiedeData ? data : null,
-        oraRichiesta: richiedeData ? ora.trim() || null : null,
-        motivo: motivo.trim() || null,
-      })
-      if (risultato.ok) {
-        onFatto(risultato.avvisoPgm)
-      } else {
-        setErrore(risultato.errore)
+      // Non blocca nulla: form_contatti puo' avere piu' righe per la stessa
+      // email (ogni richiesta e' un'interazione a se'), qui si vuole solo
+      // evitare che chi inserisce a mano non si accorga di una richiesta
+      // gia' aperta su quella persona.
+      const esistente = await verificaContattoEsistente(email)
+      if (esistente) {
+        setDuplicato(esistente)
+        return
       }
+      await salvaSulServer()
     })
+  }
+
+  function confermaComunque() {
+    setDuplicato(null)
+    startTransition(salvaSulServer)
   }
 
   return (
     <div className="login-card agenda-form">
       {errore && <p className="error-banner">{errore}</p>}
+
+      {duplicato && (
+        <div className="gestione-box">
+          <p className="pipeline-motivo">
+            <strong>{duplicato.nome}</strong> ha già una richiesta aperta ({duplicato.stato}
+            {duplicato.assegnatoA && `, assegnata a ${duplicato.assegnatoA}`}, dal {duplicato.quando}). Questo nuovo
+            contatto si aggancerà alla stessa opportunità, non ne crea una seconda — ma controlla che non sia un
+            doppione della stessa chiamata.
+          </p>
+          <div className="pipeline-azioni">
+            <button type="button" className="btn btn-small" disabled={isPending} onClick={confermaComunque}>
+              {isPending ? 'Salvataggio…' : 'Sì, inserisci comunque'}
+            </button>
+            <button type="button" className="btn-ghost btn-small" disabled={isPending} onClick={() => setDuplicato(null)}>
+              Rivedi
+            </button>
+          </div>
+        </div>
+      )}
 
       <p className="gestione-meta">
         Consenso privacy e marketing registrati come accettati: chi chiama ha già parlato con voi, non con un modulo.
@@ -192,7 +236,7 @@ export function FormContattoManuale({
       </div>
 
       <div className="pipeline-azioni">
-        <button type="button" className="btn" disabled={isPending} onClick={salva}>
+        <button type="button" className="btn" disabled={isPending || !!duplicato} onClick={salva}>
           {isPending ? 'Salvataggio…' : 'Salva contatto'}
         </button>
         <button type="button" className="btn-ghost btn-small" disabled={isPending} onClick={onAnnulla}>
