@@ -1,4 +1,5 @@
 import { classificaContatto } from './contatti'
+import { testoRicerca } from './persone'
 
 // Agenda condivisa: un solo calendario per gli appuntamenti prenotati dal
 // sito (form_contatti, dove data/ora le scrive il cliente compilando il
@@ -169,31 +170,10 @@ export type VoceAgenda = {
   ricerca: string
 }
 
-// Stringa di ricerca per una voce d'agenda: nome, cognome, "nome cognome"
-// insieme (altrimenti cercando "mario rossi" non troverebbe una riga con
-// nome="Mario" e cognome="Rossi" in due campi separati), email, cellulare, e
-// qualunque testo extra rilevante per quella sorgente (es. il titolo di un
-// task). Sempre in minuscolo: chi cerca confronta gia' in minuscolo, qui si
-// prepara una volta invece che ad ogni digitazione.
-export function testoRicerca({
-  nome,
-  cognome,
-  email,
-  cellulare,
-  extra,
-}: {
-  nome?: string | null
-  cognome?: string | null
-  email?: string | null
-  cellulare?: string | null
-  extra?: (string | null | undefined)[]
-}): string {
-  const pulito = (v: string | null | undefined) => (v ?? '').trim()
-  const n = pulito(nome)
-  const c = pulito(cognome)
-  const pezzi = [n, c, n && c ? `${n} ${c}` : '', pulito(email), pulito(cellulare), ...(extra ?? []).map(pulito)]
-  return pezzi.filter(Boolean).join(' ').toLowerCase()
-}
+// Vive in lib/persone.ts (usata anche fuori dall'agenda, es. Enquiries):
+// riesportata qui per non toccare gli import gia' esistenti in questo file
+// (usata piu' sotto in voceDaTask/voceDaContatto).
+export { testoRicerca }
 
 // Fine di una voce, per mostrare "09:30 - 10:00" invece della sola ora di
 // inizio. Null se la voce non ha un orario (tutto il giorno).

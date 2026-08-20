@@ -31,6 +31,33 @@ export function nomePersona(persona: RigaPersona | null | undefined): string {
   return nome || persona.email || 'Senza nome'
 }
 
+// Stringa di ricerca su una persona/riga con dati di contatto: nome,
+// cognome, "nome cognome" insieme (altrimenti cercando "mario rossi" non
+// troverebbe una riga con nome="Mario" e cognome="Rossi" in due campi
+// separati), email, cellulare, e qualunque testo extra rilevante per quella
+// sorgente (es. il titolo di un task d'agenda). Sempre in minuscolo: chi
+// cerca confronta gia' in minuscolo, qui si prepara una volta invece che ad
+// ogni digitazione. Usata da Enquiries e dall'Agenda (vedi lib/agenda.ts).
+export function testoRicerca({
+  nome,
+  cognome,
+  email,
+  cellulare,
+  extra,
+}: {
+  nome?: string | null
+  cognome?: string | null
+  email?: string | null
+  cellulare?: string | null
+  extra?: (string | null | undefined)[]
+}): string {
+  const pulito = (v: string | null | undefined) => (v ?? '').trim()
+  const n = pulito(nome)
+  const c = pulito(cognome)
+  const pezzi = [n, c, n && c ? `${n} ${c}` : '', pulito(email), pulito(cellulare), ...(extra ?? []).map(pulito)]
+  return pezzi.filter(Boolean).join(' ').toLowerCase()
+}
+
 // Ricerca lato server su un elenco gia' caricato: nome, cognome, email,
 // cellulare (anche scritto con prefisso o spazi, vedi cellulare_norm).
 export function corrispondePersona(persona: RigaPersona, query: string): boolean {

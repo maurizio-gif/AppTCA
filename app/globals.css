@@ -416,6 +416,29 @@ button {
   display: none;
 }
 
+/* ---------- Desktop: la nav scorre dentro l'altezza fissa della sidebar ----------
+   .sidebar e' alta 100vh; il drawer (nav + box utente) non aveva un suo
+   overflow, quindi con tutte le sezioni attive le ultime voci di menu
+   finivano oltre il fondo dello schermo, senza barra di scorrimento per
+   raggiungerle. Lo scroll resta sulla sola nav: logo e box utente/logout
+   restano sempre visibili in alto e in fondo. Scoped al solo desktop
+   (min-width qui sotto = 861px, un pixel sopra il breakpoint mobile) per
+   non toccare il drawer a comparsa di mobile, che ha un suo scroll
+   deliberato — vedi il blocco @media (max-width: 860px) qui sotto. */
+@media (min-width: 861px) {
+  .sidebar-drawer {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .sidebar-nav {
+    overflow-y: auto;
+    min-height: 0;
+  }
+}
+
 /* ---------- Mobile: sidebar diventa una barra in alto con menu a comparsa ---------- */
 @media (max-width: 860px) {
   /* Altezza reale della barra logo+hamburger (36px logo + 14px di

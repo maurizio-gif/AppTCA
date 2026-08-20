@@ -7,7 +7,7 @@ import { ChipPersona } from '@/components/ChipPersona'
 import { FiltroCheckbox } from '@/components/FiltroCheckbox'
 import { PipelineBadge } from '@/components/PipelineBadge'
 import { normalizzaStato, type StatoPipeline } from '@/lib/pipeline'
-import { nomePersona, totaleRichieste } from '@/lib/persone'
+import { nomePersona, testoRicerca, totaleRichieste } from '@/lib/persone'
 import { conteggiRichieste } from '@/lib/persone-server'
 import { storicoOpportunita } from '@/lib/opportunita-server'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
@@ -88,11 +88,6 @@ function nelFiltro(filtro: Filtro, stato: StatoPipeline): boolean {
   }
 }
 
-// La ricerca ignora il filtro Da gestire/Gestiti: cerca su tutti i
-// contatti della sezione, gestiti o meno, dentro nome, cognome, email e
-// cellulare.
-const CAMPI_RICERCA = ['nome', 'cognome', 'email', 'cellulare'] as const
-
 // attivita' e' una colonna jsonb: puo' arrivare come array (il caso normale)
 // o come testo, quindi si normalizza qui invece di ripetere il controllo nella
 // cella.
@@ -101,11 +96,13 @@ function etichettaAttivita(valore: unknown): string {
   return typeof valore === 'string' && valore ? valore : '—'
 }
 
+// La ricerca ignora il filtro Da gestire/Gestiti: cerca su tutti i contatti
+// della sezione, gestiti o meno, dentro nome, cognome, "nome cognome"
+// insieme, email e cellulare (vedi testoRicerca in lib/persone.ts).
 function corrispondeRicerca(riga: RigaContatto, query: string): boolean {
-  return CAMPI_RICERCA.some((campo) => {
-    const valore = riga[campo]
-    return typeof valore === 'string' && valore.toLowerCase().includes(query)
-  })
+  return testoRicerca({ nome: riga.nome, cognome: riga.cognome, email: riga.email, cellulare: riga.cellulare }).includes(
+    query
+  )
 }
 
 // Pagina condivisa da /dashboard/contatti/adulti e /dashboard/contatti/junior:
