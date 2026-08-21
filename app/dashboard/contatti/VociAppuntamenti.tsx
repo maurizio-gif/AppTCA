@@ -3,12 +3,14 @@ import { ContactLinks } from '@/components/ContactLinks'
 import { PannelloPipeline } from '@/components/PannelloPipeline'
 import { VisiteContatto } from '@/components/VisiteContatto'
 import { eAppuntamento, etichettaPersona, voceDaContatto } from '@/lib/agenda'
+import { apparteneAGruppo } from '@/lib/contatti'
 import { formatDateOra } from '@/lib/format'
 import { normalizzaStato } from '@/lib/pipeline'
 import type { RigaAccesso } from '@/lib/visite'
 import { TaskEntita } from '../agenda/TaskEntita'
 import { AzioniAppuntamento } from './AzioniAppuntamento'
 import { EliminaContattoButton } from './EliminaContattoButton'
+import { GestioneGestito } from './GestioneGestito'
 import { RichiestaEvidenza } from './RichiestaEvidenza'
 
 type RigaContatto = Record<string, any>
@@ -74,9 +76,16 @@ export type OpzioniGestione = {
 // mossa e' la naturale continuazione del prendere in carico, non una sezione
 // a parte piu' in basso. Resta fuori la sola cancellazione del record.
 //
-// Il campo "note su questa richiesta" non c'e' piu': cosa si e' fatto e cosa
-// resta da fare si scrive come voce d'agenda, che ha una data e un
-// responsabile. Le note gia' scritte si leggono fra i dati della richiesta.
+// Il campo "note su questa richiesta" non c'e' piu' per gli Adulti: cosa si
+// e' fatto e cosa resta da fare si scrive come voce d'agenda, che ha una data
+// e un responsabile. Le note gia' scritte si leggono fra i dati della
+// richiesta.
+//
+// Junior e' rimasta al modello precedente la pipeline (vedi GestioneGestito):
+// gestito si'/no piu' una nota, punto - niente opportunita' da far avanzare.
+// L'opportunita' viene comunque creata in background dal trigger sul
+// database (come per ogni form_contatti), ma qui non la si mostra ne' la si
+// usa: sarebbe la pipeline che si voleva evitare proprio per Junior.
 export function bloccoGestioneContatto(
   riga: RigaContatto,
   { lead, emailCorrente, eAmministratore, puoRiassegnareLead, puoCancellare, staff, storico, task }: OpzioniGestione
@@ -97,24 +106,52 @@ export function bloccoGestioneContatto(
     />
   ) : null
 
-  const bloccoAgenda = task ? (
+  const agendaGrezza = task ? (
+    <TaskEntita
+      collegamento={{
+        entita: 'form_contatti',
+        entitaId: String(riga.id),
+        etichetta: `Enquiry · ${nome}`,
+      }}
+      titoloSuggerito={`Ricontattare ${nome}`}
+      task={task}
+      staff={staff}
+      emailCorrente={emailCorrente}
+      eAmministratore={eAmministratore}
+      azioneInCima
+    />
+  ) : null
+
+  // Per gli Adulti l'agenda sta dentro il pannello dell'opportunita' (col suo
+  // titolo, vedi dopoAzioni piu' sotto); Junior non ha un pannello che la
+  // ospiti, quindi diventa una sezione a se' - il titolo lo mette
+  // ExpandableRow, qui basta il contenuto.
+  const bloccoAgenda = agendaGrezza ? (
     <div className="pipeline-agenda">
       <h4 className="pipeline-agenda-titolo">In agenda</h4>
-      <TaskEntita
-        collegamento={{
-          entita: 'form_contatti',
-          entitaId: String(riga.id),
-          etichetta: `Enquiry · ${nome}`,
-        }}
-        titoloSuggerito={`Ricontattare ${nome}`}
-        task={task}
-        staff={staff}
-        emailCorrente={emailCorrente}
-        eAmministratore={eAmministratore}
-        azioneInCima
-      />
+      {agendaGrezza}
     </div>
   ) : null
+
+  if (apparteneAGruppo(riga.gruppo_attivita, 'junior')) {
+    return {
+      extraTitle: 'Gestione',
+      extra: (
+        <>
+          {bloccoAppuntamento}
+          <GestioneGestito
+            id={String(riga.id)}
+            gestito={!!riga.gestito}
+            gestitoDa={riga.gestito_da ?? null}
+            gestitoIl={riga.gestito_il ?? null}
+            noteIniziali={riga.note ?? null}
+            puoCancellare={puoCancellare}
+          />
+        </>
+      ),
+      sections: agendaGrezza ? [{ title: 'In agenda', content: agendaGrezza }] : [],
+    }
+  }
 
   return {
     extraTitle: 'Opportunità',
@@ -179,7 +216,11 @@ export function voceCalendarioDaContatto(
     assegnatoEtichetta: etichettaPersona(gestione.lead?.assegnato_a, nomiStaff),
     sottotitolo: <ContactLinks email={riga.email} phone={riga.cellulare} />,
     record: riga,
-    hiddenKeys: CAMPI_CONTATTO_NASCOSTI,
+    // Junior mostra la nota nel proprio box di gestione (vedi
+    // GestioneGestito): nel dump generico sarebbe ripetuta.
+    hiddenKeys: apparteneAGruppo(riga.gruppo_attivita, 'junior')
+      ? [...CAMPI_CONTATTO_NASCOSTI, 'note']
+      : CAMPI_CONTATTO_NASCOSTI,
     evidenza: (
       <>
         <RichiestaEvidenza riga={riga} />
