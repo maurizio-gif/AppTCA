@@ -112,16 +112,23 @@ export default async function InvitaAmicoPage({
 
   // Il blocco "In agenda" dentro la riga (vedi TaskEntita) e' parte della
   // sezione Agenda: chi non ha quel permesso vede la pipeline e basta.
-  const vedeAgenda = await utenteHaSezione('agenda')
-
-  const [{ data: righe, error }, { data: staff }, { data: task }, eAmministratore, puoRiassegnareLead] = await Promise.all([
+  // utenteHaSezione qui non decide COSA leggere (task si legge comunque,
+  // la tabella e' piccola), solo cosa mostrare piu' sotto - quindi entra
+  // nello stesso giro invece di partire da solo prima degli altri.
+  const [
+    { data: righe, error },
+    { data: staff },
+    { data: task },
+    eAmministratore,
+    puoRiassegnareLead,
+    vedeAgenda,
+  ] = await Promise.all([
     supabase.from('form_invita_amico').select('*').order('created_at', { ascending: false }),
     supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
-    vedeAgenda
-      ? supabase.from('task').select('*').eq('entita', 'form_invita_amico').order('data', { ascending: true })
-      : Promise.resolve({ data: [] as Record<string, any>[] }),
+    supabase.from('task').select('*').eq('entita', 'form_invita_amico').order('data', { ascending: true }),
     puoAmministrare(emailCorrente),
     puoRiassegnare(emailCorrente),
+    utenteHaSezione('agenda'),
   ])
 
   if (error) {
@@ -135,17 +142,24 @@ export default async function InvitaAmicoPage({
   // nomi dei vincoli di chiave esterna.
   const opportunitaIds = [...new Set(inviti.map((r) => r.opportunita_id).filter(Boolean))] as string[]
   const personaIds = [...new Set(inviti.flatMap((r) => [r.persona_id, r.persona_socio_id]).filter(Boolean))] as string[]
+  // Visite al sito di ciascun socio (per vid), per capire quanto e' "caldo"
+  // l'invito - vedi VisiteContatto. Dipende solo da inviti, come le
+  // quattro righe sotto: nello stesso giro invece che dopo.
+  const vids = [...new Set(inviti.map((riga) => riga.vid).filter((v): v is string => !!v))]
 
-  const [{ data: opportunita }, { data: persone }, conteggi, storicoPerOpportunita] = await Promise.all([
-    opportunitaIds.length > 0
-      ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
-      : Promise.resolve({ data: [] as Record<string, any>[] }),
-    personaIds.length > 0
-      ? supabase.from('persone').select('*').in('id', personaIds)
-      : Promise.resolve({ data: [] as Record<string, any>[] }),
-    conteggiRichieste(personaIds),
-    storicoOpportunita(opportunitaIds),
-  ])
+  const [{ data: opportunita }, { data: persone }, conteggi, storicoPerOpportunita, { data: accessi }] =
+    await Promise.all([
+      opportunitaIds.length > 0
+        ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
+        : Promise.resolve({ data: [] as Record<string, any>[] }),
+      personaIds.length > 0
+        ? supabase.from('persone').select('*').in('id', personaIds)
+        : Promise.resolve({ data: [] as Record<string, any>[] }),
+      conteggiRichieste(personaIds),
+      storicoOpportunita(opportunitaIds),
+      vids.length > 0 ? supabase.from('accessi').select('*').in('vid', vids) : Promise.resolve({ data: [] }),
+    ])
+  const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
 
   const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
   const personePerId = new Map((persone ?? []).map((p) => [p.id, p]))
@@ -170,12 +184,6 @@ export default async function InvitaAmicoPage({
     if (!taskPerInvito.has(chiave)) taskPerInvito.set(chiave, [])
     taskPerInvito.get(chiave)!.push(riga)
   }
-
-  // Visite al sito di ciascun socio (per vid), per capire quanto e' "caldo"
-  // l'invito - vedi VisiteContatto.
-  const vids = [...new Set(inviti.map((riga) => riga.vid).filter((v): v is string => !!v))]
-  const { data: accessi } = vids.length > 0 ? await supabase.from('accessi').select('*').in('vid', vids) : { data: [] }
-  const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
 
   const filtro = parseFiltro(searchParams.filtro)
   const soloMiei = searchParams.mio === '1'

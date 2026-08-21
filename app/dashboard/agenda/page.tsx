@@ -44,29 +44,29 @@ export default async function AgendaPage({
   const supabase = createSupabaseServiceClient()
   const emailCorrente = (headers().get('x-tca-user-email') ?? '').toLowerCase() || null
 
-  const sezioni = await getSezioniConsentite(emailCorrente)
-  // Gli appuntamenti dal sito si vedono in agenda solo se si vedono anche
-  // nella loro sezione: l'agenda non e' una scorciatoia per aggirare i
-  // permessi delle Enquiries.
-  const vedeAdulti = sezioni.includes('contatti-adulti')
-  const vedeJunior = sezioni.includes('contatti-junior')
-  const vedeContatti = vedeAdulti || vedeJunior
-
+  // Tutto cio' che non dipende dal risultato di un'altra query, in un colpo
+  // solo: sette query sequenziali diventavano un giro di rete a testa, e
+  // qui - a differenza delle altre pagine - il permesso non decide COSA
+  // arriva dal database (form_contatti si legge comunque, e' piccola), solo
+  // cosa finisce in vociContatti qualche riga piu' sotto. getSezioniConsentite
+  // e le puo*() leggono la stessa riga di staff_users gia' in cache (vedi
+  // lib/auth/staff-server.ts), quindi entrano qui senza costare una query in
+  // piu'.
   const [
     { data: task, error },
     { data: contatti },
     { data: staff },
     { data: inviti },
+    sezioni,
     eAmministratore,
     puoRiassegnareLead,
     puoCancellare,
   ] = await Promise.all([
       supabase.from('task').select('*'),
-      vedeContatti
-        ? supabase.from('form_contatti').select('*')
-        : Promise.resolve({ data: [] as Record<string, any>[] }),
+      supabase.from('form_contatti').select('*'),
       supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
       supabase.from('form_invita_amico').select('id, amico_nome, amico_cognome, amico_email'),
+      getSezioniConsentite(emailCorrente),
       puoAmministrare(emailCorrente),
       puoRiassegnare(emailCorrente),
       puoCancellareRecord(emailCorrente),
@@ -75,6 +75,14 @@ export default async function AgendaPage({
   if (error) {
     return <p className="error-banner">Errore nel caricamento: {error.message}</p>
   }
+
+  // Gli appuntamenti dal sito si vedono in agenda solo se si vedono anche
+  // nella loro sezione: l'agenda non e' una scorciatoia per aggirare i
+  // permessi delle Enquiries. Il filtro e' su vociContatti piu' sotto, non
+  // su questa query: i dati arrivano comunque (la tabella e' piccola), cosi'
+  // non serve sapere i permessi prima di partire con le query.
+  const vedeAdulti = sezioni.includes('contatti-adulti')
+  const vedeJunior = sezioni.includes('contatti-junior')
 
   const elencoStaff = (staff ?? []).map((persona) => ({
     email: persona.email,
@@ -97,9 +105,22 @@ export default async function AgendaPage({
 
   // Nome delle persone dei task: in agenda conta con chi e' l'appuntamento.
   const personaIds = [...new Set((task ?? []).map((riga) => riga.persona_id).filter(Boolean))] as string[]
-  const { data: persone } = personaIds.length
-    ? await supabase.from('persone').select('id, nome, cognome, email, cellulare').in('id', personaIds)
-    : { data: [] as Record<string, any>[] }
+  // Le opportunita' delle enquiries mostrate: il pannello gestisce quelle.
+  const opportunitaIds = [...new Set((contatti ?? []).map((r) => r.opportunita_id).filter(Boolean))] as string[]
+
+  // Tre query che dipendono solo da task/contatti (gia' arrivati), non l'una
+  // dall'altra: nello stesso giro invece di uno a testa.
+  const [{ data: persone }, { data: opportunita }, storicoPerOpportunita] = await Promise.all([
+    personaIds.length
+      ? supabase.from('persone').select('id, nome, cognome, email, cellulare').in('id', personaIds)
+      : Promise.resolve({ data: [] as Record<string, any>[] }),
+    opportunitaIds.length
+      ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
+      : Promise.resolve({ data: [] as Record<string, any>[] }),
+    storicoOpportunita(opportunitaIds),
+  ])
+  const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
+
   const nomiPersone: Record<string, string> = Object.fromEntries(
     (persone ?? []).map((persona) => [persona.id, nomePersona(persona)])
   )
@@ -133,14 +154,6 @@ export default async function AgendaPage({
     taskPerEnquiry.get(chiave)!.push(riga)
   }
 
-  // Le opportunita' delle enquiries mostrate: il pannello gestisce quelle.
-  const opportunitaIds = [...new Set((contatti ?? []).map((r) => r.opportunita_id).filter(Boolean))] as string[]
-  const { data: opportunita } = opportunitaIds.length
-    ? await supabase.from('opportunita').select('*').in('id', opportunitaIds)
-    : { data: [] as Record<string, any>[] }
-  const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
-  const storicoPerOpportunita = await storicoOpportunita(opportunitaIds)
-
   const vociContatti: VoceCalendario[] = (contatti ?? [])
     .filter((riga) => eAppuntamento(riga))
     .filter(
@@ -158,7 +171,7 @@ export default async function AgendaPage({
           puoRiassegnareLead,
           puoCancellare,
           staff: elencoStaff,
-          storico: storicoPerOpportunita[riga.opportunita_id] ?? [],
+          storico: (riga.opportunita_id && storicoPerOpportunita[riga.opportunita_id]) || [],
           task: taskPerEnquiry.get(String(riga.id)) ?? [],
         },
       })

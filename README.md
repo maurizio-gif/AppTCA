@@ -719,3 +719,73 @@ stato dell'opportunità.
 Corretto anche un piccolo effetto collaterale trovato per strada: nella
 scheda persona, il link "apri sezione" di un'enquiry Junior portava sempre
 alla sezione Adulti.
+
+## Aggiornamento — perché il caricamento era ancora lento, seconda parte
+
+La query unica sui permessi (aggiornamento precedente) non bastava: cambiare
+sezione restava lento, e l'Agenda ancora di più. Due cause diverse, entrambe
+sistemate.
+
+### La funzione gira a Washington, il database a Dublino
+
+`vercel.json` non esisteva: senza un `regions` esplicito, le funzioni
+serverless di Vercel girano nella regione di default (`iad1`, Virginia),
+mentre il progetto Supabase è a Dublino (`eu-west-1`). Ogni singola query -
+non una, **ogni** query di ogni pagina - attraversava l'Atlantico due volte
+(andata e ritorno) prima ancora di toccare il database. Aggiunto
+`vercel.json` con `"regions": ["dub1"]`: la funzione gira ora a Dublino,
+a un salto dal database invece che a nove ore di fuso e un oceano di
+distanza.
+
+Questo da solo taglia la latenza di **ogni** query di **ogni** pagina, non
+solo di quelle toccate qui sotto: è la causa che spiegava perché anche le
+pagine più semplici sembravano lente.
+
+### Query in fila che potevano partire insieme
+
+La seconda causa: pagine che leggevano dati in **tre, quattro, anche cinque
+giri di rete in sequenza**, quando la maggior parte di quelle query non
+dipendeva l'una dall'altra e poteva partire nello stesso `Promise.all`. Con
+la latenza intercontinentale questo non si notava (era comunque lento);
+tolta quella, restava la causa vera: ogni giro in piu' e' un salto di rete a
+vuoto, indipendentemente da dove gira la funzione.
+
+Sistemate le pagine più visitate, con lo stesso criterio ovunque - una query
+parte appena i suoi dati sono pronti, non quando è "il suo turno":
+
+- **Enquiries** (`ContattiSezione.tsx`): le visite al sito (`accessi`) e il
+  blocco opportunità/persone/conteggi/storico dipendevano entrambi solo
+  dalle richieste già lette, ma partivano uno dopo l'altro. Ora nello stesso
+  giro.
+- **Agenda**: la pagina più lenta di tutte, con **cinque** giri in fila -
+  `getSezioniConsentite` da solo, poi il grosso delle query, poi persone,
+  poi opportunità, poi lo storico, ciascuno ad aspettare il precedente anche
+  quando non ce n'era bisogno. `getSezioniConsentite` decide solo cosa
+  *mostrare* (il filtro per permesso è già su `vociContatti`, riga per
+  riga), non cosa leggere: entra nel giro principale. `form_contatti` si
+  legge sempre - la tabella è piccola, molto meno costoso che aspettare di
+  sapere se serve - e persone/opportunità/storico, che dipendono solo dai
+  dati già letti e non tra loro, partono tutti insieme. Da cinque giri a
+  due.
+- **Invita un amico**: stesso schema di Agenda e delle Enquiries -
+  `utenteHaSezione('agenda')` e la lettura dei `task` entravano nel giro
+  principale, le visite al sito (`accessi`) in quello di
+  opportunità/persone/conteggi/storico. Da quattro giri a due.
+- **Scheda persona**: qui il problema era più insidioso - quasi tutte le
+  query filtravano per `persona.id`, ma `persona.id` è lo stesso
+  `params.id` già noto dall'URL, letto **prima** ancora di interrogare la
+  riga `persona`. Aspettarla per ripetere un valore già in mano creava una
+  dipendenza finta. Ora figli, opportunità, staff, task, i permessi, le
+  otto query delle richieste (moduli e ruoli) e gli amici invitati partono
+  tutti insieme alla persona stessa; solo il genitore (serve
+  `persona.genitore_id`, che si scopre solo dopo) e gli accessi (servono i
+  `vid` delle richieste) restano un secondo giro - ma anche loro insieme fra
+  loro, non uno via l'altro. Da cinque giri a due.
+- **Dashboard**: `getSezioniConsentite` decide solo quali riquadri
+  mostrare, non cosa leggere: entra nel giro principale invece di partire
+  da solo prima.
+
+Le tabelle restano piccole (il vero collo di bottiglia non è mai stato il
+volume di dati): il tempo si perdeva tutto in giri di rete - alcuni evitabili
+del tutto (una query di troppo), altri semplicemente più lunghi del
+necessario perché la funzione e il database erano su continenti diversi.
