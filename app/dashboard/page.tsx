@@ -9,12 +9,13 @@ export const dynamic = 'force-dynamic'
 
 export default async function DashboardHome() {
   const email = headers().get('x-tca-user-email')
-  const sezioniConsentite = await getSezioniConsentite(email)
-  const puoVedere = (chiave: string) => sezioniConsentite.includes(chiave)
-
   const supabase = createSupabaseServiceClient()
 
+  // getSezioniConsentite decide solo COSA MOSTRARE (puoVedere, sotto): non
+  // filtra queste query, quindi puo' partire nello stesso giro invece che
+  // prima di tutto il resto.
   const [
+    sezioniConsentite,
     contattiPerRiepilogo,
     scuolaTennisDaCaricare,
     scuolaTennisCaricato,
@@ -23,6 +24,7 @@ export default async function DashboardHome() {
     invitiPerRiepilogo,
     iscrizioniEventi,
   ] = await Promise.all([
+    getSezioniConsentite(email),
     supabase.from('form_contatti').select('gruppo_attivita, opportunita_id, gestito'),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
@@ -31,6 +33,7 @@ export default async function DashboardHome() {
     supabase.from('form_invita_amico').select('stato, credito_caricato'),
     supabase.from('iscrizioni_eventi').select('*', { count: 'exact', head: true }),
   ])
+  const puoVedere = (chiave: string) => sezioniConsentite.includes(chiave)
 
   const righeContatti = contattiPerRiepilogo.data ?? []
   const righeAdulti = righeContatti.filter((r) => apparteneAGruppo(r.gruppo_attivita, 'adulti'))

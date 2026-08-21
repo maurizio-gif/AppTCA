@@ -203,31 +203,31 @@ export async function ContattiSezione({
 
   const puoCancellare = eCancellare
 
-  // Visite al sito di ciascun contatto (per vid), per capire quanto e'
-  // "caldo" il lead prima di richiamarlo - vedi VisiteContatto. Interrogata
-  // dopo i contatti perche' serve l'elenco dei vid da cercare.
-  const vids = [...new Set((righe ?? []).map((riga) => riga.vid).filter((v): v is string => !!v))]
-  const { data: accessi } = vids.length > 0 ? await supabase.from('accessi').select('*').in('vid', vids) : { data: [] }
-  const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
-
   const righeSezione = (righe ?? []).filter((riga) => apparteneAGruppo(riga.gruppo_attivita, gruppo))
 
+  // Visite al sito (per vid), opportunita'/persone/conteggi/storico: quattro
+  // query che dipendono solo da righe/righeSezione, gia' arrivate, non l'una
+  // dall'altra - nello stesso giro di rete invece di due in fila.
+  const vids = [...new Set((righe ?? []).map((riga) => riga.vid).filter((v): v is string => !!v))]
   // Il lead e la persona di ciascuna richiesta: la pipeline e' della persona,
   // non della singola enquiry (vedi la tabella opportunita). Letti a parte e
   // agganciati per id, senza dipendere dai nomi dei vincoli di chiave esterna.
   const opportunitaIds = [...new Set(righeSezione.map((r) => r.opportunita_id).filter(Boolean))] as string[]
   const personaIds = [...new Set(righeSezione.map((r) => r.persona_id).filter(Boolean))] as string[]
 
-  const [{ data: opportunita }, { data: persone }, conteggi, storicoPerOpportunita] = await Promise.all([
-    opportunitaIds.length > 0
-      ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
-      : Promise.resolve({ data: [] as Record<string, any>[] }),
-    personaIds.length > 0
-      ? supabase.from('persone').select('*').in('id', personaIds)
-      : Promise.resolve({ data: [] as Record<string, any>[] }),
-    conteggiRichieste(personaIds),
-    storicoOpportunita(opportunitaIds),
-  ])
+  const [{ data: accessi }, { data: opportunita }, { data: persone }, conteggi, storicoPerOpportunita] =
+    await Promise.all([
+      vids.length > 0 ? supabase.from('accessi').select('*').in('vid', vids) : Promise.resolve({ data: [] }),
+      opportunitaIds.length > 0
+        ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
+        : Promise.resolve({ data: [] as Record<string, any>[] }),
+      personaIds.length > 0
+        ? supabase.from('persone').select('*').in('id', personaIds)
+        : Promise.resolve({ data: [] as Record<string, any>[] }),
+      conteggiRichieste(personaIds),
+      storicoOpportunita(opportunitaIds),
+    ])
+  const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
 
   const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
   const personePerId = new Map((persone ?? []).map((p) => [p.id, p]))

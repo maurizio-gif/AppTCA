@@ -33,6 +33,17 @@ const MODULI = [
 
 type Richiesta = { modulo: (typeof MODULI)[number]; riga: Record<string, any>; quando: string; ruolo?: string }
 
+// Da dove leggere le richieste della persona: intestate a lei (persona_id,
+// un modulo a testa) e - per i moduli junior - anche quelle in cui e' il
+// minore iscritto o il socio che ha invitato. Elenco unico cosi' le query
+// partono tutte insieme (vedi sotto), invece di due giri separati.
+const RICHIESTE_QUERIES = [
+  ...MODULI.map((modulo) => ({ modulo, colonna: 'persona_id' as const, ruolo: undefined as string | undefined })),
+  { modulo: MODULI[2], colonna: 'persona_minore_id' as const, ruolo: 'Iscritto' },
+  { modulo: MODULI[3], colonna: 'persona_minore_id' as const, ruolo: 'Iscritto' },
+  { modulo: MODULI[1], colonna: 'persona_socio_id' as const, ruolo: 'Ha invitato' },
+]
+
 export default async function SchedaPersonaPage({ params }: { params: { id: string } }) {
   if (!(await utenteHaSezione('persone'))) {
     return <p className="error-banner">Non hai accesso a questa sezione.</p>
@@ -41,73 +52,52 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
   const supabase = createSupabaseServiceClient()
   const emailCorrente = (headers().get('x-tca-user-email') ?? '').toLowerCase() || null
 
-  const { data: persona } = await supabase.from('persone').select('*').eq('id', params.id).maybeSingle()
-  if (!persona) notFound()
-
+  // persona.id e params.id sono lo stesso valore: tutto cio' che filtra per
+  // persona puo' partire subito, senza aspettare che la riga persona sia
+  // arrivata. Le uniche due dipendenze vere sono il genitore (serve
+  // persona.genitore_id, si legge dopo) e gli accessi al sito (servono i vid
+  // delle richieste, si leggono dopo - vedi piu' sotto): il resto e' un
+  // solo giro di rete invece di quattro in fila.
   const [
-    { data: genitore },
+    { data: persona },
     { data: figli },
     { data: opportunita },
     { data: staff },
     { data: task },
     eAmministratore,
     puoRiassegnareLead,
+    { data: amiciInvitati },
+    ...risultatiRichieste
   ] = await Promise.all([
-    persona.genitore_id
-      ? supabase.from('persone').select('id, nome, cognome, email').eq('id', persona.genitore_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase.from('persone').select('id, nome, cognome, data_nascita').eq('genitore_id', persona.id),
-    supabase.from('opportunita').select('*').eq('persona_id', persona.id).order('creato_il', { ascending: false }),
+    supabase.from('persone').select('*').eq('id', params.id).maybeSingle(),
+    supabase.from('persone').select('id, nome, cognome, data_nascita').eq('genitore_id', params.id),
+    supabase.from('opportunita').select('*').eq('persona_id', params.id).order('creato_il', { ascending: false }),
     supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
-    supabase.from('task').select('*').eq('persona_id', persona.id).order('data', { ascending: true }),
+    supabase.from('task').select('*').eq('persona_id', params.id).order('data', { ascending: true }),
     puoAmministrare(emailCorrente),
     puoRiassegnare(emailCorrente),
+    // Amici che questa persona ha invitato: quanti sono e quanti si sono
+    // iscritti. Lo stato lo leggiamo dalla riga dell'invito, che il trigger
+    // specchia da quello dell'opportunita' dell'amico (vedi
+    // specchia_stato_opportunita): non serve una seconda query.
+    supabase
+      .from('form_invita_amico')
+      .select('id, created_at, amico_nome, amico_cognome, amico_email, persona_id, stato, credito_caricato')
+      .eq('persona_socio_id', params.id)
+      .order('created_at', { ascending: false }),
+    ...RICHIESTE_QUERIES.map(({ modulo, colonna }) => supabase.from(modulo.tabella as any).select('*').eq(colonna, params.id)),
   ])
 
-  // Le richieste della persona, modulo per modulo: quelle intestate a lei e -
-  // per i moduli junior - anche quelle in cui e' il minore iscritto, o il socio
-  // che ha invitato un amico.
+  if (!persona) notFound()
+
   const richieste: Richiesta[] = []
-  await Promise.all(
-    MODULI.map(async (modulo) => {
-      const { data } = await supabase.from(modulo.tabella as any).select('*').eq('persona_id', persona.id)
-      for (const riga of (data ?? []) as Record<string, any>[]) {
-        richieste.push({ modulo, riga, quando: riga.created_at ?? riga.data_compilazione_form ?? '' })
-      }
-    })
-  )
-
-  // In parallelo come il blocco sopra: una query per tabella invece di
-  // attendere l'una dopo l'altra, che qui non aveva motivo di essere
-  // sequenziale (sono tabelle diverse, nessuna dipende dal risultato di
-  // un'altra).
-  await Promise.all(
-    (
-      [
-        ['form_scuola_tennis', 'persona_minore_id', 'Iscritto'],
-        ['form_summer_camp', 'persona_minore_id', 'Iscritto'],
-        ['form_invita_amico', 'persona_socio_id', 'Ha invitato'],
-      ] as const
-    ).map(async ([tabella, colonna, ruolo]) => {
-      const modulo = MODULI.find((m) => m.tabella === tabella)!
-      const { data } = await supabase.from(tabella as any).select('*').eq(colonna, persona.id)
-      for (const riga of (data ?? []) as Record<string, any>[]) {
-        richieste.push({ modulo, riga, quando: riga.created_at ?? '', ruolo })
-      }
-    })
-  )
-
+  RICHIESTE_QUERIES.forEach(({ modulo, ruolo }, i) => {
+    const data = (risultatiRichieste[i] as { data: Record<string, any>[] | null }).data
+    for (const riga of data ?? []) {
+      richieste.push({ modulo, riga, quando: riga.created_at ?? riga.data_compilazione_form ?? '', ruolo })
+    }
+  })
   richieste.sort((a, b) => b.quando.localeCompare(a.quando))
-
-  // Amici che questa persona ha invitato: quanti sono e quanti si sono
-  // iscritti. Lo stato lo leggiamo dalla riga dell'invito, che il trigger
-  // specchia da quello dell'opportunita' dell'amico (vedi
-  // specchia_stato_opportunita): non serve una seconda query.
-  const { data: amiciInvitati } = await supabase
-    .from('form_invita_amico')
-    .select('id, created_at, amico_nome, amico_cognome, amico_email, persona_id, stato, credito_caricato')
-    .eq('persona_socio_id', persona.id)
-    .order('created_at', { ascending: false })
 
   const inviti = amiciInvitati ?? []
   const amiciIscritti = inviti.filter((invito) => normalizzaStato(invito.stato) === 'vinto').length
@@ -121,7 +111,16 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
   // Visite al sito: i vid delle sue richieste, cosi' si vede quanto e' "calda"
   // la persona e non la singola richiesta.
   const vids = [...new Set(richieste.map((r) => r.riga.vid).filter((v): v is string => !!v))]
-  const { data: accessi } = vids.length > 0 ? await supabase.from('accessi').select('*').in('vid', vids) : { data: [] }
+
+  // Le due query che dipendevano da un risultato arrivato solo ora - il
+  // genitore da persona.genitore_id, gli accessi dai vid delle richieste -
+  // nello stesso giro invece di uno a testa.
+  const [{ data: genitore }, { data: accessi }] = await Promise.all([
+    persona.genitore_id
+      ? supabase.from('persone').select('id, nome, cognome, email').eq('id', persona.genitore_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    vids.length > 0 ? supabase.from('accessi').select('*').in('vid', vids) : Promise.resolve({ data: [] }),
+  ])
   const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
   const tuttiAccessi = vids.flatMap((vid) => accessiPerVid[vid] ?? [])
 
