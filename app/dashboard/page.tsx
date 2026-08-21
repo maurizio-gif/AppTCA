@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
-import { apparteneAGruppo, type GruppoContatto } from '@/lib/contatti'
+import { apparteneAGruppo } from '@/lib/contatti'
 import { normalizzaStato, type StatoPipeline } from '@/lib/pipeline'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +23,7 @@ export default async function DashboardHome() {
     invitiPerRiepilogo,
     iscrizioniEventi,
   ] = await Promise.all([
-    supabase.from('form_contatti').select('gruppo_attivita, opportunita_id'),
+    supabase.from('form_contatti').select('gruppo_attivita, opportunita_id, gestito'),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
@@ -33,32 +33,34 @@ export default async function DashboardHome() {
   ])
 
   const righeContatti = contattiPerRiepilogo.data ?? []
+  const righeAdulti = righeContatti.filter((r) => apparteneAGruppo(r.gruppo_attivita, 'adulti'))
+  const righeJunior = righeContatti.filter((r) => apparteneAGruppo(r.gruppo_attivita, 'junior'))
 
-  // Il carico di lavoro delle Enquiries e' lo stato dell'opportunita' della
-  // persona, non piu' un flag sulla richiesta: servono quindi gli stati delle
-  // opportunita' collegate.
-  const opportunitaIds = [...new Set(righeContatti.map((r) => r.opportunita_id).filter(Boolean))] as string[]
+  // Adulti: il carico di lavoro e' lo stato dell'opportunita' della persona,
+  // non un flag sulla richiesta - servono quindi gli stati delle opportunita'
+  // collegate. Junior e' rimasta al modello precedente la pipeline (vedi
+  // ContattiSezione): li' il carico di lavoro e' ancora "gestito" si'/no
+  // sulla richiesta, e l'opportunita' che nasce comunque in background non
+  // la guarda nessuno.
+  const opportunitaIds = [...new Set(righeAdulti.map((r) => r.opportunita_id).filter(Boolean))] as string[]
   const { data: opportunitaContatti } = opportunitaIds.length
     ? await supabase.from('opportunita').select('id, stato').in('id', opportunitaIds)
     : { data: [] as { id: string; stato: string }[] }
   const statoOpportunita = new Map((opportunitaContatti ?? []).map((o) => [o.id, normalizzaStato(o.stato)]))
 
-  // Stesso criterio Adulti/Junior usato dalle due sezioni Enquiries (vedi
-  // lib/contatti.ts). Una richiesta senza opportunita' (manca l'email, quindi
-  // non c'e' una persona) conta come da prendere in carico: e' lavoro che
-  // qualcuno deve guardare, non deve sparire dai numeri.
-  function contaContatti(gruppo: GruppoContatto, stato: StatoPipeline) {
-    return righeContatti.filter(
-      (riga) =>
-        apparteneAGruppo(riga.gruppo_attivita, gruppo) &&
-        (riga.opportunita_id ? statoOpportunita.get(riga.opportunita_id) ?? 'nuovo' : 'nuovo') === stato
+  // Una richiesta senza opportunita' (manca l'email, quindi non c'e' una
+  // persona) conta come da prendere in carico: e' lavoro che qualcuno deve
+  // guardare, non deve sparire dai numeri.
+  function contaAdulti(stato: StatoPipeline) {
+    return righeAdulti.filter(
+      (riga) => (riga.opportunita_id ? statoOpportunita.get(riga.opportunita_id) ?? 'nuovo' : 'nuovo') === stato
     ).length
   }
 
-  const contattiAdultiDaPrendere = contaContatti('adulti', 'nuovo')
-  const contattiAdultiInGestione = contaContatti('adulti', 'in_gestione')
-  const contattiJuniorDaPrendere = contaContatti('junior', 'nuovo')
-  const contattiJuniorInGestione = contaContatti('junior', 'in_gestione')
+  const contattiAdultiDaPrendere = contaAdulti('nuovo')
+  const contattiAdultiInGestione = contaAdulti('in_gestione')
+  const contattiJuniorDaGestire = righeJunior.filter((riga) => !riga.gestito).length
+  const contattiJuniorGestiti = righeJunior.filter((riga) => riga.gestito).length
 
   // Contatori di "Invita un amico": opportunita' da prendere in carico, in
   // gestione, e referral vinti col credito del socio ancora da caricare - che
@@ -104,14 +106,14 @@ export default async function DashboardHome() {
               <h3 className="riepilogo-sottosezione-titolo">Junior</h3>
               <div className="stat-row">
                 <StatCard
-                  href="/dashboard/contatti/junior?filtro=da_prendere"
-                  label="Da prendere in carico"
-                  value={contattiJuniorDaPrendere}
+                  href="/dashboard/contatti/junior?filtro=da_gestire"
+                  label="Da gestire"
+                  value={contattiJuniorDaGestire}
                 />
                 <StatCard
-                  href="/dashboard/contatti/junior?filtro=in_gestione"
-                  label="In gestione"
-                  value={contattiJuniorInGestione}
+                  href="/dashboard/contatti/junior?filtro=gestiti"
+                  label="Gestiti"
+                  value={contattiJuniorGestiti}
                 />
               </div>
             </div>

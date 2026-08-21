@@ -30,7 +30,10 @@ import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 // "Stato contatto" e' il dato verificato su PerfectGym (NUOVO, NUOVO ADULTO,
 // MAI AVUTO CONTRATTO, CURRENT…) e non ha niente a che vedere con lo stato
 // dell'opportunita': sono due colonne diverse di proposito.
-const COLONNE_TABELLA = ['Data e ora', 'Nome e cognome', 'Stato contatto', 'Opportunità', 'Attività', 'Richiesta']
+//
+// Junior non ha la pipeline dell'opportunita' (vedi piu' sotto): quella
+// colonna diventa "Gestito", il modello che aveva prima e che qui resta.
+const COLONNA_STATO_GESTIONE: Record<GruppoContatto, string> = { adulti: 'Opportunità', junior: 'Gestito' }
 
 const COLONNE_VISIBILI = [
   'id',
@@ -52,11 +55,12 @@ const COLONNE_VISIBILI = [
 ]
 
 // Gli stati dell'opportunita' (vedi lib/pipeline.ts). "Credito caricato" non
-// c'e': riguarda solo i referral.
-const FILTRI_VALIDI = ['da_prendere', 'in_gestione', 'vinte', 'perse', 'tutte'] as const
-type Filtro = (typeof FILTRI_VALIDI)[number]
+// c'e': riguarda solo i referral. Solo Adulti: Junior e' rimasta al modello
+// precedente la pipeline (vedi FILTRI_VALIDI_JUNIOR).
+const FILTRI_VALIDI_ADULTI = ['da_prendere', 'in_gestione', 'vinte', 'perse', 'tutte'] as const
+type FiltroAdulti = (typeof FILTRI_VALIDI_ADULTI)[number]
 
-const OPZIONI_FILTRO = [
+const OPZIONI_FILTRO_ADULTI = [
   { valore: 'da_prendere', etichetta: 'Da prendere in carico' },
   { valore: 'in_gestione', etichetta: 'In gestione' },
   { valore: 'vinte', etichetta: 'Vinte' },
@@ -64,17 +68,30 @@ const OPZIONI_FILTRO = [
   { valore: 'tutte', etichetta: 'Tutte' },
 ]
 
+// Junior: qui la trattativa non esiste, solo un contatto seguito o non
+// ancora - gestito si'/no piu' una nota, punto (vedi GestioneGestito). E'
+// il modello di sempre, non toccato quando alle Enquiries Adulti e' stata
+// aggiunta l'opportunita' con la pipeline.
+const FILTRI_VALIDI_JUNIOR = ['da_gestire', 'gestiti', 'tutti'] as const
+type FiltroJunior = (typeof FILTRI_VALIDI_JUNIOR)[number]
+
+const OPZIONI_FILTRO_JUNIOR = [
+  { valore: 'da_gestire', etichetta: 'Da gestire' },
+  { valore: 'gestiti', etichetta: 'Gestiti' },
+  { valore: 'tutti', etichetta: 'Tutti' },
+]
+
 type RigaContatto = Record<string, any>
 
 // Assente (es. dal link nel menu) o non valida = "da prendere in carico": e'
 // cio' che si vede aprendo la pagina, cioe' il lavoro che nessuno ha ancora
 // preso.
-function parseFiltro(raw: string | undefined): Filtro {
-  if (raw && (FILTRI_VALIDI as readonly string[]).includes(raw)) return raw as Filtro
+function parseFiltroAdulti(raw: string | undefined): FiltroAdulti {
+  if (raw && (FILTRI_VALIDI_ADULTI as readonly string[]).includes(raw)) return raw as FiltroAdulti
   return 'da_prendere'
 }
 
-function nelFiltro(filtro: Filtro, stato: StatoPipeline): boolean {
+function nelFiltroAdulti(filtro: FiltroAdulti, stato: StatoPipeline): boolean {
   switch (filtro) {
     case 'da_prendere':
       return stato === 'nuovo'
@@ -84,6 +101,23 @@ function nelFiltro(filtro: Filtro, stato: StatoPipeline): boolean {
       return stato === 'vinto'
     case 'perse':
       return stato === 'perso'
+    default:
+      return true
+  }
+}
+
+// Stesso criterio di sempre: assente o non valido = "da gestire".
+function parseFiltroJunior(raw: string | undefined): FiltroJunior {
+  if (raw && (FILTRI_VALIDI_JUNIOR as readonly string[]).includes(raw)) return raw as FiltroJunior
+  return 'da_gestire'
+}
+
+function nelFiltroJunior(filtro: FiltroJunior, gestito: boolean): boolean {
+  switch (filtro) {
+    case 'da_gestire':
+      return !gestito
+    case 'gestiti':
+      return gestito
     default:
       return true
   }
@@ -232,13 +266,17 @@ export async function ContattiSezione({
     task: vedeAgenda ? taskPerEnquiry.get(String(riga.id)) ?? [] : undefined,
   })
 
+  const eJunior = gruppo === 'junior'
+
   const query = (searchParams.q ?? '').trim().toLowerCase()
-  const filtro = parseFiltro(searchParams.filtro)
+  const filtroAdulti = parseFiltroAdulti(searchParams.filtro)
+  const filtroJunior = parseFiltroJunior(searchParams.filtro)
   const soloMiei = searchParams.mio === '1'
 
   // "I miei" tiene dentro anche i lead nuovi non ancora assegnati: sono il
   // lavoro che chiunque puo' prendere, nasconderli renderebbe il filtro una
-  // trappola.
+  // trappola. Non esiste per Junior: non c'e' un assegnatario, solo gestito
+  // si'/no.
   const eMio = (riga: RigaContatto) => {
     if (!soloMiei) return true
     const assegnato = (opportunitaPerId.get(riga.opportunita_id)?.assegnato_a ?? '').toLowerCase()
@@ -246,7 +284,18 @@ export async function ContattiSezione({
   }
   const righeFiltrate = query
     ? righeSezione.filter((riga) => corrispondeRicerca(riga, query))
-    : righeSezione.filter((riga) => nelFiltro(filtro, statoDi(riga)) && eMio(riga))
+    : eJunior
+      ? righeSezione.filter((riga) => nelFiltroJunior(filtroJunior, !!riga.gestito))
+      : righeSezione.filter((riga) => nelFiltroAdulti(filtroAdulti, statoDi(riga)) && eMio(riga))
+
+  const colonneTabella = [
+    'Data e ora',
+    'Nome e cognome',
+    'Stato contatto',
+    COLONNA_STATO_GESTIONE[gruppo],
+    'Attività',
+    'Richiesta',
+  ]
 
   return (
     <div>
@@ -255,39 +304,59 @@ export async function ContattiSezione({
       </div>
 
       <BoxIstruzioni titolo="Come funziona">
-        <ol>
-          <li>
-            Cerca per nome, cognome, email o cellulare, oppure filtra per stato dell'opportunità. Si parte da «Da
-            prendere in carico»: il lavoro che nessuno ha ancora preso.
-          </li>
-          <li>
-            Apri una riga: in evidenza trovi l'<strong>opportunità</strong> (Da prendere in carico → In gestione →
-            Vinta/Persa). Chi preme «Prendi in carico» ne diventa l'assegnatario, e da lì solo lui — o un
-            amministratore — la fa avanzare.
-          </li>
-          <li>
-            L'opportunità è della <strong>persona</strong>, non del singolo messaggio: se ha già una trattativa
-            aperta (magari da un altro modulo) la richiesta si aggancia a quella. Il nome cliccabile apre la sua
-            scheda.
-          </li>
-          <li>
-            Subito sotto i pulsanti dell'opportunità c'è <strong>«In agenda»</strong>: da lì fissi la prossima
-            mossa — una chiamata, un appuntamento — e vedi l'elenco di quelle già fissate su questa richiesta.
-          </li>
-          <li>
-            Qui ci sono <strong>tutte</strong> le richieste della sezione, messaggi e appuntamenti prenotati dal
-            sito: un appuntamento è una richiesta da prendere in carico come le altre. Il calendario è uno solo,
-            l'
-            <Link href="/dashboard/agenda" className="link">
-              <strong>Agenda</strong>
-            </Link>
-            , dove un appuntamento si segna come fatto con la nota di com'è andata.
-          </li>
-        </ol>
+        {eJunior ? (
+          <ol>
+            <li>
+              Cerca per nome, cognome, email o cellulare, oppure filtra tra Da gestire/Gestiti/Tutti. Si parte da
+              «Da gestire»: il lavoro che nessuno ha ancora seguito.
+            </li>
+            <li>Apri una riga per vedere tutti i dettagli e aggiungere una nota interna.</li>
+            <li>
+              Per segnare un contatto come «Gestito» devi prima scrivere e salvare una <strong>nota</strong>: è il
+              modo per lasciare traccia di cosa è stato fatto.
+            </li>
+            <li>
+              In <strong>«In agenda»</strong> fissi una chiamata o un appuntamento collegato a questa richiesta, e
+              vedi l'elenco di quelli già fissati; se la richiesta è un appuntamento prenotato dal sito, qui sopra
+              lo segni anche come avvenuto.
+            </li>
+          </ol>
+        ) : (
+          <ol>
+            <li>
+              Cerca per nome, cognome, email o cellulare, oppure filtra per stato dell'opportunità. Si parte da «Da
+              prendere in carico»: il lavoro che nessuno ha ancora preso.
+            </li>
+            <li>
+              Apri una riga: in evidenza trovi l'<strong>opportunità</strong> (Da prendere in carico → In gestione →
+              Vinta/Persa). Chi preme «Prendi in carico» ne diventa l'assegnatario, e da lì solo lui — o un
+              amministratore — la fa avanzare.
+            </li>
+            <li>
+              L'opportunità è della <strong>persona</strong>, non del singolo messaggio: se ha già una trattativa
+              aperta (magari da un altro modulo) la richiesta si aggancia a quella. Il nome cliccabile apre la sua
+              scheda.
+            </li>
+            <li>
+              Subito sotto i pulsanti dell'opportunità c'è <strong>«In agenda»</strong>: da lì fissi la prossima
+              mossa — una chiamata, un appuntamento — e vedi l'elenco di quelle già fissate su questa richiesta.
+            </li>
+            <li>
+              Qui ci sono <strong>tutte</strong> le richieste della sezione, messaggi e appuntamenti prenotati dal
+              sito: un appuntamento è una richiesta da prendere in carico come le altre. Il calendario è uno solo,
+              l'
+              <Link href="/dashboard/agenda" className="link">
+                <strong>Agenda</strong>
+              </Link>
+              , dove un appuntamento si segna come fatto con la nota di com'è andata.
+            </li>
+          </ol>
+        )}
         <p className="box-istruzioni-nota">
           «Stato contatto» in tabella è il dato verificato su PerfectGym (NUOVO, MAI AVUTO CONTRATTO,
-          CURRENT…), non lo stato dell'opportunità: sono due colonne diverse. «Cancella record» è visibile solo
-          a chi ha il permesso di cancellare, ed è irreversibile: chiede sempre conferma.
+          CURRENT…), non ha niente a che vedere con {eJunior ? '«Gestito»' : "l'opportunità"}: sono due colonne
+          diverse. «Cancella record» è visibile solo a chi ha il permesso di cancellare, ed è irreversibile: chiede
+          sempre conferma.
         </p>
       </BoxIstruzioni>
 
@@ -302,9 +371,11 @@ export async function ContattiSezione({
               annulla ricerca
             </a>
           </p>
+        ) : eJunior ? (
+          <FiltroSelect valore={filtroJunior} opzioni={OPZIONI_FILTRO_JUNIOR} />
         ) : (
           <>
-            <FiltroSelect valore={filtro} opzioni={OPZIONI_FILTRO} />
+            <FiltroSelect valore={filtroAdulti} opzioni={OPZIONI_FILTRO_ADULTI} />
             <FiltroCheckbox attivo={soloMiei} param="mio" etichetta="Solo i miei" />
           </>
         )}
@@ -315,7 +386,7 @@ export async function ContattiSezione({
           <thead>
             <tr>
               <th></th>
-              {COLONNE_TABELLA.map((colonna) => (
+              {colonneTabella.map((colonna) => (
                 <th key={colonna}>{colonna}</th>
               ))}
             </tr>
@@ -332,7 +403,7 @@ export async function ContattiSezione({
                     key={riga.id}
                     id={String(riga.id)}
                     columnCount={7}
-                    columns={COLONNE_TABELLA}
+                    columns={colonneTabella}
                     record={riga}
                     hiddenKeys={COLONNE_VISIBILI}
                     evidenza={<RichiestaEvidenza riga={riga} />}
@@ -355,7 +426,13 @@ export async function ContattiSezione({
                         </>
                       ),
                       riga.stato || '—',
-                      <PipelineBadge stato={stato} />,
+                      eJunior ? (
+                        <span className={`richiesta-badge ${riga.gestito ? 'richiesta-verde' : 'richiesta-neutro'}`}>
+                          {riga.gestito ? 'Gestito' : 'Da gestire'}
+                        </span>
+                      ) : (
+                        <PipelineBadge stato={stato} />
+                      ),
                       etichettaAttivita(riga.attivita),
                       riga.tipo_richiesta ? (
                         <span className={`richiesta-badge richiesta-${variantePillola(riga.tipo_richiesta)}`}>

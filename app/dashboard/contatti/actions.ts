@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { etichettaRecord, registraLog } from '@/lib/audit'
 import { eAppuntamento } from '@/lib/agenda'
+import { apparteneAGruppo } from '@/lib/contatti'
 import { getSezioniConsentite } from '@/lib/auth/sezioni-server'
 import { sincronizzaPgm } from '@/lib/perfectgym'
 import { nomePersona } from '@/lib/persone'
@@ -96,6 +97,79 @@ export async function completaAppuntamento(id: string, esito: string): Promise<R
   return { ok: true }
 }
 
+// Junior e' rimasta al modello precedente la pipeline: gestito si'/no piu'
+// una nota, punto - niente opportunita' da avanzare. La nota resta
+// obbligatoria prima di segnare come gestito: e' il modo per lasciare
+// traccia di cosa e' stato fatto, e senza obbligo nessuno la scriverebbe.
+// Il controllo e' qui e non solo nel toggle lato client, perche' la Server
+// Action resta chiamabile a mano.
+export async function impostaGestito(id: string, gestito: boolean): Promise<Risultato> {
+  const email = headers().get('x-tca-user-email')
+  const supabase = createSupabaseServiceClient()
+
+  const { data: contatto } = await supabase
+    .from('form_contatti')
+    .select('nome, cognome, email, note')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (!contatto) return { ok: false, errore: 'Richiesta non trovata: ricarica la pagina.' }
+
+  if (gestito && !contatto.note?.trim()) {
+    return { ok: false, errore: 'Scrivi e salva una nota prima di segnare il contatto come gestito.' }
+  }
+
+  const { error } = await supabase
+    .from('form_contatti')
+    .update({
+      gestito,
+      gestito_da: gestito ? email : null,
+      gestito_il: gestito ? new Date().toISOString() : null,
+    })
+    .eq('id', id)
+
+  if (error) return { ok: false, errore: error.message }
+
+  await registraLog(email, 'contatto_gestito', {
+    entita: 'form_contatti',
+    entitaId: id,
+    dettagli: { contatto: etichettaRecord(contatto), email_contatto: contatto.email ?? null, gestito },
+  })
+
+  rinfresca()
+
+  return { ok: true }
+}
+
+export async function salvaNote(id: string, note: string): Promise<Risultato> {
+  const email = headers().get('x-tca-user-email')
+  const supabase = createSupabaseServiceClient()
+
+  const { data: contatto } = await supabase
+    .from('form_contatti')
+    .select('nome, cognome, email')
+    .eq('id', id)
+    .maybeSingle()
+
+  const { error } = await supabase.from('form_contatti').update({ note }).eq('id', id)
+
+  if (error) return { ok: false, errore: error.message }
+
+  // Il testo della nota entra nel log insieme al nome del contatto: e' la
+  // sostanza dell'azione, e in Controllo Operatori serve poter verificare
+  // cosa e' stato scritto senza dover aprire il contatto (che nel
+  // frattempo puo' essere stato modificato o cancellato).
+  await registraLog(email, 'contatto_nota_salvata', {
+    entita: 'form_contatti',
+    entitaId: id,
+    dettagli: { contatto: etichettaRecord(contatto), email_contatto: contatto?.email ?? null, nota: note },
+  })
+
+  rinfresca()
+
+  return { ok: true }
+}
+
 const EMAIL_VALIDA = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const TIPI_RICHIESTA_MANUALE = ['messaggio', 'richiamami', 'appuntamento in sede'] as const
 
@@ -151,6 +225,18 @@ export async function verificaContattoEsistente(email: string): Promise<Contatto
     .is('chiuso_il', null)
     .maybeSingle()
   if (!opportunita) return null
+
+  // Junior e' rimasta al modello precedente la pipeline: se le uniche
+  // enquiry di questa persona sono junior, l'opportunita' aperta e' solo
+  // quella nata in background e mai lavorata da nessuno (vedi
+  // ContattiSezione) - avvisare "ha già una richiesta aperta, assegnata a…"
+  // sarebbe un fantasma della pipeline che qui non c'e' piu'.
+  const { data: enquiry } = await supabase
+    .from('form_contatti')
+    .select('gruppo_attivita')
+    .eq('persona_id', persona.id)
+  const soloJunior = !!enquiry?.length && enquiry.every((r) => apparteneAGruppo(r.gruppo_attivita, 'junior'))
+  if (soloJunior) return null
 
   return {
     nome: nomePersona(persona),

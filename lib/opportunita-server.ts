@@ -1,4 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { apparteneAGruppo } from '@/lib/contatti'
 
 // Server-only (usa il client service role): importare solo da Server
 // Component/Server Action.
@@ -43,7 +44,16 @@ export async function storicoOpportunita(ids: string[]): Promise<Record<string, 
 // persona, scritti sui campi che Analytics legge da sempre (gestito,
 // gestito_da, gestito_il). Serve perche' lo stato di lavorazione non vive piu'
 // sulla singola richiesta: la presa in carico e' quella della trattativa.
-export async function conPresaInCarico<T extends { opportunita_id?: string | null }>(righe: T[]): Promise<T[]> {
+//
+// Solo per Adulti: Junior e' rimasta al modello precedente la pipeline (vedi
+// ContattiSezione), quindi il suo "gestito" e' di nuovo quello scritto a
+// mano sulla richiesta - sovrascriverlo con l'opportunita' (che nasce
+// comunque in background per ogni form_contatti, ma su Junior non la
+// gestisce nessuno) lo bloccherebbe per sempre sull'esito di quando la
+// pipeline era ancora mostrata anche li'.
+export async function conPresaInCarico<T extends { opportunita_id?: string | null; gruppo_attivita?: string | null }>(
+  righe: T[]
+): Promise<T[]> {
   const ids = [...new Set(righe.map((riga) => riga.opportunita_id).filter(Boolean))] as string[]
   if (ids.length === 0) return righe
 
@@ -52,6 +62,8 @@ export async function conPresaInCarico<T extends { opportunita_id?: string | nul
   const perId = new Map((data ?? []).map((o) => [o.id, o]))
 
   return righe.map((riga) => {
+    if (apparteneAGruppo(riga.gruppo_attivita, 'junior')) return riga
+
     const opportunita = riga.opportunita_id ? perId.get(riga.opportunita_id) : null
     return {
       ...riga,

@@ -670,3 +670,52 @@ subito sopra faceva già correttamente.
 Le tabelle restano piccole (poche migliaia di righe anche le più grandi):
 non è mai stato un problema di volume di dati, ma di quante interrogazioni
 inutili si accumulavano a ogni click.
+
+## Aggiornamento — Junior torna a gestito/nota, la pipeline resta solo sugli Adulti
+
+Quando la pipeline dell'opportunità era arrivata alle Enquiries, era finita
+per errore anche su Junior: stessa `ContattiSezione`, stesso pannello
+"Prendi in carico → In gestione → Vinta/Persa". Junior non ha una trattativa
+da far avanzare — è tornata al modello precedente: **gestito sì/no più una
+nota**, punto, con la nota obbligatoria prima di poter segnare come gestito
+(stesso vincolo di sempre). I filtri tornano Da gestire/Gestiti/Tutti al
+posto degli stati della pipeline, e la colonna "Opportunità" diventa
+"Gestito" (badge semplice).
+
+Cosa resta comune alle due sezioni, perché non è "la pipeline" ma
+infrastruttura condivisa: il collegamento alla persona in anagrafica, il
+blocco «In agenda» (fissare/vedere chiamate e appuntamenti), e la chiusura di
+un appuntamento prenotato dal sito («Segna come fatto» + esito) — quest'
+ultima decide il pallino rosso/verde in Agenda, non ha a che fare con la
+trattativa.
+
+**Cosa succede sotto: l'opportunità continua a nascere.** Il trigger sul
+database che collega ogni `form_contatti` a una persona e a un'opportunità
+non distingue Adulti da Junior (mai lo ha fatto, da prima ancora che la
+pipeline esistesse: vedi l'aggiornamento "anagrafica persone, opportunità e
+task collegati"). Toccarlo per escludere Junior avrebbe voluto dire una
+migrazione mirata su una parte del database condivisa con gli Adulti, per un
+guadagno che la sola UI già dà: quell'opportunità nasce, ma **Junior non la
+mostra né la usa**. Da qui tre correzioni per non farla riapparire di lato:
+
+- **Analytics** (`conPresaInCarico`): leggeva sempre `gestito` dall'opportunità
+  per scrivere le statistiche. Per Junior ora lascia il valore vero, scritto
+  a mano sulla richiesta — altrimenti sarebbe rimasto bloccato su "in
+  gestione" per sempre, quello a cui l'opportunità si è fermata da quando
+  nessuno la fa più avanzare.
+- **Scheda persona**: se le uniche enquiry di una persona sono Junior, il
+  blocco "Opportunità" non mostra più il pannello della pipeline (che
+  riguarda 36 famiglie su 40, mai state anche contatti Adulti) ma una nota
+  che rimanda alla sezione Junior. Basta una sola enquiry non-Junior, anche
+  vecchia, per tornare a vedere la pipeline: da quel momento è un lead vero.
+- **Avviso "già una richiesta aperta"** nell'inserimento manuale: stessa
+  regola, per non avvisare di un'opportunità aperta che in realtà nessuno
+  guarda più.
+
+**Dashboard**: il riquadro Junior mostra Da gestire/Gestiti invece di Da
+prendere in carico/In gestione, contando `gestito` sulla richiesta e non lo
+stato dell'opportunità.
+
+Corretto anche un piccolo effetto collaterale trovato per strada: nella
+scheda persona, il link "apri sezione" di un'enquiry Junior portava sempre
+alla sezione Adulti.

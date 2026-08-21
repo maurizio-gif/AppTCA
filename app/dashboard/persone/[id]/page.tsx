@@ -7,6 +7,7 @@ import { PannelloPipeline } from '@/components/PannelloPipeline'
 import { PipelineBadge } from '@/components/PipelineBadge'
 import { VisiteContatto } from '@/components/VisiteContatto'
 import { ContactLinks } from '@/components/ContactLinks'
+import { apparteneAGruppo } from '@/lib/contatti'
 import { formatDateOra } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
@@ -134,6 +135,16 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
   const leadChiusi = (opportunita ?? []).filter((o) => o.chiuso_il)
   const nome = nomePersona(persona)
 
+  // Junior e' rimasta al modello precedente la pipeline (gestito/nota sulla
+  // singola richiesta, vedi ContattiSezione): se le uniche enquiry di questa
+  // persona sono junior, l'opportunita' che nasce comunque in background non
+  // e' una trattativa che qualcuno lavora, e mostrare qui il pannello con
+  // "Prendi in carico" sarebbe la stessa confusione tolta dalla lista Junior.
+  // Basta una sola enquiry non-junior (anche vecchia) per tornare a mostrare
+  // la pipeline: da quel momento in poi e' un vero lead da seguire.
+  const enquiry = richieste.filter((r) => r.modulo.tabella === 'form_contatti')
+  const soloEnquiryJunior = enquiry.length > 0 && enquiry.every((r) => apparteneAGruppo(r.riga.gruppo_attivita, 'junior'))
+
   return (
     <div>
       <div className="page-header">
@@ -153,7 +164,15 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
       <div className="pannello-gestione">
         <div className="pannello-gestione-blocco">
           <div className="pannello-gestione-titolo">Opportunità</div>
-          {leadAperto ? (
+          {soloEnquiryJunior ? (
+            <p className="gestione-meta">
+              Le enquiry Junior di questa persona si gestiscono una per una (gestito/nota) nella sezione{' '}
+              <Link href="/dashboard/contatti/junior" className="link">
+                Enquiries Junior
+              </Link>
+              : non c'è qui una trattativa da avanzare.
+            </p>
+          ) : leadAperto ? (
             <PannelloPipeline
               id={leadAperto.id}
               stato={normalizzaStato(leadAperto.stato)}
@@ -173,7 +192,7 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
             </p>
           )}
 
-          {leadChiusi.length > 0 && (
+          {!soloEnquiryJunior && leadChiusi.length > 0 && (
             <ul className="persona-lead-chiusi">
               {leadChiusi.map((lead) => (
                 <li key={lead.id}>
@@ -255,19 +274,28 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
           <p className="gestione-meta">Nessuna richiesta: è una persona che conosciamo solo dallo storico.</p>
         ) : (
           <ul className="persona-richieste">
-            {richieste.map(({ modulo, riga, quando, ruolo }) => (
-              <li key={`${modulo.tabella}-${riga.id}-${ruolo ?? ''}`}>
-                <span className={`richiesta-badge ${modulo.classe}`}>{modulo.etichetta}</span>
-                <span className="persona-richiesta-quando">{quando ? formatDateOra(quando) : '—'}</span>
-                {ruolo && <span className="richiesta-badge richiesta-neutro">{ruolo}</span>}
-                <span className="muted">
-                  {riga.tipo_richiesta ?? riga.tipo_corso ?? riga.nome_evento ?? riga.amico_email ?? ''}
-                </span>
-                <Link href={modulo.href} className="link">
-                  apri sezione
-                </Link>
-              </li>
-            ))}
+            {richieste.map(({ modulo, riga, quando, ruolo }) => {
+              // Le due Enquiries sono due sezioni: il link deve portare a
+              // quella giusta, non sempre agli Adulti.
+              const href =
+                modulo.tabella === 'form_contatti' && apparteneAGruppo(riga.gruppo_attivita, 'junior')
+                  ? '/dashboard/contatti/junior'
+                  : modulo.href
+
+              return (
+                <li key={`${modulo.tabella}-${riga.id}-${ruolo ?? ''}`}>
+                  <span className={`richiesta-badge ${modulo.classe}`}>{modulo.etichetta}</span>
+                  <span className="persona-richiesta-quando">{quando ? formatDateOra(quando) : '—'}</span>
+                  {ruolo && <span className="richiesta-badge richiesta-neutro">{ruolo}</span>}
+                  <span className="muted">
+                    {riga.tipo_richiesta ?? riga.tipo_corso ?? riga.nome_evento ?? riga.amico_email ?? ''}
+                  </span>
+                  <Link href={href} className="link">
+                    apri sezione
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
