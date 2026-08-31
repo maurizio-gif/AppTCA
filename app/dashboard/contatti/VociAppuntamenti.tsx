@@ -103,6 +103,8 @@ export function bloccoGestioneContatto(
       completatoIl={riga.appuntamento_completato_il ?? null}
       completatoDa={riga.appuntamento_completato_da ?? null}
       esito={riga.appuntamento_esito ?? null}
+      data={riga.data_richiesta ? String(riga.data_richiesta).slice(0, 10) : null}
+      ora={riga.ora_richiesta ? String(riga.ora_richiesta).slice(0, 5) : null}
     />
   ) : null
 

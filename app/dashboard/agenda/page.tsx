@@ -138,6 +138,7 @@ export default async function AgendaPage({
       nomiStaff,
       emailCorrente,
       eAmministratore,
+      staff: elencoStaff,
       etichetteCollegamento,
       nomiPersone,
       ricercaPersone,

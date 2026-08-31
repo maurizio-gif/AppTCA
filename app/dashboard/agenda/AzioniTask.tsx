@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { formatDateOra } from '@/lib/format'
-import { ETICHETTE_STATO_TASK, type StatoTask } from '@/lib/agenda'
+import { ETICHETTE_STATO_TASK, type StatoTask, type TipoVoce } from '@/lib/agenda'
 import { annullaTask, completaTask, eliminaTask, riapriTask } from './actions'
+import { ModificaTask } from './ModificaTask'
 
 // Pannello di gestione di un task dentro la riga del calendario. Completarlo
 // (con l'esito), annullarlo o riaprirlo lo puo' fare chiunque, anche se il
@@ -20,6 +21,14 @@ export function AzioniTask({
   esito,
   note,
   puoEliminare,
+  titolo,
+  tipo,
+  data,
+  ora,
+  durataMinuti,
+  assegnatoA,
+  staff,
+  emailCorrente,
 }: {
   id: string
   stato: StatoTask
@@ -29,7 +38,18 @@ export function AzioniTask({
   note: string | null
   // Solo per il pulsante Elimina: tutto il resto e' aperto a chiunque.
   puoEliminare: boolean
+  // Valori attuali della voce: servono a riempire il form di modifica (vedi
+  // ModificaTask), che parte da com'e' adesso e non da un foglio bianco.
+  titolo: string
+  tipo: TipoVoce
+  data: string
+  ora: string | null
+  durataMinuti: number
+  assegnatoA: string | null
+  staff: { email: string; nome: string }[]
+  emailCorrente: string | null
 }) {
+  const [modificando, setModificando] = useState(false)
   const [esitoNuovo, setEsitoNuovo] = useState('')
   const [errore, setErrore] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -55,7 +75,22 @@ export function AzioniTask({
 
       {errore && <p className="gestione-errore">{errore}</p>}
 
-      {stato === 'aperto' ? (
+      {modificando ? (
+        <ModificaTask
+          id={id}
+          titoloIniziale={titolo}
+          tipoIniziale={tipo}
+          dataIniziale={data}
+          oraIniziale={ora}
+          durataIniziale={durataMinuti}
+          noteIniziali={note}
+          assegnatoAIniziale={assegnatoA}
+          staff={staff}
+          emailCorrente={emailCorrente}
+          onFatto={() => setModificando(false)}
+          onAnnulla={() => setModificando(false)}
+        />
+      ) : stato === 'aperto' ? (
         <>
           <label className="gestione-note-label" htmlFor={`esito-${id}`}>
             Esito (facoltativo, si salva completando)
@@ -84,6 +119,7 @@ export function AzioniTask({
             >
               Annulla task
             </button>
+            <BottoneModifica isPending={isPending} onApri={() => setModificando(true)} />
             {puoEliminare && <BottoneElimina id={id} isPending={isPending} esegui={esegui} />}
           </div>
         </>
@@ -97,10 +133,22 @@ export function AzioniTask({
           >
             Riapri
           </button>
+          <BottoneModifica isPending={isPending} onApri={() => setModificando(true)} />
           {puoEliminare && <BottoneElimina id={id} isPending={isPending} esegui={esegui} />}
         </div>
       )}
     </div>
+  )
+}
+
+// Spostare di orario o di giorno e' la modifica quasi sempre cercata: il
+// pulsante lo dice, invece di un generico "Modifica" che non fa capire che
+// serve anche a quello.
+function BottoneModifica({ isPending, onApri }: { isPending: boolean; onApri: () => void }) {
+  return (
+    <button type="button" className="btn-ghost btn-small" disabled={isPending} onClick={onApri}>
+      Sposta o modifica
+    </button>
   )
 }
 

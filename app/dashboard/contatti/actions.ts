@@ -12,13 +12,18 @@ import { nomePersona } from '@/lib/persone'
 import { ETICHETTE_STATO, normalizzaStato } from '@/lib/pipeline'
 import { formatDateOra } from '@/lib/format'
 
-// Le tre pagine che mostrano una richiesta: le due sezioni Enquiries e
-// l'agenda condivisa, dove gli appuntamenti prenotati dal sito compaiono nel
-// giorno fissato (vedi lib/agenda.ts).
+// Le pagine che mostrano una richiesta: le due sezioni Enquiries, l'agenda
+// condivisa - dove gli appuntamenti prenotati dal sito compaiono nel giorno
+// fissato (vedi lib/agenda.ts) - e la scheda della persona.
+// La scheda di una persona elenca le sue richieste (ed e' da li' che ora si
+// puo' spostare un appuntamento): e' una rotta dinamica, quindi si revalida
+// per pattern con 'page' - il percorso vero, /dashboard/persone/<uuid>, qui
+// non lo conosciamo.
 function rinfresca() {
   revalidatePath('/dashboard/contatti/adulti')
   revalidatePath('/dashboard/contatti/junior')
   revalidatePath('/dashboard/agenda')
+  revalidatePath('/dashboard/persone/[id]', 'page')
 }
 
 type Risultato = { ok: true } | { ok: false; errore: string }
@@ -386,6 +391,55 @@ export async function riapriAppuntamento(id: string): Promise<Risultato> {
     entita: 'form_contatti',
     entitaId: id,
     dettagli: { contatto: etichettaRecord(contatto), email_contatto: contatto?.email ?? null },
+  })
+
+  rinfresca()
+
+  return { ok: true }
+}
+
+// Spostare un appuntamento prenotato dal sito: l'orario che slitta di
+// mezz'ora o la visita rimandata a domani sono la cosa che capita piu'
+// spesso, e finora si potevano cambiare solo a mano sul database.
+//
+// Si scrive sugli stessi due campi che il cliente ha compilato sul form
+// (data_richiesta/ora_richiesta): sono quelli che l'agenda legge (vedi
+// voceDaContatto in lib/agenda.ts) e quelli su cui il sito calcola la
+// disponibilita' da offrire a chi prenota (vedi app/api/disponibilita), che
+// cosi' si libera davvero dello slot vecchio.
+//
+// Lo puo' fare chiunque veda la sezione, come chiudere l'appuntamento: chi
+// riceve la telefonata "posso alle 18 invece che alle 17?" deve poter
+// spostare subito. Il prima e il dopo restano nel registro operatori.
+export async function spostaAppuntamento(id: string, data: string, ora: string | null): Promise<Risultato> {
+  const email = headers().get('x-tca-user-email')
+  const { errore, contatto } = await leggiAppuntamento(id)
+  if (errore) return { ok: false, errore }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { ok: false, errore: 'Scegli il giorno dell’appuntamento.' }
+
+  const oraPulita = ora?.trim() ? ora.trim().slice(0, 5) : null
+  if (oraPulita && !/^\d{2}:\d{2}$/.test(oraPulita)) {
+    return { ok: false, errore: 'Orario non valido: usa il formato HH:MM.' }
+  }
+
+  const supabase = createSupabaseServiceClient()
+  const { error } = await supabase
+    .from('form_contatti')
+    .update({ data_richiesta: data, ora_richiesta: oraPulita })
+    .eq('id', id)
+
+  if (error) return { ok: false, errore: error.message }
+
+  await registraLog(email, 'appuntamento_spostato', {
+    entita: 'form_contatti',
+    entitaId: id,
+    dettagli: {
+      contatto: etichettaRecord(contatto),
+      email_contatto: contatto?.email ?? null,
+      prima: { data: contatto?.data_richiesta ?? null, ora: contatto?.ora_richiesta ?? null },
+      dopo: { data, ora: oraPulita },
+    },
   })
 
   rinfresca()

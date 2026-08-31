@@ -43,8 +43,17 @@ const TABELLE_CON_PERSONA = ['form_contatti', 'form_invita_amico'] as const
 // dentro la riga dei record collegati (vedi TaskEntita).
 const PAGINE_AGENDA = ['/dashboard/agenda', '/dashboard/contatti/adulti', '/dashboard/invita-amico']
 
+// La scheda di una persona ha lo stesso blocco "In agenda" (vedi TaskEntita),
+// ma e' una rotta dinamica: il suo percorso vero (/dashboard/persone/<uuid>)
+// qui non lo conosciamo, e passare il pattern con 'page' e' il modo con cui
+// Next.js revalida tutte le schede in un colpo solo. Senza questo, chi
+// completava o spostava una voce dalla scheda persona non vedeva cambiare
+// nulla fino al ricarico.
+const ROTTA_SCHEDA_PERSONA = '/dashboard/persone/[id]'
+
 function rinfrescaAgenda() {
   for (const pagina of PAGINE_AGENDA) revalidatePath(pagina)
+  revalidatePath(ROTTA_SCHEDA_PERSONA, 'page')
 }
 
 function emailCorrente(): string | null {
@@ -258,6 +267,110 @@ export async function eliminaTask(id: string): Promise<Risultato> {
     entita: 'task',
     entitaId: id,
     dettagli: { titolo: task.titolo, data: task.data, assegnato_a: task.assegnato_a, record_cancellato: task },
+  })
+
+  rinfrescaAgenda()
+
+  return { ok: true }
+}
+
+// Spostare un impegno e' il gesto piu' frequente dell'agenda: un orario che
+// slitta di mezz'ora, una visita rimandata a domani. Finche' non c'era, si
+// poteva solo cancellare e riscrivere - perdendo la nota, l'esito e il
+// collegamento alla persona.
+//
+// Si modifica solo il QUANDO e il COSA (tipo, titolo, note, assegnatario): il
+// collegamento a persona/opportunita'/richiesta resta quello deciso alla
+// creazione, spostarlo altrove sarebbe un altro task.
+//
+// Chi puo': chiunque, come per completare o annullare (l'agenda e' condivisa
+// anche in scrittura, vedi verificaPermesso). Chi ha spostato cosa resta nel
+// registro operatori, con il prima e il dopo.
+export type DatiModificaTask = {
+  titolo: string
+  tipo: string
+  data: string
+  ora?: string | null
+  durataMinuti?: number | null
+  note?: string | null
+  assegnatoA?: string | null
+}
+
+export async function modificaTask(id: string, dati: DatiModificaTask): Promise<Risultato> {
+  const email = emailCorrente()
+  if (!email) return { ok: false, errore: 'Sessione scaduta: ricarica la pagina e rientra.' }
+
+  const titolo = dati.titolo.trim()
+  if (!titolo) return { ok: false, errore: 'Scrivi un titolo: è quello che si legge nel calendario.' }
+  if (!eTipoValido(dati.tipo)) return { ok: false, errore: 'Tipo non riconosciuto.' }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dati.data)) return { ok: false, errore: 'Scegli il giorno del task.' }
+
+  const ora = normalizzaOra(dati.ora)
+  if (dati.ora && !ora) return { ok: false, errore: 'Orario non valido: usa il formato HH:MM.' }
+
+  const durata = Math.round(dati.durataMinuti ?? DURATA_PREDEFINITA[dati.tipo])
+  if (!Number.isFinite(durata) || durata < 5 || durata > 480) {
+    return { ok: false, errore: 'La durata deve essere fra 5 e 480 minuti.' }
+  }
+
+  const supabase = createSupabaseServiceClient()
+
+  const { data: task, error: fetchError } = await supabase
+    .from('task')
+    .select('titolo, tipo, data, ora, durata_minuti, note, assegnato_a, stato')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (fetchError) return { ok: false, errore: fetchError.message }
+  if (!task) return { ok: false, errore: 'Task non trovato: forse è stato cancellato.' }
+
+  const assegnatoA = (dati.assegnatoA ?? task.assegnato_a ?? email).trim().toLowerCase()
+  if (assegnatoA !== task.assegnato_a?.toLowerCase()) {
+    const { data: staff } = await supabase.from('staff_users').select('email').eq('email', assegnatoA).maybeSingle()
+    if (!staff) return { ok: false, errore: 'Quella persona non è fra gli operatori del CRM.' }
+  }
+
+  const { error } = await supabase
+    .from('task')
+    .update({
+      titolo,
+      tipo: dati.tipo,
+      data: dati.data,
+      ora,
+      durata_minuti: durata,
+      note: dati.note?.trim() || null,
+      assegnato_a: assegnatoA,
+    })
+    .eq('id', id)
+
+  if (error) return { ok: false, errore: error.message }
+
+  // Prima e dopo nello stesso record di log: senza il "prima" non si capisce
+  // che cosa e' stato spostato, e a che ora era.
+  await registraLog(email, 'task_modificato', {
+    entita: 'task',
+    entitaId: id,
+    dettagli: {
+      titolo,
+      prima: {
+        titolo: task.titolo,
+        tipo: eTipoValido(task.tipo) ? ETICHETTE_TIPO[task.tipo] : task.tipo,
+        data: task.data,
+        ora: normalizzaOra(task.ora),
+        durata_minuti: task.durata_minuti,
+        note: task.note,
+        assegnato_a: task.assegnato_a,
+      },
+      dopo: {
+        titolo,
+        tipo: ETICHETTE_TIPO[dati.tipo],
+        data: dati.data,
+        ora,
+        durata_minuti: durata,
+        note: dati.note?.trim() || null,
+        assegnato_a: assegnatoA,
+      },
+    },
   })
 
   rinfrescaAgenda()

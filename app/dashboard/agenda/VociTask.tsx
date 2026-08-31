@@ -37,6 +37,7 @@ export function voceCalendarioDaTask(
     nomiStaff,
     emailCorrente,
     eAmministratore,
+    staff = [],
     etichetteCollegamento = {},
     nomiPersone = {},
     ricercaPersone = {},
@@ -44,6 +45,9 @@ export function voceCalendarioDaTask(
     nomiStaff: Record<string, string>
     emailCorrente: string | null
     eAmministratore: boolean
+    // Elenco degli operatori, per la tendina "assegnato a" del form di
+    // modifica (vedi ModificaTask).
+    staff?: { email: string; nome: string }[]
     // Chiave "entita:id" -> nome leggibile del record collegato, cosi' in
     // agenda non compare "form_invita_amico:9f2c…".
     etichetteCollegamento?: Record<string, string>
@@ -104,6 +108,14 @@ export function voceCalendarioDaTask(
         esito={riga.esito ?? null}
         note={riga.note ?? null}
         puoEliminare={eAmministratore || suo || creatoDaMe}
+        titolo={voce.titolo}
+        tipo={voce.tipo}
+        data={voce.data ?? ''}
+        ora={voce.ora}
+        durataMinuti={voce.durataMinuti}
+        assegnatoA={riga.assegnato_a ?? null}
+        staff={staff}
+        emailCorrente={emailCorrente}
       />
     ),
   }

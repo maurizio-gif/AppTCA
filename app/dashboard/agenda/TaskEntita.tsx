@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import {
   CLASSE_TIPO,
+  DURATA_PREDEFINITA,
   ETICHETTE_STATO_TASK,
   ETICHETTE_TIPO_BREVI,
   eStatoTaskValido,
@@ -15,6 +16,7 @@ import {
 import { formatDataConGiorno } from '@/lib/format'
 import { completaTask, eliminaTask, riapriTask } from './actions'
 import { FormTask } from './FormTask'
+import { ModificaTask } from './ModificaTask'
 
 // Blocco "In agenda" da mettere dentro la riga espansa di un record
 // qualsiasi del CRM (oggi: un invito "Invita un amico"): elenca le voci
@@ -81,6 +83,7 @@ export function TaskEntita({
             <RigaTaskCollegato
               key={riga.id}
               riga={riga}
+              staff={staff}
               emailCorrente={emailCorrente}
               eAmministratore={eAmministratore}
               etichettaCollegamento={
@@ -156,11 +159,13 @@ export function TaskEntita({
 
 function RigaTaskCollegato({
   riga,
+  staff,
   emailCorrente,
   eAmministratore,
   etichettaCollegamento,
 }: {
   riga: RigaTask
+  staff: { email: string; nome: string }[]
   emailCorrente: string | null
   eAmministratore: boolean
   etichettaCollegamento: string | null
@@ -168,12 +173,14 @@ function RigaTaskCollegato({
   const [errore, setErrore] = useState<string | null>(null)
   const [conferma, setConferma] = useState(false)
   const [chiudendo, setChiudendo] = useState(false)
+  const [modificando, setModificando] = useState(false)
   const [esitoNuovo, setEsitoNuovo] = useState('')
   const [isPending, startTransition] = useTransition()
 
   const stato: StatoTask = eStatoTaskValido(riga.stato) ? riga.stato : 'aperto'
   const tipo = eTipoValido(riga.tipo) ? riga.tipo : 'task'
-  const ora = intervalloOrario(normalizzaOra(riga.ora), Number(riga.durata_minuti) || 10)
+  const durata = Number(riga.durata_minuti) > 0 ? Number(riga.durata_minuti) : DURATA_PREDEFINITA[tipo]
+  const ora = intervalloOrario(normalizzaOra(riga.ora), durata)
   // Completare o riaprire lo puo' fare chiunque (vedi AzioniTask); eliminare,
   // che e' irreversibile, solo chi ce l'ha in mano, chi l'ha creato o un
   // amministratore.
@@ -214,7 +221,37 @@ function RigaTaskCollegato({
           lungo, a differenza delle etichette corte qui sopra. */}
       {riga.note && <p className="task-riga-nota">{riga.note}</p>}
 
+      {modificando && (
+        <ModificaTask
+          id={String(riga.id)}
+          titoloIniziale={riga.titolo ?? ''}
+          tipoIniziale={tipo}
+          dataIniziale={riga.data ? String(riga.data).slice(0, 10) : ''}
+          oraIniziale={normalizzaOra(riga.ora)}
+          durataIniziale={durata}
+          noteIniziali={riga.note ?? null}
+          assegnatoAIniziale={riga.assegnato_a ?? null}
+          staff={staff}
+          emailCorrente={emailCorrente}
+          onFatto={() => setModificando(false)}
+          onAnnulla={() => setModificando(false)}
+        />
+      )}
+
       <div className="task-riga-azioni">
+        {!modificando && (
+          // Spostare di orario o di giorno: qui dentro la riga di una
+          // richiesta e' spesso il posto dove ci si accorge che l'orario e'
+          // cambiato, senza passare dalla sezione Agenda.
+          <button
+            type="button"
+            className="btn-ghost btn-small"
+            disabled={isPending}
+            onClick={() => setModificando(true)}
+          >
+            Sposta o modifica
+          </button>
+        )}
         {stato === 'aperto' ? (
           // Completare chiede com'e' andata prima di chiudere: e' la nota che
           // qualifica il task come fatto, e chiederla dopo vuol dire non

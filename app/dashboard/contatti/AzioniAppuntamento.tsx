@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { formatDateOra } from '@/lib/format'
 import { ETICHETTE_STATO_TASK } from '@/lib/agenda'
-import { completaAppuntamento, riapriAppuntamento } from './actions'
+import { completaAppuntamento, riapriAppuntamento, spostaAppuntamento } from './actions'
 
 // Chiusura dell'appuntamento che il cliente ha prenotato dal sito: e' avvenuto
 // o no, e com'e' andato. Non e' lo stato della trattativa - quello sta nella
@@ -23,13 +23,22 @@ export function AzioniAppuntamento({
   completatoIl,
   completatoDa,
   esito,
+  data,
+  ora,
 }: {
   id: string
   completatoIl: string | null
   completatoDa: string | null
   esito: string | null
+  // Quando e' fissato adesso: e' anche il punto di partenza del riquadro per
+  // spostarlo (vedi spostaAppuntamento).
+  data: string | null
+  ora: string | null
 }) {
   const [esitoNuovo, setEsitoNuovo] = useState('')
+  const [spostando, setSpostando] = useState(false)
+  const [dataNuova, setDataNuova] = useState(data ?? '')
+  const [oraNuova, setOraNuova] = useState(ora ?? '')
   const [errore, setErrore] = useState<string | null>(null)
   const [inCorso, setInCorso] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -65,6 +74,71 @@ export function AzioniAppuntamento({
       {esito && <p className="pipeline-motivo">Com’è andata: {esito}</p>}
 
       {errore && <p className="gestione-errore">{errore}</p>}
+
+      {/* Spostarlo di orario o di giorno e' la richiesta piu' frequente che
+          arriva al telefono ("posso alle 18 invece che alle 17?"): si scrive
+          sugli stessi campi che il cliente aveva compilato sul form, cosi'
+          l'agenda lo mostra nel nuovo slot e il sito torna a offrire quello
+          vecchio a chi prenota. */}
+      {spostando ? (
+        <>
+          <div className="agenda-form-griglia">
+            <div className="field">
+              <label htmlFor={`sposta-data-${id}`}>Nuovo giorno</label>
+              <input
+                id={`sposta-data-${id}`}
+                type="date"
+                value={dataNuova}
+                onChange={(e) => setDataNuova(e.target.value)}
+                required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor={`sposta-ora-${id}`}>Nuova ora (vuoto = orario da concordare)</label>
+              <input
+                id={`sposta-ora-${id}`}
+                type="time"
+                value={oraNuova}
+                onChange={(e) => setOraNuova(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="pipeline-azioni">
+            <button
+              type="button"
+              className="btn btn-small"
+              disabled={isPending || !dataNuova}
+              onClick={() =>
+                esegui('sposta', async () => {
+                  const risultato = await spostaAppuntamento(id, dataNuova, oraNuova || null)
+                  if (risultato.ok) setSpostando(false)
+                  return risultato
+                })
+              }
+            >
+              {inCorso === 'sposta' ? 'Un momento…' : 'Sposta appuntamento'}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost btn-small"
+              disabled={isPending}
+              onClick={() => {
+                setDataNuova(data ?? '')
+                setOraNuova(ora ?? '')
+                setSpostando(false)
+              }}
+            >
+              Annulla
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="pipeline-azioni">
+          <button type="button" className="btn-ghost btn-small" disabled={isPending} onClick={() => setSpostando(true)}>
+            Sposta data o ora
+          </button>
+        </div>
+      )}
 
       {completato ? (
         <div className="pipeline-azioni">
