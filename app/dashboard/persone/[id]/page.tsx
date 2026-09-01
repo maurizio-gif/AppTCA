@@ -180,7 +180,6 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
               statoIl={leadAperto.stato_il ?? null}
               motivoPerso={leadAperto.motivo_perso ?? null}
               emailCorrente={emailCorrente}
-              eAmministratore={eAmministratore}
               puoRiassegnareLead={puoRiassegnareLead}
               staff={elencoStaff}
               storico={storicoPerOpportunita[leadAperto.id] ?? []}

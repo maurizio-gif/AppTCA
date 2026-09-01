@@ -170,19 +170,29 @@ Gli inviti non hanno più il solo booleano `gestito`: hanno una **pipeline**
 così portarla anche sulle Enquiries è questione di riusare quel file).
 
 ```
-nuovo → in_gestione → vinto   (finale)
-                    → perso   (finale)
+nuovo → in_gestione → vinto   (chiusa)
+                    → perso   (chiusa)
+
+vinto ⇄ perso,  e da entrambe si torna in_gestione
 ```
 
 - Il **primo che preme «Prendi in gestione» diventa il titolare**
   (`assegnato_a`, `assegnato_il`, letti dall'header `x-tca-user-email` del
-  middleware, mai da un valore passato dal client). Da lì in avanti solo lui
-  — o un amministratore — può far avanzare il lead.
+  middleware, mai da un valore passato dal client). La titolarità conta per la
+  riassegnazione, **non** per lo stato: quello lo aggiorna **qualsiasi
+  operatore**, anche su un'opportunità di un collega.
+- **Nessuno stato è definitivo.** Da vinta si passa a persa e viceversa, e da
+  entrambe si torna in gestione («Riporta in gestione»): chi si accorge di uno
+  stato sbagliato lo corregge, senza passare da un amministratore. Ogni
+  passaggio resta in `opportunita_storico` e nel registro operatori, quindi la
+  correzione è tracciata quanto l'errore.
 - Prendere in gestione è **un click**, e lo sono anche vinto e perso: nessuna
   nota obbligatoria da nessuna parte (il campo nota sul lead è stato rimosso).
   Su `perso` resta il solo `motivo_perso`, che serve alle analisi.
-- `vinto` e `perso` sono gli stati finali e valorizzano `chiuso_il` (utile per
-  i tempi di ciclo in Analytics).
+- `vinto` e `perso` chiudono l'opportunità e valorizzano `chiuso_il` (utile per
+  i tempi di ciclo in Analytics); riportandola in gestione `chiuso_il` torna
+  nullo. Riaprire non è possibile se nel frattempo la persona ha già un'altra
+  opportunità aperta: ne vive una sola per volta (indice unico parziale sul DB).
 - Il **credito da riconoscere al socio non è uno stato**: riguarda solo i
   referral, quindi è un toggle sulla riga dell'invito
   (`form_invita_amico.credito_caricato`, stesso componente del «Caricato su
@@ -191,7 +201,8 @@ nuovo → in_gestione → vinto   (finale)
   non si perde per strada. Una pipeline generale non deve portarsi dietro
   l'adempimento di una sola sezione.
 - **Amministratore** = chi ha `puo_invitare` (`lib/auth/permessi.ts`): può
-  riassegnare un invito e riaprire una gestione chiusa. Se un giorno i due
+  riassegnare un invito. Riportare in gestione un'opportunità chiusa non è più
+  riservato a lui. Se un giorno i due
   ruoli andranno distinti basta una colonna in più su `staff_users` e una
   modifica a quella funzione.
 - `gestito/gestito_da/gestito_il` restano scritte, allineate allo stato, solo

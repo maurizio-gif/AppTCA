@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { registraLog } from '@/lib/audit'
-import { puoAmministrare, puoRiassegnare } from '@/lib/auth/permessi'
+import { puoRiassegnare } from '@/lib/auth/permessi'
 import { nomePersona } from '@/lib/persone'
 import {
   ETICHETTE_STATO,
@@ -149,14 +149,11 @@ export async function cambiaStato(id: string, nuovoStato: string): Promise<Risul
     }
   }
 
-  // Il lead e' di chi lo ha preso in carico: gli altri lo vedono ma non lo
-  // muovono. Un amministratore si', serve per le ferie e i cambi di mano.
-  if (!stessoOperatore(opportunita.assegnato_a, email) && !(await puoAmministrare(email))) {
-    return {
-      ok: false,
-      errore: `Questa opportunità è assegnata a ${opportunita.assegnato_a ?? 'un altro operatore'}: solo chi la gestisce (o un amministratore) può cambiarne lo stato.`,
-    }
-  }
+  // Lo stato lo cambia chiunque, anche su un'opportunita' di un collega e anche
+  // quando e' gia' chiusa: chi risponde al telefono non e' detto sia chi l'ha
+  // presa in carico, e uno stato sbagliato che nessuno puo' correggere resta
+  // sbagliato. La titolarita' continua a valere per la riassegnazione, e ogni
+  // passaggio finisce in opportunita_storico e nel registro operatori.
 
   const adesso = new Date().toISOString()
 
@@ -192,15 +189,13 @@ export async function cambiaStato(id: string, nuovoStato: string): Promise<Risul
   return { ok: true }
 }
 
-// Vinta e persa sono stati finali: riaprire e' un'eccezione e la puo' fare solo
-// un amministratore. L'opportunita' torna in gestione allo stesso titolare, non
-// a chi riapre.
+// Riportare in gestione un'opportunita' chiusa: la puo' fare qualsiasi
+// operatore, come ogni altro cambio di stato. L'opportunita' torna allo stesso
+// titolare, non a chi riapre - chi riapre sta correggendo un errore, non
+// prendendosi il lavoro di un collega.
 export async function riapriGestione(id: string): Promise<Risultato> {
   const email = emailCorrente()
   if (!email) return { ok: false, errore: 'Sessione scaduta: ricarica la pagina e rientra.' }
-  if (!(await puoAmministrare(email))) {
-    return { ok: false, errore: 'Solo un amministratore può riaprire un’opportunità già chiusa.' }
-  }
 
   const supabase = createSupabaseServiceClient()
   const { data: opportunita } = await leggiOpportunita(id)
