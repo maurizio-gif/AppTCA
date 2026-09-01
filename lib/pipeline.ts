@@ -40,17 +40,24 @@ export const CLASSE_STATO: Record<StatoPipeline, string> = {
 // (vedi components/PipelineBadge.tsx e PipelineInvito).
 export const PASSI_AVANZAMENTO: readonly StatoPipeline[] = ['nuovo', 'in_gestione', 'vinto']
 
-// Stati finali: la trattativa e' chiusa. Ci si torna solo riaprendo il lead,
-// e puo' farlo solo un amministratore (vedi lib/auth/permessi.ts). Su un
-// referral vinto resta comunque il credito da caricare, che e' un adempimento
-// a parte e non riapre il lead.
+// Stati finali: la trattativa e' chiusa e valorizza chiuso_il. "Finale" dice
+// com'e' andata, non che sia scolpito: un operatore puo' sempre correggersi,
+// passando fra vinta e persa o riportandola in gestione (vedi TRANSIZIONI).
+// Su un referral vinto resta comunque il credito da caricare, che e' un
+// adempimento a parte e non riapre il lead.
 export const STATI_FINALI: readonly StatoPipeline[] = ['vinto', 'perso']
 
+// Uno stato messo per sbaglio si corregge, sempre e da chiunque: chi risponde
+// al telefono non e' detto sia chi aveva preso in carico l'opportunita', e
+// pretendere che sia lui (o un amministratore) a rimetterla a posto significa
+// solo lasciare in giro stati sbagliati. Da vinta e persa si torna quindi
+// indietro come da ogni altro stato; il passaggio resta scritto in
+// opportunita_storico, con chi l'ha fatto e quando.
 export const TRANSIZIONI: Record<StatoPipeline, readonly StatoPipeline[]> = {
   nuovo: ['in_gestione'],
   in_gestione: ['vinto', 'perso'],
-  vinto: [],
-  perso: [],
+  vinto: ['perso'],
+  perso: ['vinto'],
 }
 
 // Etichetta del pulsante che porta a quello stato (non il nome dello

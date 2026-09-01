@@ -166,7 +166,6 @@ export function bloccoGestioneContatto(
         statoIl={lead.stato_il ?? null}
         motivoPerso={lead.motivo_perso ?? null}
         emailCorrente={emailCorrente}
-        eAmministratore={eAmministratore}
         puoRiassegnareLead={puoRiassegnareLead}
         staff={staff}
         storico={storico}

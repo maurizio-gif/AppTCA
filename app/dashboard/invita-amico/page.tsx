@@ -318,7 +318,6 @@ export default async function InvitaAmicoPage({
                           statoIl={lead.stato_il ?? null}
                           motivoPerso={lead.motivo_perso ?? null}
                           emailCorrente={emailCorrente}
-                          eAmministratore={eAmministratore}
                           puoRiassegnareLead={puoRiassegnareLead}
                           staff={elencoStaff}
                           storico={storicoPerOpportunita[lead.id] ?? []}

@@ -65,9 +65,9 @@ function Stepper({ stato }: { stato: StatoPipeline }) {
 
 // Pannello di gestione di un'opportunita': al posto del vecchio toggle "Da
 // gestire/Gestito" ci sono gli stati di lib/pipeline.ts. Chi la prende in
-// carico ne diventa il titolare e da quel momento solo lui - o un
-// amministratore - la fa avanzare; i controlli veri stanno comunque nelle
-// Server Action, qui evitiamo solo giri di rete inutili.
+// carico ne diventa il titolare, ma lo stato lo aggiorna qualsiasi operatore,
+// anche dopo la chiusura: uno stato sbagliato va corretto da chi se ne
+// accorge. I controlli veri stanno comunque nelle Server Action.
 //
 // L'opportunita' e' della PERSONA, non della singola richiesta: lo stesso
 // pannello serve quindi ogni sezione che ne mostra una (Enquiries e Invita un
@@ -80,7 +80,6 @@ export function PannelloPipeline({
   statoIl,
   motivoPerso,
   emailCorrente,
-  eAmministratore,
   puoRiassegnareLead = false,
   staff,
   storico = [],
@@ -93,7 +92,6 @@ export function PannelloPipeline({
   statoIl: string | null
   motivoPerso: string | null
   emailCorrente: string | null
-  eAmministratore: boolean
   // Permesso di riassegnazione (staff_users.puo_riassegnare): serve
   // solo per le opportunita' di qualcun altro, la propria si passa sempre.
   puoRiassegnareLead?: boolean
@@ -121,7 +119,6 @@ export function PannelloPipeline({
   const [isPending, startTransition] = useTransition()
 
   const mio = !!assegnatoA && !!emailCorrente && assegnatoA.toLowerCase() === emailCorrente.toLowerCase()
-  const puoOperare = stato === 'nuovo' ? true : mio || eAmministratore
   const prossimi = TRANSIZIONI[stato]
 
   function esegui(quale: string, azione: () => Promise<{ ok: true } | { ok: false; errore: string }>) {
@@ -175,31 +172,31 @@ export function PannelloPipeline({
             key={prossimo}
             type="button"
             className={`btn-small ${prossimo === 'perso' ? 'btn-ghost' : 'btn'}`}
-            disabled={isPending || !puoOperare}
+            disabled={isPending}
             onClick={() => vaiA(prossimo)}
           >
             {inCorso === prossimo ? 'Un momento…' : ETICHETTE_AZIONE[prossimo]}
           </button>
         ))}
 
-        {eStatoFinale(stato) &&
-          (eAmministratore ? (
-            <button
-              type="button"
-              className="btn-ghost btn-small"
-              disabled={isPending}
-              onClick={() => esegui('riapri', () => riapriGestione(id))}
-            >
-              {inCorso === 'riapri' ? 'Riapro…' : 'Riapri gestione'}
-            </button>
-          ) : (
-            <span className="gestione-meta">Chiusa: solo un amministratore può riaprirla.</span>
-          ))}
+        {eStatoFinale(stato) && (
+          <button
+            type="button"
+            className="btn-ghost btn-small"
+            disabled={isPending}
+            onClick={() => esegui('riapri', () => riapriGestione(id))}
+          >
+            {inCorso === 'riapri' ? 'Riapro…' : 'Riporta in gestione'}
+          </button>
+        )}
       </div>
 
-      {!puoOperare && (
+      {/* L'opportunita' di un collega si puo' comunque muovere: lo diciamo,
+          cosi' chi lo fa sa di star toccando il lavoro di qualcun altro. */}
+      {!mio && assegnatoA && (
         <p className="gestione-meta">
-          Questa opportunità è in gestione a {assegnatoA}: puoi vederla, ma non cambiarne lo stato.
+          Questa opportunità è in gestione a {assegnatoA}: puoi comunque aggiornarne lo stato, il passaggio
+          resta nello storico.
         </p>
       )}
 
