@@ -1,7 +1,6 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import { ContactLinks } from '@/components/ContactLinks'
-import { ExternalLink } from '@/components/ExternalLink'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { FiltroSelect } from '@/components/FiltroSelect'
 import { formatDateOra } from '@/lib/format'
@@ -21,7 +20,7 @@ import { GestionePrenotazione } from './GestionePrenotazione'
 
 export const dynamic = 'force-dynamic'
 
-const COLONNE_TABELLA = ['Data', 'Evento', 'Partecipante', 'Socio', 'Stato', 'Quota', 'Contratto PGM']
+const COLONNE_TABELLA = ['Data', 'Evento', 'Partecipante', 'Socio', 'Stato', 'Quota', 'Scadenza']
 
 const COLONNE_VISIBILI = [
   'id',
@@ -136,7 +135,12 @@ export default async function IscrizioniEventiPage({
             pagato). <strong>Cancella definitivamente</strong> rimuove la riga e richiede il permesso di cancellazione.
           </li>
           <li>
-            Nella colonna «Contratto PGM» trovi il link diretto al contratto su PerfectGym, quando presente.
+            La colonna «Socio» riporta quanto <strong>dichiarato da chi prenota</strong>: non è verificato su
+            PerfectGym. Prima di incassare la quota ridotta controlla la tessera.
+          </li>
+          <li>
+            La colonna «Scadenza» dice entro quando va incassata la quota. Passato quel momento il posto è già
+            tornato disponibile, anche se la riga risulta ancora in attesa fino al passaggio orario automatico.
           </li>
         </ol>
       </BoxIstruzioni>
@@ -177,7 +181,7 @@ export default async function IscrizioniEventiPage({
               <th>Socio</th>
               <th>Stato</th>
               <th>Quota</th>
-              <th>Contratto PGM</th>
+              <th>Scadenza</th>
             </tr>
           </thead>
           <AccordionGroup>
@@ -216,7 +220,9 @@ export default async function IscrizioniEventiPage({
                         <br />
                         <ContactLinks email={riga.email} phone={riga.cellulare} />
                       </>,
-                      riga.socio ? 'Sì' : 'No',
+                      // "Dichiarato" e non "verificato": la spunta socio la
+                      // mette chi prenota, il controllo lo fa la cassa.
+                      riga.socio ? 'Sì (dichiarato)' : 'No',
                       <>
                         <span className={`richiesta-badge ${CLASSE_STATO_PRENOTAZIONE[stato]}`}>
                           {ETICHETTE_STATO[stato]}
@@ -233,17 +239,9 @@ export default async function IscrizioniEventiPage({
                         : riga.quota != null
                           ? `€ ${riga.quota} da incassare`
                           : '-',
-                      <>
-                        {riga.stato_contratto_pgm}
-                        {riga.link_pgm && (
-                          <>
-                            {' · '}
-                            <ExternalLink href={riga.link_pgm} className="link">
-                              apri
-                            </ExternalLink>
-                          </>
-                        )}
-                      </>,
+                      stato === 'in_attesa_pagamento' && riga.scadenza_pagamento
+                        ? formatDateOra(riga.scadenza_pagamento)
+                        : '-',
                     ]}
                   />
                 )

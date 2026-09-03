@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import {
-  cercaPersona,
   contaDisponibilita,
   corsEventi,
   getEventoPrenotabile,
   notificaEmailEvento,
-  verificaSocio,
 } from '@/lib/eventi'
 
 export const dynamic = 'force-dynamic'
@@ -16,10 +14,16 @@ export const dynamic = 'force-dynamic'
 // paga in cassa, e senza pagamento entro le ore configurate la riga decade
 // (vedi /api/cron/eventi-scadute) e il posto torna disponibile.
 //
-// Niente di ciò che arriva dal browser viene creduto sui numeri: capienza,
-// quota e ore di scadenza si rileggono dal manifest del sito, e lo stato di
-// socio si riverifica qui contro il webhook n8n — altrimenti basterebbe una
-// POST a mano con `socio: true` per pagare 25 € invece di 35 €.
+// Essere socio è DICHIARATO da chi prenota, non verificato: la verifica
+// automatica contro PerfectGym è stata tolta per semplificare il flusso, e il
+// controllo avviene in cassa quando si incassa. La riga porta quindi una
+// dichiarazione, non un fatto — la dashboard lo dice esplicitamente, perché
+// una quota ridotta va confrontata con la tessera prima di battere lo
+// scontrino.
+//
+// I numeri restano fuori dalla portata del browser: capienza, quota e ore di
+// scadenza si rileggono dal manifest del sito. Dal browser arriva solo QUALE
+// delle due quote applicare, che è esattamente ciò che la persona dichiara.
 
 const EMAIL_VALIDA = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const CODICE_UNIQUE_VIOLATION = '23505'
@@ -70,30 +74,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ errore: 'completo', postiResidui: 0 }, { status: 409, headers })
   }
 
-  const verifica = await verificaSocio(email)
+  const socioDichiarato = corpo.socio === true
 
-  // Un socio i suoi dati li ha già dati al Club: il form non glieli richiede e
-  // si rileggono dall'anagrafica interna. Se lì non c'è (o non è socio) restano
-  // quelli digitati nel form. Per il non socio i tre campi sono obbligatori:
-  // senza recapito la segreteria non può richiamarlo per il pagamento.
-  const persona = verifica.socio ? await cercaPersona(supabase, email) : null
+  const nome = testo(corpo.nome, 80)
+  const cognome = testo(corpo.cognome, 80)
+  const cellulare = testo(corpo.cellulare, 40)
 
-  const nome = persona?.nome ?? testo(corpo.nome, 80)
-  const cognome = persona?.cognome ?? testo(corpo.cognome, 80)
-  const cellulare = persona?.cellulare ?? testo(corpo.cellulare, 40)
-
-  if (!verifica.socio) {
-    if (!nome) return NextResponse.json({ errore: 'Nome mancante.', campo: 'nome' }, { status: 400, headers })
-    if (!cognome) return NextResponse.json({ errore: 'Cognome mancante.', campo: 'cognome' }, { status: 400, headers })
-    if (!cellulare || !cellulareValido(cellulare)) {
-      return NextResponse.json({ errore: 'Cellulare non valido.', campo: 'cellulare' }, { status: 400, headers })
-    }
-    if (corpo.privacy !== true) {
-      return NextResponse.json({ errore: 'Consenso privacy mancante.', campo: 'privacy' }, { status: 400, headers })
-    }
+  // I dati si chiedono a tutti, socio o no: senza recapito la segreteria non
+  // può richiamare chi non si presenta a pagare, e senza il consenso non si
+  // possono trattare i dati di nessuno.
+  if (!nome) return NextResponse.json({ errore: 'Nome mancante.', campo: 'nome' }, { status: 400, headers })
+  if (!cognome) return NextResponse.json({ errore: 'Cognome mancante.', campo: 'cognome' }, { status: 400, headers })
+  if (!cellulare || !cellulareValido(cellulare)) {
+    return NextResponse.json({ errore: 'Cellulare non valido.', campo: 'cellulare' }, { status: 400, headers })
+  }
+  if (corpo.privacy !== true) {
+    return NextResponse.json({ errore: 'Consenso privacy mancante.', campo: 'privacy' }, { status: 400, headers })
   }
 
-  const quota = verifica.socio ? evento.quotaSocio : evento.quotaNonSocio
+  const quota = socioDichiarato ? evento.quotaSocio : evento.quotaNonSocio
   const adesso = new Date()
   const scadenza = new Date(adesso.getTime() + evento.oreScadenza * 3_600_000)
 
@@ -111,16 +110,15 @@ export async function POST(request: Request) {
       cognome: cognome || null,
       email,
       cellulare: cellulare || null,
-      socio: verifica.socio,
-      // Lo stato restituito da n8n, non un contratto letto da PerfectGym:
-      // serve alla segreteria per sapere su cosa si è basata la quota.
-      stato_contratto_pgm: verifica.riuscita ? verifica.stato : 'verifica non riuscita',
-      // Collega la prenotazione alla scheda anagrafica già esistente, così in
-      // dashboard la persona non risulta un contatto nuovo.
-      persona_id: persona?.id ?? null,
-      link_pgm: persona?.pgmMemberId
-        ? `https://tcambrosiano.perfectgym.com/pgm/#/Users/${persona.pgmMemberId}/UserProfile`
-        : null,
+      socio: socioDichiarato,
+      // Non c'è nessun contratto verificato dietro questa riga: lasciare qui
+      // un valore darebbe alla segreteria l'impressione di un controllo che
+      // non è stato fatto.
+      stato_contratto_pgm: null,
+      // persona_id lo compila il trigger `collega_persona` (BEFORE INSERT),
+      // che applica la stessa deduplica anagrafica del resto del CRM:
+      // cercarla anche qui rischierebbe di agganciare una scheda diversa da
+      // quella scelta dal trigger.
     })
     .select('id')
     .single()
@@ -171,7 +169,7 @@ export async function POST(request: Request) {
     email,
     nome,
     cognome,
-    socio: verifica.socio,
+    socio: socioDichiarato,
     quota,
     scadenzaPagamento: scadenza.toISOString(),
     oreScadenza: evento.oreScadenza,
@@ -180,7 +178,7 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       ok: true,
-      socio: verifica.socio,
+      socio: socioDichiarato,
       quota,
       oreScadenza: evento.oreScadenza,
       scadenzaPagamento: scadenza.toISOString(),
