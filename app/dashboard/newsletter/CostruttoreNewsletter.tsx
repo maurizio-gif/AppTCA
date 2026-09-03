@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   costruisciNewsletter,
   formatDataItaliana,
   ETICHETTE_LAYOUT,
   LAYOUT_BLOCCO,
+  ORDINE_SEZIONI,
   type BloccoNewsletter,
   type ConfigNewsletter,
   type LayoutBlocco,
+  type Sezione,
 } from '@/lib/newsletter-template'
 import {
   ETICHETTE_TIPO,
@@ -23,22 +25,24 @@ import { registraNewsletterGenerata, ricaricaContenutiSito } from './actions'
 // blocchi editabili e genera l'HTML (lib/newsletter-template.ts).
 //
 // Tutto in un solo componente client perche' e' un unico foglio di lavoro:
-// spostare una voce fra i tre passi non deve passare dal server, e l'anteprima
+// spostare una voce fra i passi non deve passare dal server, e l'anteprima
 // deve aggiornarsi mentre si scrive. Il server serve solo per rileggere il
 // feed del sito e per il registro operatori (vedi actions.ts).
 //
+// Due scelte che rendono il template "replicabile senza pensarci":
+//  - il tipo di contenuto decide l'impaginazione del blocco (un evento
+//    diventa una card con la data grande, una news una card su fondo chiaro,
+//    la promo un blocco scuro), e resta cambiabile a mano;
+//  - le sezioni non si montano: i blocchi vengono raggruppati per tipo
+//    nell'ordine fisso della newsletter mensile, con intestazioni e link di
+//    coda gia' scritti (vedi ORDINE_SEZIONI nel template).
+//
 // Il testo di un blocco NON e' un campo libero riempito a mano: nasce dai
-// capoversi della pagina del sito, spuntati uno per uno. Chi compone decide
-// quanto prendere; se poi modifica il testo, la composizione automatica si
-// ferma (testoManuale) per non cancellargli sotto le mani quello che ha
-// scritto, ed esiste un pulsante per tornare al testo del sito.
+// capoversi della pagina del sito, spuntati uno per uno. Se poi viene
+// modificato, la composizione automatica si ferma (testoManuale) per non
+// cancellare quanto scritto, ed esiste un pulsante per tornare al sito.
 
-const CHIAVE_BOZZA = 'tca-newsletter-bozza-v1'
-
-const FIRMA_DEFAULT =
-  'Tennis Club Ambrosiano SSD a r.l. — Via Feltre 33, 20134 Milano — P.IVA IT06869300159'
-const DISISCRIZIONE_DEFAULT =
-  'Ricevi questa email perché sei iscritto alle comunicazioni del Tennis Club Ambrosiano.'
+const CHIAVE_BOZZA = 'tca-newsletter-bozza-v2'
 
 type Fonte = { testo: string; etichetta: string; scelta: boolean }
 
@@ -47,55 +51,130 @@ type Blocco = {
   tipo: TipoVoce
   layout: LayoutBlocco
   etichetta: string
+  luogo: string
   titolo: string
+  titoloAccento: string
   data: string | null
   mostraData: boolean
   fonti: Fonte[]
   testoManuale: string | null
+  punti: string
+  nota: string
   immagine: string
   immagineAlt: string
   ctaLabel: string
   ctaHref: string
+  cta2Label: string
+  cta2Href: string
 }
 
-type Testata = {
+type Impostazioni = {
   oggetto: string
   preheader: string
-  titolo: string
-  sottotitolo: string
+  tagline: string
+  ctaTestataLabel: string
+  ctaTestataHref: string
+  heroImmagine: string
+  heroAlt: string
+  introEyebrow: string
+  introTitolo: string
+  introTitoloAccento: string
   intro: string
-  ctaFinaleLabel: string
-  ctaFinaleHref: string
-  chiusura: string
-  firma: string
-  mostraDisiscrizione: boolean
-  testoDisiscrizione: string
+  indice: { titolo: string; testo: string }[]
+  ctaIndiceLabel: string
+  ctaIndiceHref: string
+  sezioni: Record<LayoutBlocco, Sezione>
+  chiusuraTesto: string
+  chiusuraLinkLabel: string
+  chiusuraLinkHref: string
+  footerNota: string
+  footerRagioneSociale: string
+  footerIndirizzo: string
+  footerTelefono: string
+  footerEmail: string
+  instagramUrl: string
+  facebookUrl: string
+  footerMotivo: string
 }
 
-type Bozza = { testata: Testata; blocchi: Blocco[] }
+type Bozza = { impostazioni: Impostazioni; blocchi: Blocco[] }
 
-function testataIniziale(urlSito: string): Testata {
+// Valori di partenza: sono quelli della newsletter mensile del Club, così una
+// newsletter nuova è già impaginata e servono solo i contenuti. Restano tutti
+// modificabili nel passo 3.
+function impostazioniIniziali(sito: string): Impostazioni {
   const oggi = new Date()
   const mese = formatDataItaliana(oggi.toISOString()).split(' ').slice(1).join(' ')
   return {
-    oggetto: `Tennis Club Ambrosiano — le novità di ${mese}`,
-    preheader: 'Le novità del Club: news, eventi e promozioni in corso.',
-    titolo: 'Le novità del Club',
-    sottotitolo: `Newsletter · ${mese}`,
-    intro: '',
-    ctaFinaleLabel: 'Vai al sito',
-    ctaFinaleHref: urlSito,
-    chiusura: '',
-    firma: FIRMA_DEFAULT,
-    mostraDisiscrizione: true,
-    testoDisiscrizione: DISISCRIZIONE_DEFAULT,
+    oggetto: `Cosa succede al TCA — ${mese}`,
+    preheader: 'Eventi in calendario, ultime news dal Club e iniziative in corso.',
+    tagline: 'Eventi, news, help desk e servizi del Club — tutto in una pagina.',
+    ctaTestataLabel: 'Vai a Club Life',
+    ctaTestataHref: `${sito}/club-life`,
+    heroImmagine: '',
+    heroAlt: 'Il Tennis Club Ambrosiano',
+    introEyebrow: 'Il Club',
+    introTitolo: 'Cosa succede',
+    introTitoloAccento: 'al TCA',
+    intro:
+      'Ciao! In questa newsletter trovi i prossimi eventi in calendario, le ultime news dal Club e le iniziative in corso. Tutto questo — e molto altro — vive ogni giorno nella pagina Club Life, la bacheca del Club per soci e famiglie.',
+    indice: [
+      { titolo: 'Eventi', testo: 'Tornei, clinic e serate del Club.' },
+      { titolo: 'News', testo: 'Le ultime notizie e i racconti dal TCA.' },
+      { titolo: 'Help desk', testo: 'Guide rapide su certificati, prenotazioni e pagamenti.' },
+      { titolo: 'Servizi e partner', testo: 'Preparatori, pickleball, feste e tutti i servizi del Club.' },
+    ],
+    ctaIndiceLabel: 'Scopri Club Life',
+    ctaIndiceHref: `${sito}/club-life`,
+    sezioni: {
+      // Il blocco scuro porta la sua etichetta dentro di sé (come il
+      // Passaparola nella newsletter di settembre): niente intestazione.
+      evidenza: { eyebrow: '', titolo: '', linkLabel: '', linkHref: '' },
+      evento: {
+        eyebrow: 'In calendario',
+        titolo: 'Prossimi eventi',
+        linkLabel: 'Tutti gli eventi',
+        linkHref: `${sito}/eventi`,
+      },
+      news: {
+        eyebrow: 'News dal Club',
+        titolo: 'Le ultime notizie',
+        linkLabel: 'Tutte le news',
+        linkHref: `${sito}/club-life#news`,
+      },
+      testo: { eyebrow: 'Dal Club', titolo: 'Servizi e pagine', linkLabel: '', linkHref: '' },
+    },
+    chiusuraTesto:
+      'Eventi, news, help desk e servizi: trovi tutto aggiornato in tempo reale su Club Life.',
+    chiusuraLinkLabel: 'Vai a Club Life',
+    chiusuraLinkHref: `${sito}/club-life`,
+    footerNota:
+      'Non perderti nulla: su Club Life trovi sempre eventi, news, help desk e servizi del Club aggiornati.',
+    footerRagioneSociale: 'Tennis Club Ambrosiano SSD a r.l.',
+    footerIndirizzo: 'Via Feltre 33, 20134 Milano',
+    footerTelefono: '+39 02 2641 4392',
+    footerEmail: 'info@tcambrosiano.com',
+    instagramUrl: 'https://www.instagram.com/clubambrosiano',
+    facebookUrl: 'https://www.facebook.com/tcambrosiano',
+    footerMotivo:
+      'Hai ricevuto questa email perché sei socio/a del TC Ambrosiano. Per gestire le preferenze di comunicazione scrivi a info@tcambrosiano.com.',
   }
 }
 
+// Il tipo di contenuto decide l'impaginazione: è la regola che rende la
+// newsletter sempre uguale a sé stessa senza che nessuno debba scegliere.
+const LAYOUT_PER_TIPO: Record<TipoVoce, LayoutBlocco> = {
+  evento: 'evento',
+  news: 'news',
+  promo: 'evidenza',
+  servizio: 'testo',
+  pagina: 'testo',
+}
+
 // I capoversi disponibili per una voce: la sintesi (quella che si legge in
-// elenco sul sito) piu' i capoversi del corpo della pagina. La sintesi e'
-// spuntata di default: e' il minimo sindacale di un blocco, e su molte voci
-// e' anche l'unico testo esistente.
+// elenco sul sito) più i capoversi del corpo della pagina. La sintesi è
+// spuntata di default: è il minimo di un blocco, e su molte voci è anche
+// l'unico testo esistente.
 function fontiDaVoce(voce: VoceSito): Fonte[] {
   const fonti: Fonte[] = []
   if (voce.sintesi) fonti.push({ testo: voce.sintesi, etichetta: 'Sintesi', scelta: true })
@@ -106,24 +185,59 @@ function fontiDaVoce(voce: VoceSito): Fonte[] {
   return fonti
 }
 
+// I due link di un blocco seguono il formato della newsletter mensile: su un
+// evento «Dettagli» porta alla pagina e il secondo link alle iscrizioni; su
+// una news il pulsante è la CTA scritta in TinaCMS e accanto c'è «Leggi
+// tutto». Così non c'è nulla da incollare a mano.
+function linkDaVoce(voce: VoceSito, layout: LayoutBlocco) {
+  const ctaPropria = voce.ctaLabel && voce.ctaHref ? { label: voce.ctaLabel, href: voce.ctaHref } : null
+
+  if (layout === 'evento') {
+    return {
+      ctaLabel: 'Dettagli',
+      ctaHref: voce.url,
+      cta2Label: ctaPropria && ctaPropria.href !== voce.url ? ctaPropria.label : '',
+      cta2Href: ctaPropria && ctaPropria.href !== voce.url ? ctaPropria.href : '',
+    }
+  }
+
+  if (layout === 'news') {
+    return {
+      ctaLabel: ctaPropria?.label ?? '',
+      ctaHref: ctaPropria?.href ?? '',
+      cta2Label: 'Leggi tutto',
+      cta2Href: voce.url,
+    }
+  }
+
+  return {
+    ctaLabel: ctaPropria?.label ?? 'Scopri di più',
+    ctaHref: ctaPropria?.href ?? voce.url,
+    cta2Label: '',
+    cta2Href: '',
+  }
+}
+
 function bloccoDaVoce(voce: VoceSito): Blocco {
+  const layout = LAYOUT_PER_TIPO[voce.tipo]
+  const link = linkDaVoce(voce, layout)
   return {
     voceId: voce.id,
     tipo: voce.tipo,
-    // Con una foto propria vale la pena mostrarla grande; le voci senza foto
-    // (eventi, servizi, promo) partono a solo testo: una foto si aggiunge poi
-    // dalla galleria, se serve.
-    layout: voce.immagine ? 'grande' : 'solo-testo',
+    layout,
     etichetta: voce.categoria ?? ETICHETTE_TIPO[voce.tipo],
+    luogo: voce.luogo ?? '',
     titolo: voce.titolo,
+    titoloAccento: '',
     data: voce.data,
     mostraData: !!voce.data && (voce.tipo === 'news' || voce.tipo === 'evento'),
     fonti: fontiDaVoce(voce),
     testoManuale: null,
+    punti: '',
+    nota: voce.tipo === 'promo' ? voce.note ?? '' : '',
     immagine: voce.immagine ?? '',
     immagineAlt: voce.immagineAlt ?? voce.titolo,
-    ctaLabel: voce.ctaLabel ?? 'Leggi sul sito',
-    ctaHref: voce.ctaHref ?? voce.url,
+    ...link,
   }
 }
 
@@ -137,13 +251,16 @@ function testoBlocco(blocco: Blocco): string {
 
 export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali: ContenutiSito }) {
   const [contenuti, setContenuti] = useState(contenutiIniziali)
-  const [testata, setTestata] = useState<Testata>(() => testataIniziale(contenutiIniziali.sito))
+  const [impostazioni, setImpostazioni] = useState<Impostazioni>(() =>
+    impostazioniIniziali(contenutiIniziali.sito)
+  )
   const [blocchi, setBlocchi] = useState<Blocco[]>([])
   const [bozzaLetta, setBozzaLetta] = useState(false)
   const [avviso, setAvviso] = useState<string | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const [inCorso, setInCorso] = useState(false)
   const [anteprimaMobile, setAnteprimaMobile] = useState(false)
+  const [mostraImpostazioni, setMostraImpostazioni] = useState(false)
 
   // Filtri del passo 1
   const [tipiAttivi, setTipiAttivi] = useState<TipoVoce[]>([...TIPI_VOCE])
@@ -154,18 +271,24 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
 
   const vociPerId = useMemo(() => new Map(contenuti.voci.map((v) => [v.id, v])), [contenuti.voci])
 
-  // Ripresa del lavoro in corso: una newsletter si compone in piu' riprese e
-  // un ricaricamento della pagina non deve azzerarla. Le voci nel frattempo
-  // depubblicate sul sito vengono lasciate cadere, con un avviso: meglio un
-  // blocco in meno che un blocco che rimanda a una pagina che non c'e' piu'.
+  // Ripresa del lavoro in corso: una newsletter si compone in più riprese e un
+  // ricaricamento della pagina non deve azzerarla. Le voci nel frattempo
+  // depubblicate vengono lasciate cadere, con un avviso: meglio un blocco in
+  // meno che un blocco che rimanda a una pagina che non c'è più.
   useEffect(() => {
     try {
       const salvato = localStorage.getItem(CHIAVE_BOZZA)
       if (salvato) {
         const bozza = JSON.parse(salvato) as Bozza
-        if (bozza?.testata && Array.isArray(bozza.blocchi)) {
+        if (bozza?.impostazioni && Array.isArray(bozza.blocchi)) {
+          const iniziali = impostazioniIniziali(contenutiIniziali.sito)
           const validi = bozza.blocchi.filter((b) => vociPerId.has(b.voceId))
-          setTestata({ ...testataIniziale(contenutiIniziali.sito), ...bozza.testata })
+          setImpostazioni({
+            ...iniziali,
+            ...bozza.impostazioni,
+            sezioni: { ...iniziali.sezioni, ...(bozza.impostazioni.sezioni ?? {}) },
+            indice: bozza.impostazioni.indice ?? iniziali.indice,
+          })
           setBlocchi(validi)
           if (validi.length < bozza.blocchi.length) {
             setAvviso(
@@ -176,7 +299,7 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
       }
     } catch {
       // Bozza illeggibile (formato vecchio, storage pieno): si riparte da
-      // vuoto, che e' esattamente lo stato di una newsletter nuova.
+      // vuoto, che è esattamente lo stato di una newsletter nuova.
     }
     setBozzaLetta(true)
     // Solo al montaggio: la bozza si legge una volta sola.
@@ -186,11 +309,11 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
   useEffect(() => {
     if (!bozzaLetta) return
     try {
-      localStorage.setItem(CHIAVE_BOZZA, JSON.stringify({ testata, blocchi } satisfies Bozza))
+      localStorage.setItem(CHIAVE_BOZZA, JSON.stringify({ impostazioni, blocchi } satisfies Bozza))
     } catch {
       // Storage non disponibile: si continua senza salvataggio.
     }
-  }, [testata, blocchi, bozzaLetta])
+  }, [impostazioni, blocchi, bozzaLetta])
 
   const selezionati = useMemo(() => new Set(blocchi.map((b) => b.voceId)), [blocchi])
 
@@ -225,12 +348,21 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
     setBlocchi((precedenti) => precedenti.map((b) => (b.voceId === voceId ? { ...b, ...modifica } : b)))
   }
 
-  function spostaBlocco(indice: number, direzione: -1 | 1) {
+  // Le frecce spostano il blocco dentro la sua sezione: l'ordine fra sezioni
+  // è fisso (vedi ORDINE_SEZIONI), quindi scambiare con un blocco di un'altra
+  // sezione non produrrebbe nessun effetto visibile nell'email.
+  function spostaBlocco(voceId: string, direzione: -1 | 1) {
     setBlocchi((precedenti) => {
-      const destinazione = indice + direzione
-      if (destinazione < 0 || destinazione >= precedenti.length) return precedenti
+      const blocco = precedenti.find((b) => b.voceId === voceId)
+      if (!blocco) return precedenti
+      const stessaSezione = precedenti.filter((b) => b.layout === blocco.layout)
+      const posizione = stessaSezione.indexOf(blocco)
+      const vicino = stessaSezione[posizione + direzione]
+      if (!vicino) return precedenti
       const copia = [...precedenti]
-      ;[copia[indice], copia[destinazione]] = [copia[destinazione], copia[indice]]
+      const i = copia.indexOf(blocco)
+      const j = copia.indexOf(vicino)
+      ;[copia[i], copia[j]] = [copia[j], copia[i]]
       return copia
     })
   }
@@ -247,38 +379,73 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
     )
   }
 
+  // I blocchi in anteprima seguono l'ordine delle sezioni: è lo stesso ordine
+  // in cui il template li impagina, così l'elenco del passo 2 e l'email si
+  // leggono nello stesso verso.
+  const blocchiOrdinati = useMemo(
+    () =>
+      ORDINE_SEZIONI.flatMap((layout) => blocchi.filter((b) => b.layout === layout)).concat(
+        blocchi.filter((b) => !ORDINE_SEZIONI.includes(b.layout))
+      ),
+    [blocchi]
+  )
+
   const config: ConfigNewsletter = useMemo(
     () => ({
-      oggetto: testata.oggetto,
-      preheader: testata.preheader,
-      titolo: testata.titolo,
-      sottotitolo: testata.sottotitolo,
-      intro: testata.intro,
-      blocchi: blocchi.map(
+      oggetto: impostazioni.oggetto,
+      preheader: impostazioni.preheader,
+      logoUrl: `${contenuti.sito}/logos/tca-logo-esteso.png`,
+      tagline: impostazioni.tagline,
+      ctaTestataLabel: impostazioni.ctaTestataLabel,
+      ctaTestataHref: impostazioni.ctaTestataHref,
+      heroImmagine: impostazioni.heroImmagine,
+      heroAlt: impostazioni.heroAlt,
+      introEyebrow: impostazioni.introEyebrow,
+      introTitolo: impostazioni.introTitolo,
+      introTitoloAccento: impostazioni.introTitoloAccento,
+      intro: impostazioni.intro,
+      indice: impostazioni.indice,
+      ctaIndiceLabel: impostazioni.ctaIndiceLabel,
+      ctaIndiceHref: impostazioni.ctaIndiceHref,
+      blocchi: blocchiOrdinati.map(
         (b): BloccoNewsletter => ({
           id: b.voceId,
           layout: b.layout,
           etichetta: b.etichetta,
+          luogo: b.luogo,
           titolo: b.titolo,
+          titoloAccento: b.titoloAccento,
           data: b.data,
           mostraData: b.mostraData,
           testo: testoBlocco(b),
+          punti: b.punti
+            .split('\n')
+            .map((p) => p.trim())
+            .filter(Boolean),
+          nota: b.nota,
           immagine: b.immagine || null,
           immagineAlt: b.immagineAlt,
           ctaLabel: b.ctaLabel,
           ctaHref: b.ctaHref,
+          cta2Label: b.cta2Label,
+          cta2Href: b.cta2Href,
         })
       ),
-      ctaFinaleLabel: testata.ctaFinaleLabel,
-      ctaFinaleHref: testata.ctaFinaleHref,
-      chiusura: testata.chiusura,
-      logoUrl: `${contenuti.sito}/tca-logo-esteso.png`,
+      sezioni: impostazioni.sezioni,
+      chiusuraTesto: impostazioni.chiusuraTesto,
+      chiusuraLinkLabel: impostazioni.chiusuraLinkLabel,
+      chiusuraLinkHref: impostazioni.chiusuraLinkHref,
+      footerNota: impostazioni.footerNota,
+      footerRagioneSociale: impostazioni.footerRagioneSociale,
+      footerIndirizzo: impostazioni.footerIndirizzo,
+      footerTelefono: impostazioni.footerTelefono,
+      footerEmail: impostazioni.footerEmail,
+      instagramUrl: impostazioni.instagramUrl,
+      facebookUrl: impostazioni.facebookUrl,
+      footerMotivo: impostazioni.footerMotivo,
       urlSito: contenuti.sito,
-      firma: testata.firma,
-      mostraDisiscrizione: testata.mostraDisiscrizione,
-      testoDisiscrizione: testata.testoDisiscrizione,
     }),
-    [testata, blocchi, contenuti.sito]
+    [impostazioni, blocchiOrdinati, contenuti.sito]
   )
 
   const html = useMemo(() => costruisciNewsletter(config), [config])
@@ -313,7 +480,7 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
       setErrore('Il browser non ha permesso la copia automatica: usa «Scarica .html».')
       return
     }
-    void registraNewsletterGenerata(testata.oggetto, blocchi.length)
+    void registraNewsletterGenerata(impostazioni.oggetto, blocchi.length)
   }
 
   function scaricaHtml() {
@@ -324,16 +491,66 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
     link.download = `newsletter-${new Date().toISOString().slice(0, 10)}.html`
     link.click()
     URL.revokeObjectURL(url)
-    void registraNewsletterGenerata(testata.oggetto, blocchi.length)
+    void registraNewsletterGenerata(impostazioni.oggetto, blocchi.length)
   }
 
   function svuota() {
     if (!confirm('Svuoti la newsletter in corso? I blocchi scelti e i testi modificati vanno persi.')) return
     setBlocchi([])
-    setTestata(testataIniziale(contenuti.sito))
+    setImpostazioni(impostazioniIniziali(contenuti.sito))
     setAvviso(null)
     setErrore(null)
   }
+
+  function campoImpostazione(
+    etichetta: string,
+    chiave: keyof Impostazioni,
+    opzioni?: { larga?: boolean; righe?: number; tipo?: 'text' | 'url' }
+  ) {
+    const valore = impostazioni[chiave]
+    if (typeof valore !== 'string') return null
+    return (
+      <label className={`nl-campo${opzioni?.larga ? ' nl-campo-larga' : ''}`}>
+        <span>{etichetta}</span>
+        {opzioni?.righe ? (
+          <textarea
+            rows={opzioni.righe}
+            value={valore}
+            onChange={(e) => setImpostazioni({ ...impostazioni, [chiave]: e.target.value })}
+          />
+        ) : (
+          <input
+            type={opzioni?.tipo ?? 'text'}
+            value={valore}
+            onChange={(e) => setImpostazioni({ ...impostazioni, [chiave]: e.target.value })}
+          />
+        )}
+      </label>
+    )
+  }
+
+  function aggiornaSezione(layout: LayoutBlocco, modifica: Partial<Sezione>) {
+    setImpostazioni({
+      ...impostazioni,
+      sezioni: { ...impostazioni.sezioni, [layout]: { ...impostazioni.sezioni[layout], ...modifica } },
+    })
+  }
+
+  const selettoreFoto = (valore: string, onChange: (v: string) => void, voce?: VoceSito) => (
+    <select value={valore} onChange={(e) => onChange(e.target.value)}>
+      <option value="">Nessuna foto</option>
+      {voce?.immagine && (
+        <option value={voce.immagine}>
+          Foto della pagina{voce.immagineEmailSafe ? '' : ' (formato non adatto)'}
+        </option>
+      )}
+      {contenuti.immagini.map((immagine) => (
+        <option key={immagine.url} value={immagine.url}>
+          {immagine.nome}
+        </option>
+      ))}
+    </select>
+  )
 
   return (
     <div className="nl">
@@ -416,6 +633,7 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                       <span className={`nl-badge nl-badge-${voce.tipo}`}>{ETICHETTE_TIPO[voce.tipo]}</span>
                       {voce.categoria && <span className="nl-voce-cat">{voce.categoria}</span>}
                       {voce.data && <span className="nl-voce-data">{formatDataItaliana(voce.data)}</span>}
+                      {voce.luogo && <span className="nl-voce-cat">{voce.luogo}</span>}
                       {voce.immagine && !voce.immagineEmailSafe && (
                         <span className="nl-warn" title="Formato non visibile in molti programmi di posta">
                           foto in formato non adatto alle email
@@ -424,7 +642,6 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                     </div>
                     <p className="nl-voce-titolo">{voce.titolo}</p>
                     {voce.sintesi && <p className="nl-voce-sintesi">{voce.sintesi}</p>}
-                    {voce.note && <p className="nl-voce-note">{voce.note}</p>}
                     <a href={voce.url} target="_blank" rel="noopener noreferrer" className="nl-voce-link">
                       Apri sul sito ↗
                     </a>
@@ -442,17 +659,23 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
           <h2>
             <span className="nl-passo-numero">2</span> Blocchi dell&apos;email
           </h2>
+          <span className="nl-conteggio">l&apos;ordine delle sezioni è fisso: evidenza, eventi, news, altro</span>
         </header>
 
         {blocchi.length === 0 ? (
           <p className="muted">
-            Nessun blocco: spunta almeno un contenuto nel passo 1 e comparirà qui, pronto da rifinire.
+            Nessun blocco: spunta almeno un contenuto nel passo 1 e comparirà qui, già impaginato secondo il suo
+            tipo.
           </p>
         ) : (
           <ol className="nl-blocchi">
-            {blocchi.map((blocco, indice) => {
+            {blocchiOrdinati.map((blocco) => {
               const voce = vociPerId.get(blocco.voceId)
               const fotoNonSicura = !!voce && blocco.immagine === voce.immagine && !voce.immagineEmailSafe
+              const primoDellaSezione =
+                blocchiOrdinati.find((b) => b.layout === blocco.layout)?.voceId === blocco.voceId
+              const ultimoDellaSezione =
+                [...blocchiOrdinati].reverse().find((b) => b.layout === blocco.layout)?.voceId === blocco.voceId
               return (
                 <li key={blocco.voceId} className="nl-blocco">
                   <div className="nl-blocco-testa">
@@ -462,20 +685,20 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                       <button
                         type="button"
                         className="btn btn-small btn-ghost"
-                        onClick={() => spostaBlocco(indice, -1)}
-                        disabled={indice === 0}
+                        onClick={() => spostaBlocco(blocco.voceId, -1)}
+                        disabled={primoDellaSezione}
                         aria-label="Sposta su"
-                        title="Sposta su"
+                        title="Sposta su (dentro la sua sezione)"
                       >
                         ▲
                       </button>
                       <button
                         type="button"
                         className="btn btn-small btn-ghost"
-                        onClick={() => spostaBlocco(indice, 1)}
-                        disabled={indice === blocchi.length - 1}
+                        onClick={() => spostaBlocco(blocco.voceId, 1)}
+                        disabled={ultimoDellaSezione}
                         aria-label="Sposta giù"
-                        title="Sposta giù"
+                        title="Sposta giù (dentro la sua sezione)"
                       >
                         ▼
                       </button>
@@ -490,7 +713,7 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                   </div>
 
                   <div className="nl-blocco-griglia">
-                    <label className="nl-campo">
+                    <label className="nl-campo nl-campo-larga">
                       <span>Impaginazione</span>
                       <select
                         value={blocco.layout}
@@ -505,13 +728,24 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                     </label>
 
                     <label className="nl-campo">
-                      <span>Etichetta sopra il titolo</span>
+                      <span>Etichetta (categoria)</span>
                       <input
                         type="text"
                         value={blocco.etichetta}
                         onChange={(e) => aggiornaBlocco(blocco.voceId, { etichetta: e.target.value })}
                       />
                     </label>
+
+                    {blocco.layout === 'evento' && (
+                      <label className="nl-campo">
+                        <span>Luogo</span>
+                        <input
+                          type="text"
+                          value={blocco.luogo}
+                          onChange={(e) => aggiornaBlocco(blocco.voceId, { luogo: e.target.value })}
+                        />
+                      </label>
+                    )}
 
                     <label className="nl-campo nl-campo-larga">
                       <span>Titolo del blocco</span>
@@ -521,6 +755,17 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                         onChange={(e) => aggiornaBlocco(blocco.voceId, { titolo: e.target.value })}
                       />
                     </label>
+
+                    {blocco.layout === 'evidenza' && (
+                      <label className="nl-campo nl-campo-larga">
+                        <span>Seconda riga del titolo (in rosso)</span>
+                        <input
+                          type="text"
+                          value={blocco.titoloAccento}
+                          onChange={(e) => aggiornaBlocco(blocco.voceId, { titoloAccento: e.target.value })}
+                        />
+                      </label>
+                    )}
 
                     {blocco.data && (
                       <label className="filtro-checkbox">
@@ -558,7 +803,7 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                         {blocco.testoManuale !== null && <em className="nl-nota"> — modificato a mano</em>}
                       </span>
                       <textarea
-                        rows={5}
+                        rows={4}
                         value={testoBlocco(blocco)}
                         onChange={(e) => aggiornaBlocco(blocco.voceId, { testoManuale: e.target.value })}
                       />
@@ -574,26 +819,36 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                     )}
                   </div>
 
-                  {blocco.layout !== 'solo-testo' && (
+                  {blocco.layout === 'evidenza' && (
+                    <div className="nl-blocco-griglia">
+                      <label className="nl-campo nl-campo-larga">
+                        <span>Elenco numerato (una riga per punto, vuoto = nessun elenco)</span>
+                        <textarea
+                          rows={3}
+                          value={blocco.punti}
+                          onChange={(e) => aggiornaBlocco(blocco.voceId, { punti: e.target.value })}
+                        />
+                      </label>
+                      <label className="nl-campo nl-campo-larga">
+                        <span>Riga in evidenza sotto l&apos;elenco</span>
+                        <input
+                          type="text"
+                          value={blocco.nota}
+                          onChange={(e) => aggiornaBlocco(blocco.voceId, { nota: e.target.value })}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {blocco.layout !== 'evidenza' && (
                     <div className="nl-blocco-griglia">
                       <label className="nl-campo">
                         <span>Foto</span>
-                        <select
-                          value={blocco.immagine}
-                          onChange={(e) => aggiornaBlocco(blocco.voceId, { immagine: e.target.value })}
-                        >
-                          <option value="">Nessuna foto</option>
-                          {voce?.immagine && (
-                            <option value={voce.immagine}>
-                              Foto della pagina{voce.immagineEmailSafe ? '' : ' (formato non adatto)'}
-                            </option>
-                          )}
-                          {contenuti.immagini.map((immagine) => (
-                            <option key={immagine.url} value={immagine.url}>
-                              {immagine.nome}
-                            </option>
-                          ))}
-                        </select>
+                        {selettoreFoto(
+                          blocco.immagine,
+                          (v) => aggiornaBlocco(blocco.voceId, { immagine: v }),
+                          voce
+                        )}
                       </label>
 
                       <label className="nl-campo">
@@ -615,7 +870,7 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                       {fotoNonSicura && (
                         <p className="nl-warn nl-warn-blocco">
                           Questa foto è in un formato che molti programmi di posta non mostrano: scegline un&apos;altra
-                          dall&apos;elenco, oppure lascia il blocco solo testo.
+                          dall&apos;elenco, oppure togli la foto.
                         </p>
                       )}
                     </div>
@@ -623,7 +878,7 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
 
                   <div className="nl-blocco-griglia">
                     <label className="nl-campo">
-                      <span>Testo del pulsante (vuoto = nessun pulsante)</span>
+                      <span>Pulsante / primo link</span>
                       <input
                         type="text"
                         value={blocco.ctaLabel}
@@ -631,13 +886,33 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
                       />
                     </label>
                     <label className="nl-campo nl-campo-larga">
-                      <span>Link del pulsante</span>
+                      <span>Link</span>
                       <input
                         type="url"
                         value={blocco.ctaHref}
                         onChange={(e) => aggiornaBlocco(blocco.voceId, { ctaHref: e.target.value })}
                       />
                     </label>
+                    {blocco.layout !== 'evidenza' && (
+                      <>
+                        <label className="nl-campo">
+                          <span>Secondo link (vuoto = nessuno)</span>
+                          <input
+                            type="text"
+                            value={blocco.cta2Label}
+                            onChange={(e) => aggiornaBlocco(blocco.voceId, { cta2Label: e.target.value })}
+                          />
+                        </label>
+                        <label className="nl-campo nl-campo-larga">
+                          <span>Link del secondo</span>
+                          <input
+                            type="url"
+                            value={blocco.cta2Href}
+                            onChange={(e) => aggiornaBlocco(blocco.voceId, { cta2Href: e.target.value })}
+                          />
+                        </label>
+                      </>
+                    )}
                   </div>
                 </li>
               )
@@ -646,109 +921,161 @@ export function CostruttoreNewsletter({ contenutiIniziali }: { contenutiIniziali
         )}
       </section>
 
-      {/* ── Passo 3: testata e chiusura ───────────────────────────────── */}
+      {/* ── Passo 3: testata, sezioni, footer ─────────────────────────── */}
       <section className="nl-passo">
         <header className="nl-passo-testa">
           <h2>
-            <span className="nl-passo-numero">3</span> Testata e chiusura
+            <span className="nl-passo-numero">3</span> Oggetto e apertura
           </h2>
+          <button
+            type="button"
+            className="btn btn-small btn-ghost"
+            onClick={() => setMostraImpostazioni((m) => !m)}
+          >
+            {mostraImpostazioni ? 'Nascondi il resto' : 'Testata, sezioni e footer'}
+          </button>
         </header>
 
         <div className="nl-blocco-griglia">
-          <label className="nl-campo nl-campo-larga">
-            <span>Oggetto dell&apos;email</span>
-            <input
-              type="text"
-              value={testata.oggetto}
-              onChange={(e) => setTestata({ ...testata, oggetto: e.target.value })}
-            />
-          </label>
-          <label className="nl-campo nl-campo-larga">
-            <span>Anteprima in casella (la riga grigia sotto l&apos;oggetto)</span>
-            <input
-              type="text"
-              value={testata.preheader}
-              onChange={(e) => setTestata({ ...testata, preheader: e.target.value })}
-            />
-          </label>
+          {campoImpostazione("Oggetto dell'email", 'oggetto', { larga: true })}
+          {campoImpostazione('Anteprima in casella (la riga sotto l’oggetto)', 'preheader', { larga: true })}
+          {campoImpostazione('Sopratitolo', 'introEyebrow')}
+          {campoImpostazione('Titolo grande', 'introTitolo')}
+          {campoImpostazione('Seconda riga del titolo (in rosso)', 'introTitoloAccento')}
           <label className="nl-campo">
-            <span>Sopratitolo</span>
-            <input
-              type="text"
-              value={testata.sottotitolo}
-              onChange={(e) => setTestata({ ...testata, sottotitolo: e.target.value })}
-            />
+            <span>Foto di apertura</span>
+            {selettoreFoto(impostazioni.heroImmagine, (v) => setImpostazioni({ ...impostazioni, heroImmagine: v }))}
           </label>
-          <label className="nl-campo">
-            <span>Titolo grande</span>
-            <input
-              type="text"
-              value={testata.titolo}
-              onChange={(e) => setTestata({ ...testata, titolo: e.target.value })}
-            />
-          </label>
-          <label className="nl-campo nl-campo-larga">
-            <span>Testo di apertura</span>
-            <textarea
-              rows={3}
-              value={testata.intro}
-              onChange={(e) => setTestata({ ...testata, intro: e.target.value })}
-            />
-          </label>
-          <label className="nl-campo nl-campo-larga">
-            <span>Testo di chiusura</span>
-            <textarea
-              rows={2}
-              value={testata.chiusura}
-              onChange={(e) => setTestata({ ...testata, chiusura: e.target.value })}
-            />
-          </label>
-          <label className="nl-campo">
-            <span>Pulsante finale</span>
-            <input
-              type="text"
-              value={testata.ctaFinaleLabel}
-              onChange={(e) => setTestata({ ...testata, ctaFinaleLabel: e.target.value })}
-            />
-          </label>
-          <label className="nl-campo">
-            <span>Link del pulsante finale</span>
-            <input
-              type="url"
-              value={testata.ctaFinaleHref}
-              onChange={(e) => setTestata({ ...testata, ctaFinaleHref: e.target.value })}
-            />
-          </label>
-          <label className="nl-campo nl-campo-larga">
-            <span>Riga legale in fondo</span>
-            <input
-              type="text"
-              value={testata.firma}
-              onChange={(e) => setTestata({ ...testata, firma: e.target.value })}
-            />
-          </label>
-          <label className="filtro-checkbox">
-            <input
-              type="checkbox"
-              checked={testata.mostraDisiscrizione}
-              onChange={(e) => setTestata({ ...testata, mostraDisiscrizione: e.target.checked })}
-            />
-            Riga «perché ricevi questa email»
-          </label>
-          {testata.mostraDisiscrizione && (
-            <label className="nl-campo nl-campo-larga">
-              <span>Testo della riga</span>
-              <input
-                type="text"
-                value={testata.testoDisiscrizione}
-                onChange={(e) => setTestata({ ...testata, testoDisiscrizione: e.target.value })}
-              />
-            </label>
+          {impostazioni.heroImmagine && (
+            <div className="nl-foto-anteprima">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={impostazioni.heroImmagine} alt="" />
+            </div>
           )}
+          {campoImpostazione('Testo di apertura', 'intro', { larga: true, righe: 3 })}
         </div>
-        <p className="nl-nota">
-          Il link per disiscriversi lo aggiunge la piattaforma di invio: non va scritto qui.
-        </p>
+
+        {mostraImpostazioni && (
+          <>
+            <p className="nl-etichetta nl-sub">Testata nera</p>
+            <div className="nl-blocco-griglia">
+              {campoImpostazione('Riga sotto il logo', 'tagline', { larga: true })}
+              {campoImpostazione('Link della testata', 'ctaTestataLabel')}
+              {campoImpostazione('Indirizzo del link', 'ctaTestataHref', { tipo: 'url' })}
+            </div>
+
+            <p className="nl-etichetta nl-sub">Indice numerato</p>
+            <div className="nl-blocco-griglia">
+              {impostazioni.indice.map((voce, i) => (
+                <div className="nl-indice-voce" key={i}>
+                  <label className="nl-campo">
+                    <span>Voce {String(i + 1).padStart(2, '0')}</span>
+                    <input
+                      type="text"
+                      value={voce.titolo}
+                      onChange={(e) => {
+                        const indice = [...impostazioni.indice]
+                        indice[i] = { ...indice[i], titolo: e.target.value }
+                        setImpostazioni({ ...impostazioni, indice })
+                      }}
+                    />
+                  </label>
+                  <label className="nl-campo">
+                    <span>Descrizione</span>
+                    <input
+                      type="text"
+                      value={voce.testo}
+                      onChange={(e) => {
+                        const indice = [...impostazioni.indice]
+                        indice[i] = { ...indice[i], testo: e.target.value }
+                        setImpostazioni({ ...impostazioni, indice })
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-small btn-ghost"
+                    onClick={() =>
+                      setImpostazioni({
+                        ...impostazioni,
+                        indice: impostazioni.indice.filter((_, j) => j !== i),
+                      })
+                    }
+                  >
+                    Togli
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn btn-small btn-ghost"
+                onClick={() =>
+                  setImpostazioni({ ...impostazioni, indice: [...impostazioni.indice, { titolo: '', testo: '' }] })
+                }
+              >
+                + Aggiungi voce
+              </button>
+              {campoImpostazione('Pulsante sotto l’indice', 'ctaIndiceLabel')}
+              {campoImpostazione('Link del pulsante', 'ctaIndiceHref', { tipo: 'url' })}
+            </div>
+
+            <p className="nl-etichetta nl-sub">Intestazioni delle sezioni</p>
+            {ORDINE_SEZIONI.map((layout) => (
+              <div className="nl-blocco-griglia" key={layout}>
+                <label className="nl-campo">
+                  <span>{ETICHETTE_LAYOUT[layout].split(' (')[0]} — sopratitolo</span>
+                  <input
+                    type="text"
+                    value={impostazioni.sezioni[layout].eyebrow}
+                    onChange={(e) => aggiornaSezione(layout, { eyebrow: e.target.value })}
+                  />
+                </label>
+                <label className="nl-campo">
+                  <span>Titolo della sezione</span>
+                  <input
+                    type="text"
+                    value={impostazioni.sezioni[layout].titolo}
+                    onChange={(e) => aggiornaSezione(layout, { titolo: e.target.value })}
+                  />
+                </label>
+                <label className="nl-campo">
+                  <span>Link di coda</span>
+                  <input
+                    type="text"
+                    value={impostazioni.sezioni[layout].linkLabel}
+                    onChange={(e) => aggiornaSezione(layout, { linkLabel: e.target.value })}
+                  />
+                </label>
+                <label className="nl-campo">
+                  <span>Indirizzo del link</span>
+                  <input
+                    type="url"
+                    value={impostazioni.sezioni[layout].linkHref}
+                    onChange={(e) => aggiornaSezione(layout, { linkHref: e.target.value })}
+                  />
+                </label>
+              </div>
+            ))}
+
+            <p className="nl-etichetta nl-sub">Chiusura e footer</p>
+            <div className="nl-blocco-griglia">
+              {campoImpostazione('Fascia di chiusura', 'chiusuraTesto', { larga: true })}
+              {campoImpostazione('Link della fascia', 'chiusuraLinkLabel')}
+              {campoImpostazione('Indirizzo del link', 'chiusuraLinkHref', { tipo: 'url' })}
+              {campoImpostazione('Nota del footer', 'footerNota', { larga: true })}
+              {campoImpostazione('Ragione sociale', 'footerRagioneSociale')}
+              {campoImpostazione('Indirizzo', 'footerIndirizzo')}
+              {campoImpostazione('Telefono', 'footerTelefono')}
+              {campoImpostazione('Email', 'footerEmail')}
+              {campoImpostazione('Instagram', 'instagramUrl', { tipo: 'url' })}
+              {campoImpostazione('Facebook', 'facebookUrl', { tipo: 'url' })}
+              {campoImpostazione('Perché ricevi questa email', 'footerMotivo', { larga: true, righe: 2 })}
+            </div>
+            <p className="nl-nota">
+              Il link per disiscriversi lo aggiunge la piattaforma di invio: non va scritto qui.
+            </p>
+          </>
+        )}
       </section>
 
       {/* ── Anteprima e consegna ──────────────────────────────────────── */}

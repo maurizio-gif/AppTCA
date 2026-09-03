@@ -25,6 +25,7 @@ export type VoceSito = {
   data: string | null
   sintesi: string
   paragrafi: string[]
+  luogo: string | null
   immagine: string | null
   immagineAlt: string | null
   immagineEmailSafe: boolean
