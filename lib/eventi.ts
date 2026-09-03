@@ -187,6 +187,91 @@ export async function contaDisponibilita(
   }
 }
 
+// ─── Verifica socio (via n8n) ───────────────────────────────────────────────
+//
+// Stesso webhook che il form contatti del sito interroga al primo passo
+// (WEBHOOK_CHECK in src/lib/leadForm.client.js): risponde `iscritto`,
+// `esiste` o `nuovo`, eventualmente con il suffisso _adulto/_bambino.
+// "Socio" è solo `iscritto` — chi esiste in anagrafica senza contratto attivo
+// non ha diritto alla quota ridotta.
+//
+// Il controllo passa da qui e non da PerfectGym direttamente: le credenziali
+// PGM vivono nel workflow n8n, che è già l'unico punto in cui il sito verifica
+// un'iscrizione. Duplicare la chiamata qui significherebbe tenere allineate
+// due implementazioni della stessa domanda, e due posti in cui le credenziali
+// possono mancare.
+
+const WEBHOOK_VERIFICA =
+  process.env.N8N_WEBHOOK_VERIFICA_ISCRITTO ??
+  'https://automazione.n8ndevelop.it/webhook/tca-verifica-iscritto'
+
+const TIMEOUT_VERIFICA_MS = 8000
+
+export type EsitoVerifica = {
+  socio: boolean
+  stato: 'iscritto' | 'esiste' | 'nuovo' | null
+  // false se la chiamata non è andata a buon fine: chi chiama decide se
+  // proseguire (il form prosegue come non socio) e lo segnala nella risposta.
+  riuscita: boolean
+}
+
+export async function verificaSocio(email: string): Promise<EsitoVerifica> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_VERIFICA_MS)
+  try {
+    const risposta = await fetch(WEBHOOK_VERIFICA, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, origine: 'prenotazione-evento' }),
+      signal: controller.signal,
+    })
+    if (!risposta.ok) return { socio: false, stato: null, riuscita: false }
+
+    const corpo = await risposta.json()
+    const match = /^(iscritto|esiste|nuovo)(?:_(?:adulto|bambino))?$/.exec(String(corpo?.stato ?? ''))
+    if (!match) return { socio: false, stato: null, riuscita: false }
+
+    const stato = match[1] as 'iscritto' | 'esiste' | 'nuovo'
+    return { socio: stato === 'iscritto', stato, riuscita: true }
+  } catch {
+    return { socio: false, stato: null, riuscita: false }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// Dati del socio presi dall'anagrafica interna, non richiesti a lui: è il
+// motivo per cui a un socio il form non chiede nulla oltre all'email. Se la
+// persona non è in anagrafica la prenotazione si salva comunque con la sola
+// email — la segreteria la riconosce da quella, e perdere l'iscrizione per un
+// nome mancante sarebbe peggio.
+export type PersonaNota = {
+  id: string
+  nome: string | null
+  cognome: string | null
+  cellulare: string | null
+  pgmMemberId: string | null
+}
+
+export async function cercaPersona(supabase: Supa, email: string): Promise<PersonaNota | null> {
+  const { data } = await supabase
+    .from('persone')
+    .select('id, nome, cognome, cellulare, pgm_member_id, storico')
+    .ilike('email', email)
+    .eq('storico', false)
+    .limit(1)
+    .maybeSingle()
+
+  if (!data) return null
+  return {
+    id: data.id,
+    nome: data.nome,
+    cognome: data.cognome,
+    cellulare: data.cellulare,
+    pgmMemberId: data.pgm_member_id,
+  }
+}
+
 // ─── Email trasazionali (delegate a n8n) ────────────────────────────────────
 //
 // Il CRM non ha un mittente configurato: le email del sito le manda già n8n,

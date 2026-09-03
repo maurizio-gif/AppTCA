@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { corsEventi } from '@/lib/eventi'
-import { verificaSocioPgm } from '@/lib/perfectgym'
+import { corsEventi, verificaSocio } from '@/lib/eventi'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,15 +7,14 @@ export const dynamic = 'force-dynamic'
 // attivo? Da questo dipendono la quota (25 € / 35 €) e il fatto di non
 // richiedere dati che il Club ha già.
 //
-// La risposta NON contiene nome, cognome o cellulare del socio, anche se
-// PerfectGym li restituisce: farli arrivare al browser significherebbe
-// permettere a chiunque di leggere i recapiti di un socio conoscendone
-// l'email. Al momento della prenotazione li rilegge il server (vedi
-// /api/eventi/prenotazione), che è l'unico punto in cui servono davvero.
+// La verifica passa dal webhook n8n `tca-verifica-iscritto`, lo stesso che il
+// form contatti interroga al primo passo (vedi verificaSocio in lib/eventi.ts).
 //
-// Resta esposto il solo bit "questa email è socio": è la stessa informazione
-// che il webhook n8n `tca-verifica-iscritto` già restituisce al form contatti
-// del sito, quindi non apre una superficie nuova.
+// La risposta contiene il solo bit "questa email è socio": nome, cognome e
+// cellulare restano fuori, anche se il CRM li conosce. Farli arrivare al
+// browser significherebbe permettere a chiunque di leggere i recapiti di un
+// socio conoscendone l'email. Al momento della prenotazione li rilegge il
+// server (vedi /api/eventi/prenotazione), l'unico punto in cui servono.
 
 const EMAIL_VALIDA = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -39,12 +37,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ errore: 'Email non valida.' }, { status: 400, headers })
   }
 
-  const esito = await verificaSocioPgm(email)
+  const esito = await verificaSocio(email)
 
-  // PerfectGym irraggiungibile: si prosegue trattando la persona come non
-  // socia, invece di bloccare la prenotazione. Chiedere i dati a un socio è
-  // un fastidio; impedirgli di prenotare è perdere l'iscrizione. La quota
-  // viene comunque ricalcolata al salvataggio, quando PGM potrebbe essere
+  // Verifica non riuscita: si prosegue trattando la persona come non socia,
+  // invece di bloccare la prenotazione. Chiedere i dati a un socio è un
+  // fastidio; impedirgli di prenotare è perdere l'iscrizione. La quota viene
+  // comunque ricalcolata al salvataggio, quando il webhook potrebbe essere
   // tornato disponibile.
-  return NextResponse.json({ socio: esito.socio, verificaRiuscita: !esito.errore }, { headers })
+  return NextResponse.json({ socio: esito.socio, verificaRiuscita: esito.riuscita }, { headers })
 }

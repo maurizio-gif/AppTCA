@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
 import {
+  cercaPersona,
   contaDisponibilita,
   corsEventi,
   getEventoPrenotabile,
   notificaEmailEvento,
+  verificaSocio,
 } from '@/lib/eventi'
-import { verificaSocioPgm } from '@/lib/perfectgym'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,8 +18,8 @@ export const dynamic = 'force-dynamic'
 //
 // Niente di ciò che arriva dal browser viene creduto sui numeri: capienza,
 // quota e ore di scadenza si rileggono dal manifest del sito, e lo stato di
-// socio si riverifica su PerfectGym qui — altrimenti basterebbe una POST a
-// mano con `socio: true` per pagare 25 € invece di 35 €.
+// socio si riverifica qui contro il webhook n8n — altrimenti basterebbe una
+// POST a mano con `socio: true` per pagare 25 € invece di 35 €.
 
 const EMAIL_VALIDA = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const CODICE_UNIQUE_VIOLATION = '23505'
@@ -69,17 +70,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ errore: 'completo', postiResidui: 0 }, { status: 409, headers })
   }
 
-  const pgm = await verificaSocioPgm(email)
+  const verifica = await verificaSocio(email)
 
-  // Un socio i suoi dati li ha già in anagrafica: il form non glieli chiede e
-  // PerfectGym resta la fonte di verità (stessa scelta di sincronizzaPgm).
-  // Per il non socio i tre campi sono obbligatori: senza recapito la
-  // segreteria non può richiamarlo per il pagamento.
-  const nome = pgm.socio ? pgm.nome ?? testo(corpo.nome, 80) : testo(corpo.nome, 80)
-  const cognome = pgm.socio ? pgm.cognome ?? testo(corpo.cognome, 80) : testo(corpo.cognome, 80)
-  const cellulare = pgm.socio ? pgm.cellulare ?? testo(corpo.cellulare, 40) : testo(corpo.cellulare, 40)
+  // Un socio i suoi dati li ha già dati al Club: il form non glieli richiede e
+  // si rileggono dall'anagrafica interna. Se lì non c'è (o non è socio) restano
+  // quelli digitati nel form. Per il non socio i tre campi sono obbligatori:
+  // senza recapito la segreteria non può richiamarlo per il pagamento.
+  const persona = verifica.socio ? await cercaPersona(supabase, email) : null
 
-  if (!pgm.socio) {
+  const nome = persona?.nome ?? testo(corpo.nome, 80)
+  const cognome = persona?.cognome ?? testo(corpo.cognome, 80)
+  const cellulare = persona?.cellulare ?? testo(corpo.cellulare, 40)
+
+  if (!verifica.socio) {
     if (!nome) return NextResponse.json({ errore: 'Nome mancante.', campo: 'nome' }, { status: 400, headers })
     if (!cognome) return NextResponse.json({ errore: 'Cognome mancante.', campo: 'cognome' }, { status: 400, headers })
     if (!cellulare || !cellulareValido(cellulare)) {
@@ -90,7 +93,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const quota = pgm.socio ? evento.quotaSocio : evento.quotaNonSocio
+  const quota = verifica.socio ? evento.quotaSocio : evento.quotaNonSocio
   const adesso = new Date()
   const scadenza = new Date(adesso.getTime() + evento.oreScadenza * 3_600_000)
 
@@ -108,9 +111,16 @@ export async function POST(request: Request) {
       cognome: cognome || null,
       email,
       cellulare: cellulare || null,
-      socio: pgm.socio,
-      stato_contratto_pgm: pgm.esito,
-      link_pgm: pgm.pgmProfileUrl,
+      socio: verifica.socio,
+      // Lo stato restituito da n8n, non un contratto letto da PerfectGym:
+      // serve alla segreteria per sapere su cosa si è basata la quota.
+      stato_contratto_pgm: verifica.riuscita ? verifica.stato : 'verifica non riuscita',
+      // Collega la prenotazione alla scheda anagrafica già esistente, così in
+      // dashboard la persona non risulta un contatto nuovo.
+      persona_id: persona?.id ?? null,
+      link_pgm: persona?.pgmMemberId
+        ? `https://tcambrosiano.perfectgym.com/pgm/#/Users/${persona.pgmMemberId}/UserProfile`
+        : null,
     })
     .select('id')
     .single()
@@ -161,7 +171,7 @@ export async function POST(request: Request) {
     email,
     nome,
     cognome,
-    socio: pgm.socio,
+    socio: verifica.socio,
     quota,
     scadenzaPagamento: scadenza.toISOString(),
     oreScadenza: evento.oreScadenza,
@@ -170,7 +180,7 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       ok: true,
-      socio: pgm.socio,
+      socio: verifica.socio,
       quota,
       oreScadenza: evento.oreScadenza,
       scadenzaPagamento: scadenza.toISOString(),
