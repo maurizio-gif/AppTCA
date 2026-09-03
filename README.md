@@ -800,3 +800,59 @@ Le tabelle restano piccole (il vero collo di bottiglia non è mai stato il
 volume di dati): il tempo si perdeva tutto in giri di rete - alcuni evitabili
 del tutto (una query di troppo), altri semplicemente più lunghi del
 necessario perché la funzione e il database erano su continenti diversi.
+
+## Aggiornamento — Newsletter: il template HTML si compone dai contenuti del sito
+
+La newsletter del Club veniva montata a mano (o chiedendo a un'AI di leggere
+il sito e sputare l'HTML): un lavoro che richiede di sapere cosa chiedere e
+come. Ora è una sezione del CRM — **Newsletter** (`/dashboard/newsletter`) —
+pensata per chi non usa l'AI: si spuntano i contenuti, si rifinisce, si copia
+l'HTML.
+
+### Il sito pubblica i contenuti, il CRM li impagina
+
+Il sito è statico: il CRM non può leggere i `.md` di `src/content/`. Come per
+il manifest degli eventi prenotabili, è la build del sito a pubblicare quello
+che serve — `/newsletter-feed.json`
+(`WebSite-TCA/src/pages/newsletter-feed.json.ts`): news, eventi, servizi,
+promo attiva e pagine linkabili, con titolo, data, categoria, sintesi, i
+**capoversi del corpo** già ripuliti dal markdown, immagine e URL assoluti, CTA.
+
+Il CRM lo rilegge in `lib/newsletter.ts` (una sola fetch, cache 5 minuti,
+`SITO_TCA_URL` — la stessa variabile già usata per gli eventi): una voce senza
+titolo o senza URL viene scartata invece di essere "aggiustata", perché in
+newsletter un default inventato diventa un'email spedita con un link finto.
+
+### Analitico nella scelta, non un "genera tutto"
+
+Chi compone decide voce per voce, non prende un blocco preconfezionato:
+
+- **Passo 1** — elenco filtrabile per tipo, periodo e parola nel titolo, con
+  la spunta su ogni contenuto (33 voci pubblicate oggi).
+- **Passo 2** — ogni voce spuntata diventa un blocco: impaginazione (foto
+  grande, foto piccola a lato, solo testo), **quali capoversi della pagina del
+  sito entrano nell'email** (uno per uno, spuntabili), foto, testo del
+  pulsante e link, ordine dei blocchi.
+- **Passo 3** — oggetto, anteprima in casella, testata, chiusura, riga legale.
+
+Il testo nasce dai capoversi spuntati; se viene modificato a mano la
+composizione automatica si ferma (per non cancellare quello che si è scritto)
+e resta un pulsante «Ripristina il testo del sito». Il lavoro in corso è
+salvato nel browser: chiudere la pagina non azzera la newsletter.
+
+### L'HTML è pensato per i client di posta
+
+`lib/newsletter-template.ts` genera un HTML da email, non da pagina: tabelle e
+stili inline, 600px, una sola media query, font di sistema come fallback di
+Barlow, `width` e `alt` su ogni immagine (con le immagini bloccate — il default
+di Outlook — l'email resta leggibile). Le foto del sito sono spesso `.avif`,
+che gran parte dei client non mostra: il feed usa la variante `.jpg`/`.png`
+quando esiste accanto al file, altrimenti la voce lo segnala e si sceglie
+un'altra foto tra quelle già pubblicate.
+
+Anteprima (anche in larghezza telefono), «Copia HTML» e «Scarica .html»: da
+qui non si spedisce nulla, l'invio resta alla piattaforma di mailing. Chi
+genera un template finisce nel registro operatori (`newsletter_generata`).
+
+La sezione è un permesso come gli altri (`newsletter` in
+`lib/auth/sezioni.ts`): va assegnata da Gestione utenti a chi deve vederla.

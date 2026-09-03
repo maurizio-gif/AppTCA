@@ -59,6 +59,7 @@ export const AZIONI_LOG: Record<string, string> = {
   timbratura_modificata: 'Timbratura: turno corretto a mano',
   timbratura_eliminata: 'Timbratura: turno cancellato',
   notifica_inviata: 'Notifica interna inviata',
+  newsletter_generata: 'Newsletter: template HTML generato',
 }
 
 export function etichettaAzione(azione: string): string {

@@ -101,6 +101,13 @@ const ICONE: Record<string, React.ReactNode> = {
       <circle cx="12" cy="12" r="3" />
     </>
   ),
+  newsletter: (
+    <>
+      <rect x="2.5" y="4.5" width="19" height="15" rx="1.6" />
+      <path d="M3 6l9 6.5L21 6" />
+      <path d="M7 16h5" />
+    </>
+  ),
 }
 
 const SEGNAPOSTO = <circle cx="12" cy="12" r="3" />
