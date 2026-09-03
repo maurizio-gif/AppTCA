@@ -640,6 +640,16 @@ export type Database = {
       }
       iscrizioni_eventi: {
         Row: {
+          annullata_da: string | null
+          annullata_il: string | null
+          evento_slug: string | null
+          lingua: string | null
+          note: string | null
+          pagamento_confermato_da: string | null
+          pagamento_confermato_il: string | null
+          quota: number | null
+          scadenza_pagamento: string | null
+          stato: string | null
           persona_id: string | null
           cellulare: string | null
           cognome: string | null
@@ -657,6 +667,16 @@ export type Database = {
           stato_contratto_pgm: string | null
         }
         Insert: {
+          annullata_da?: string | null
+          annullata_il?: string | null
+          evento_slug?: string | null
+          lingua?: string | null
+          note?: string | null
+          pagamento_confermato_da?: string | null
+          pagamento_confermato_il?: string | null
+          quota?: number | null
+          scadenza_pagamento?: string | null
+          stato?: string | null
           persona_id?: string | null
           cellulare?: string | null
           cognome?: string | null
@@ -674,6 +694,16 @@ export type Database = {
           stato_contratto_pgm?: string | null
         }
         Update: {
+          annullata_da?: string | null
+          annullata_il?: string | null
+          evento_slug?: string | null
+          lingua?: string | null
+          note?: string | null
+          pagamento_confermato_da?: string | null
+          pagamento_confermato_il?: string | null
+          quota?: number | null
+          scadenza_pagamento?: string | null
+          stato?: string | null
           persona_id?: string | null
           cellulare?: string | null
           cognome?: string | null
