@@ -21,6 +21,11 @@ export const SEZIONI = [
   { chiave: 'scuola-tennis', label: 'Scuola tennis', href: '/dashboard/scuola-tennis', gruppo: 'Moduli' },
   { chiave: 'summer-camp', label: 'Summer Camp', href: '/dashboard/summer-camp', gruppo: 'Moduli' },
   { chiave: 'iscrizioni-eventi', label: 'Iscrizioni eventi', href: '/dashboard/iscrizioni-eventi', gruppo: 'Moduli' },
+  // Non e' un modulo di raccolta come gli altri: legge i contenuti pubblicati
+  // sul sito e ne compone il template HTML della newsletter (vedi
+  // lib/newsletter.ts). Sta nello stesso gruppo perche' e' lo stesso lavoro
+  // quotidiano di segreteria/marketing.
+  { chiave: 'newsletter', label: 'Newsletter', href: '/dashboard/newsletter', gruppo: 'Moduli' },
   // Non e' una pagina propria (vive dentro /dashboard): niente voce nel
   // menu, vedi SEZIONI_SENZA_VOCE_MENU sotto. Controlla solo se il blocco
   // "Enquiries" compare nel Riepilogo, a prescindere dai permessi Adulti/
