@@ -77,6 +77,7 @@ function normalizza(voce: Record<string, unknown>): VoceSito | null {
     data: dataValida,
     sintesi: testo(voce.sintesi),
     paragrafi,
+    luogo: testoOpzionale(voce.luogo),
     immagine: urlAssoluto(voce.immagine),
     immagineAlt: testoOpzionale(voce.immagineAlt),
     immagineEmailSafe: voce.immagineEmailSafe !== false,

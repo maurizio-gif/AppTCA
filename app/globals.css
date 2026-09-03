@@ -4735,3 +4735,22 @@ button.cal-cella {
     flex: 0 0 auto;
   }
 }
+
+/* Sotto-titolo dentro un passo del costruttore newsletter (Testata, Indice,
+   Sezioni, Footer): separa i gruppi di campi senza aggiungere altre card. */
+.nl-sub {
+  margin: 20px 0 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-accent);
+}
+
+/* Una voce dell'indice numerato: due campi affiancati e il pulsante Togli. */
+.nl-indice-voce {
+  flex: 1 1 100%;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
