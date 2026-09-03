@@ -840,6 +840,22 @@ composizione automatica si ferma (per non cancellare quello che si è scritto)
 e resta un pulsante «Ripristina il testo del sito». Il lavoro in corso è
 salvato nel browser: chiudere la pagina non azzera la newsletter.
 
+### La gabbia grafica è fissa, i testi no
+
+L'impaginazione riproduce la newsletter mensile del Club — testata nera con
+logo e link, foto di apertura, indice numerato su due colonne, blocco scuro in
+evidenza, card evento con la data impilata e il luogo, card news su fondo
+chiaro, fascia di chiusura, footer con recapiti e social — e non va rifatta
+ogni mese. I testi invece partono vuoti: oggetto, apertura e fasce di testo si
+scrivono al momento, e una parte non compilata non viene stampata affatto
+invece di lasciare un buco. Restano precompilati solo i recapiti del Club (che
+sono dati, non copy) e le etichette strutturali delle sezioni.
+
+Il tipo di contenuto decide l'impaginazione del blocco (evento → card con la
+data, news → card chiara, promo → blocco scuro) e le sezioni si raggruppano da
+sole nell'ordine fisso della newsletter: chi compone scegle i contenuti, non
+il layout.
+
 ### L'HTML è pensato per i client di posta
 
 `lib/newsletter-template.ts` genera un HTML da email, non da pagina: tabelle e

@@ -99,36 +99,31 @@ type Impostazioni = {
 
 type Bozza = { impostazioni: Impostazioni; blocchi: Blocco[] }
 
-// Valori di partenza: sono quelli della newsletter mensile del Club, così una
-// newsletter nuova è già impaginata e servono solo i contenuti. Restano tutti
-// modificabili nel passo 3.
+// Valori di partenza: solo la gabbia grafica e i dati del Club, non i testi
+// della newsletter di settembre. Oggetto, apertura, indice e fasce di testo
+// partono vuoti — chi compone li scrive (o li lascia vuoti: il template salta
+// le parti senza contenuto invece di lasciare un buco). Restano precompilati
+// i recapiti e i social, che non sono copy ma dati del Club, e le etichette
+// strutturali delle sezioni, che fanno parte dell'impaginazione.
 function impostazioniIniziali(sito: string): Impostazioni {
-  const oggi = new Date()
-  const mese = formatDataItaliana(oggi.toISOString()).split(' ').slice(1).join(' ')
   return {
-    oggetto: `Cosa succede al TCA — ${mese}`,
-    preheader: 'Eventi in calendario, ultime news dal Club e iniziative in corso.',
-    tagline: 'Eventi, news, help desk e servizi del Club — tutto in una pagina.',
+    oggetto: '',
+    preheader: '',
+    tagline: '',
     ctaTestataLabel: 'Vai a Club Life',
     ctaTestataHref: `${sito}/club-life`,
     heroImmagine: '',
-    heroAlt: 'Il Tennis Club Ambrosiano',
-    introEyebrow: 'Il Club',
-    introTitolo: 'Cosa succede',
-    introTitoloAccento: 'al TCA',
-    intro:
-      'Ciao! In questa newsletter trovi i prossimi eventi in calendario, le ultime news dal Club e le iniziative in corso. Tutto questo — e molto altro — vive ogni giorno nella pagina Club Life, la bacheca del Club per soci e famiglie.',
-    indice: [
-      { titolo: 'Eventi', testo: 'Tornei, clinic e serate del Club.' },
-      { titolo: 'News', testo: 'Le ultime notizie e i racconti dal TCA.' },
-      { titolo: 'Help desk', testo: 'Guide rapide su certificati, prenotazioni e pagamenti.' },
-      { titolo: 'Servizi e partner', testo: 'Preparatori, pickleball, feste e tutti i servizi del Club.' },
-    ],
-    ctaIndiceLabel: 'Scopri Club Life',
+    heroAlt: '',
+    introEyebrow: '',
+    introTitolo: '',
+    introTitoloAccento: '',
+    intro: '',
+    indice: [],
+    ctaIndiceLabel: '',
     ctaIndiceHref: `${sito}/club-life`,
     sezioni: {
-      // Il blocco scuro porta la sua etichetta dentro di sé (come il
-      // Passaparola nella newsletter di settembre): niente intestazione.
+      // Il blocco scuro porta la sua etichetta dentro di sé: niente
+      // intestazione di sezione sopra.
       evidenza: { eyebrow: '', titolo: '', linkLabel: '', linkHref: '' },
       evento: {
         eyebrow: 'In calendario',
@@ -144,12 +139,10 @@ function impostazioniIniziali(sito: string): Impostazioni {
       },
       testo: { eyebrow: 'Dal Club', titolo: 'Servizi e pagine', linkLabel: '', linkHref: '' },
     },
-    chiusuraTesto:
-      'Eventi, news, help desk e servizi: trovi tutto aggiornato in tempo reale su Club Life.',
+    chiusuraTesto: '',
     chiusuraLinkLabel: 'Vai a Club Life',
     chiusuraLinkHref: `${sito}/club-life`,
-    footerNota:
-      'Non perderti nulla: su Club Life trovi sempre eventi, news, help desk e servizi del Club aggiornati.',
+    footerNota: '',
     footerRagioneSociale: 'Tennis Club Ambrosiano SSD a r.l.',
     footerIndirizzo: 'Via Feltre 33, 20134 Milano',
     footerTelefono: '+39 02 2641 4392',

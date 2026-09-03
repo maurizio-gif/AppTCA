@@ -49,12 +49,15 @@ export default async function NewsletterPage() {
             tipo di contenuto, periodo, parola nel titolo.
           </li>
           <li>
-            <strong>Passo 2 — Blocchi.</strong> Ogni voce spuntata diventa un blocco dell'email. Per ognuno scegli
-            l'impaginazione (foto grande, foto piccola a lato, solo testo), quanto testo prendere dalla pagina del
-            sito (i capoversi si aggiungono uno per uno), la foto e il pulsante. Le frecce ▲▼ cambiano l'ordine.
+            <strong>Passo 2 — Blocchi.</strong> Ogni voce spuntata diventa un blocco già impaginato secondo il suo
+            tipo: un evento prende la card con la data grande, una news la card su fondo chiaro, la promo il blocco
+            scuro. Per ognuno scegli quanto testo prendere dalla pagina del sito (i capoversi si aggiungono uno per
+            uno), la foto e i link. Le frecce ▲▼ cambiano l'ordine dentro la sezione.
           </li>
           <li>
-            <strong>Passo 3 — Testata e chiusura.</strong> Oggetto, titolo, testo di apertura e pulsante finale.
+            <strong>Passo 3 — Oggetto e apertura.</strong> Oggetto, titolo grande, testo di apertura e foto di
+            apertura. Sotto «Testata, sezioni e footer» ci sono l'indice numerato, i titoli delle sezioni e i
+            recapiti: sono già impostati, di solito non serve toccarli.
           </li>
           <li>
             <strong>Anteprima e consegna.</strong> L'anteprima si aggiorna da sola. Quando è a posto, «Copia HTML»
@@ -62,8 +65,12 @@ export default async function NewsletterPage() {
           </li>
         </ol>
         <p className="box-istruzioni-nota">
-          Il testo e i link arrivano dal sito, quindi non serve ricopiare nulla a mano: ogni campo resta comunque
-          modificabile qui, e le modifiche non toccano il sito. Il lavoro in corso resta salvato in questo browser:
+          L'impaginazione è quella della newsletter mensile del Club (testata nera, indice numerato, card evento con
+          la data, card news, footer con i recapiti): quella non va rifatta ogni volta. I testi invece partono
+          vuoti — oggetto, apertura, indice e fasce di testo si scrivono qui, e ciò che non si compila semplicemente
+          non compare nell'email. Il testo e i link dei blocchi arrivano dal sito, quindi non serve ricopiare nulla
+          a mano: ogni campo resta comunque modificabile, e le modifiche non toccano il sito. Il lavoro in corso
+          resta salvato in questo browser:
           se chiudi la pagina e la riapri, ritrovi la newsletter come l'avevi lasciata. Le foto in formato .avif o
           .webp non si vedono in molti programmi di posta: dove capita, la voce lo segnala e puoi scegliere un'altra
           foto tra quelle già pubblicate sul sito.
