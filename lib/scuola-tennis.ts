@@ -8,12 +8,19 @@ import { chiaveGiorno } from './analytics'
 // e il dato resta vero anche se un domani la data cambia.
 export const DATA_PASSAGGIO_PROVINI = '2026-08-15'
 
-export type TipoRichiestaScuola = 'preiscrizione' | 'provino'
+export type TipoRichiestaScuola = 'preiscrizione' | 'provino' | 'iscrizione'
 
 export const ETICHETTA_TIPO: Record<TipoRichiestaScuola, string> = {
   preiscrizione: 'Preiscrizione',
   provino: 'Prenotazione provino',
+  iscrizione: 'Iscrizione',
 }
+
+// Bucket privato dei contratti firmati: nella riga teniamo il path, non un
+// URL, perche' quello firmato scade. Vedi la migrazione
+// form_scuola_tennis_iscrizioni_contratto.
+export const BUCKET_CONTRATTI = 'contratti-scuola-tennis'
+export const DURATA_URL_CONTRATTO_SECONDI = 60 * 60
 
 type RigaScuola = Record<string, any>
 
@@ -22,7 +29,11 @@ type RigaScuola = Record<string, any>
 // che non passa dal default, o il periodo tra il deploy del codice e
 // quello della migrazione).
 export function tipoRichiesta(riga: RigaScuola): TipoRichiestaScuola {
-  if (riga.tipo_richiesta === 'provino' || riga.tipo_richiesta === 'preiscrizione') {
+  if (
+    riga.tipo_richiesta === 'provino' ||
+    riga.tipo_richiesta === 'preiscrizione' ||
+    riga.tipo_richiesta === 'iscrizione'
+  ) {
     return riga.tipo_richiesta
   }
   return chiaveGiorno(riga.created_at) >= DATA_PASSAGGIO_PROVINI ? 'provino' : 'preiscrizione'
@@ -30,9 +41,16 @@ export function tipoRichiesta(riga: RigaScuola): TipoRichiestaScuola {
 
 // Una prenotazione provino e' un appuntamento, non un'iscrizione: non c'e'
 // niente da caricare su PerfectGym, quindi conta come gia' gestita e non
-// deve restare nell'elenco delle cose da fare.
+// deve restare nell'elenco delle cose da fare. Preiscrizioni e iscrizioni
+// invece su PerfectGym ci vanno, e restano da fare finche' non e' successo.
 export function gestita(riga: RigaScuola): boolean {
   return tipoRichiesta(riga) === 'provino' || !!riga.caricato_pgm
+}
+
+// Il contratto firmato esiste solo per le iscrizioni: e' quello che le
+// distingue dalle preiscrizioni raccolte fino al 2026.
+export function haContratto(riga: RigaScuola): boolean {
+  return tipoRichiesta(riga) === 'iscrizione' && !!riga.contratto_pdf_path
 }
 
 // I campi a scelta multipla del modulo (giorni, orari preferiti) arrivano
