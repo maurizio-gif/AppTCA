@@ -19,6 +19,8 @@ export default async function DashboardHome() {
     contattiPerRiepilogo,
     scuolaTennisDaCaricare,
     scuolaTennisCaricato,
+    iscrizioniDaCaricare,
+    iscrizioniCaricate,
     summerCampDaCaricare,
     summerCampCaricato,
     invitiPerRiepilogo,
@@ -26,8 +28,31 @@ export default async function DashboardHome() {
   ] = await Promise.all([
     getSezioniConsentite(email),
     supabase.from('form_contatti').select('gruppo_attivita, opportunita_id, gestito'),
-    supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
-    supabase.from('form_scuola_tennis').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
+    // Le prenotazioni provino non si caricano su PerfectGym (vedi gestita()
+    // in lib/scuola-tennis): contarle qui gonfierebbe il "da caricare" con
+    // righe su cui non c'e' nulla da fare. Una riga senza tipo_richiesta e'
+    // una preiscrizione del vecchio modulo, quindi rientra in questi due
+    // contatori; le iscrizioni hanno i loro, sotto.
+    supabase
+      .from('form_scuola_tennis')
+      .select('*', { count: 'exact', head: true })
+      .eq('caricato_pgm', false)
+      .or('tipo_richiesta.is.null,tipo_richiesta.eq.preiscrizione'),
+    supabase
+      .from('form_scuola_tennis')
+      .select('*', { count: 'exact', head: true })
+      .eq('caricato_pgm', true)
+      .or('tipo_richiesta.is.null,tipo_richiesta.eq.preiscrizione'),
+    supabase
+      .from('form_scuola_tennis')
+      .select('*', { count: 'exact', head: true })
+      .eq('caricato_pgm', false)
+      .eq('tipo_richiesta', 'iscrizione'),
+    supabase
+      .from('form_scuola_tennis')
+      .select('*', { count: 'exact', head: true })
+      .eq('caricato_pgm', true)
+      .eq('tipo_richiesta', 'iscrizione'),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', false),
     supabase.from('form_summer_camp').select('*', { count: 'exact', head: true }).eq('caricato_pgm', true),
     supabase.from('form_invita_amico').select('stato, credito_caricato'),
@@ -150,14 +175,24 @@ export default async function DashboardHome() {
       {puoVedere('scuola-tennis') && (
         <SezioneRiepilogo titolo="Scuola tennis">
           <StatCard
-            href="/dashboard/scuola-tennis?filtro=da_caricare"
-            label="Da caricare"
+            href="/dashboard/scuola-tennis?tipo=preiscrizione&filtro=da_caricare"
+            label="Preiscrizioni da caricare"
             value={scuolaTennisDaCaricare.count ?? 0}
           />
           <StatCard
-            href="/dashboard/scuola-tennis?filtro=caricato"
-            label="Caricato"
+            href="/dashboard/scuola-tennis?tipo=preiscrizione&filtro=caricato"
+            label="Preiscrizioni caricate"
             value={scuolaTennisCaricato.count ?? 0}
+          />
+          <StatCard
+            href="/dashboard/scuola-tennis?tipo=iscrizione&filtro=da_caricare"
+            label="Iscrizioni da caricare"
+            value={iscrizioniDaCaricare.count ?? 0}
+          />
+          <StatCard
+            href="/dashboard/scuola-tennis?tipo=iscrizione&filtro=caricato"
+            label="Iscrizioni caricate"
+            value={iscrizioniCaricate.count ?? 0}
           />
         </SezioneRiepilogo>
       )}

@@ -93,15 +93,56 @@ export type Database = {
           ignorato_da?: string | null
           ignorato_il?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "duplicati_ignorati_id_a_fkey"
+            columns: ["id_a"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "duplicati_ignorati_id_a_fkey"
+            columns: ["id_a"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "duplicati_ignorati_id_a_fkey"
+            columns: ["id_a"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+          {
+            foreignKeyName: "duplicati_ignorati_id_b_fkey"
+            columns: ["id_b"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "duplicati_ignorati_id_b_fkey"
+            columns: ["id_b"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "duplicati_ignorati_id_b_fkey"
+            columns: ["id_b"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+        ]
       }
       form_contatti: {
         Row: {
-          appuntamento_completato_il: string | null
           appuntamento_completato_da: string | null
+          appuntamento_completato_il: string | null
           appuntamento_esito: string | null
-          persona_id: string | null
-          opportunita_id: string | null
           attivita: Json | null
           cellulare: string | null
           cognome: string | null
@@ -123,8 +164,11 @@ export type Database = {
           motivo: string | null
           nome: string | null
           note: string | null
+          opportunita_id: string | null
           ora_richiesta: string | null
+          origine: string | null
           pagina: string | null
+          persona_id: string | null
           pgm_member_id: string | null
           pgm_profile_url: string | null
           privacy: boolean | null
@@ -141,11 +185,9 @@ export type Database = {
           vid: string | null
         }
         Insert: {
-          appuntamento_completato_il?: string | null
           appuntamento_completato_da?: string | null
+          appuntamento_completato_il?: string | null
           appuntamento_esito?: string | null
-          persona_id?: string | null
-          opportunita_id?: string | null
           attivita?: Json | null
           cellulare?: string | null
           cognome?: string | null
@@ -167,8 +209,11 @@ export type Database = {
           motivo?: string | null
           nome?: string | null
           note?: string | null
+          opportunita_id?: string | null
           ora_richiesta?: string | null
+          origine?: string | null
           pagina?: string | null
+          persona_id?: string | null
           pgm_member_id?: string | null
           pgm_profile_url?: string | null
           privacy?: boolean | null
@@ -185,11 +230,9 @@ export type Database = {
           vid?: string | null
         }
         Update: {
-          appuntamento_completato_il?: string | null
           appuntamento_completato_da?: string | null
+          appuntamento_completato_il?: string | null
           appuntamento_esito?: string | null
-          persona_id?: string | null
-          opportunita_id?: string | null
           attivita?: Json | null
           cellulare?: string | null
           cognome?: string | null
@@ -211,8 +254,11 @@ export type Database = {
           motivo?: string | null
           nome?: string | null
           note?: string | null
+          opportunita_id?: string | null
           ora_richiesta?: string | null
+          origine?: string | null
           pagina?: string | null
+          persona_id?: string | null
           pgm_member_id?: string | null
           pgm_profile_url?: string | null
           privacy?: boolean | null
@@ -228,16 +274,39 @@ export type Database = {
           utm_user_number?: string | null
           vid?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "form_contatti_opportunita_id_fkey"
+            columns: ["opportunita_id"]
+            isOneToOne: false
+            referencedRelation: "opportunita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_contatti_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_contatti_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "form_contatti_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+        ]
       }
       form_invita_amico: {
         Row: {
-          credito_caricato: boolean
-          credito_caricato_da: string | null
-          credito_caricato_il: string | null
-          persona_id: string | null
-          persona_socio_id: string | null
-          opportunita_id: string | null
           amico_cellulare: string | null
           amico_cognome: string | null
           amico_email: string | null
@@ -247,6 +316,9 @@ export type Database = {
           assegnato_il: string | null
           chiuso_il: string | null
           created_at: string
+          credito_caricato: boolean
+          credito_caricato_da: string | null
+          credito_caricato_il: string | null
           cta: string | null
           email_socio: string | null
           fbclid: string | null
@@ -257,7 +329,10 @@ export type Database = {
           id: string
           motivo_perso: string | null
           note: string | null
+          opportunita_id: string | null
           pagina: string | null
+          persona_id: string | null
+          persona_socio_id: string | null
           stato: string
           stato_da: string | null
           stato_il: string | null
@@ -272,12 +347,6 @@ export type Database = {
           vid: string | null
         }
         Insert: {
-          credito_caricato?: boolean
-          credito_caricato_da?: string | null
-          credito_caricato_il?: string | null
-          persona_id?: string | null
-          persona_socio_id?: string | null
-          opportunita_id?: string | null
           amico_cellulare?: string | null
           amico_cognome?: string | null
           amico_email?: string | null
@@ -287,6 +356,9 @@ export type Database = {
           assegnato_il?: string | null
           chiuso_il?: string | null
           created_at?: string
+          credito_caricato?: boolean
+          credito_caricato_da?: string | null
+          credito_caricato_il?: string | null
           cta?: string | null
           email_socio?: string | null
           fbclid?: string | null
@@ -297,7 +369,10 @@ export type Database = {
           id?: string
           motivo_perso?: string | null
           note?: string | null
+          opportunita_id?: string | null
           pagina?: string | null
+          persona_id?: string | null
+          persona_socio_id?: string | null
           stato?: string
           stato_da?: string | null
           stato_il?: string | null
@@ -312,12 +387,6 @@ export type Database = {
           vid?: string | null
         }
         Update: {
-          credito_caricato?: boolean
-          credito_caricato_da?: string | null
-          credito_caricato_il?: string | null
-          persona_id?: string | null
-          persona_socio_id?: string | null
-          opportunita_id?: string | null
           amico_cellulare?: string | null
           amico_cognome?: string | null
           amico_email?: string | null
@@ -327,6 +396,9 @@ export type Database = {
           assegnato_il?: string | null
           chiuso_il?: string | null
           created_at?: string
+          credito_caricato?: boolean
+          credito_caricato_da?: string | null
+          credito_caricato_il?: string | null
           cta?: string | null
           email_socio?: string | null
           fbclid?: string | null
@@ -337,7 +409,10 @@ export type Database = {
           id?: string
           motivo_perso?: string | null
           note?: string | null
+          opportunita_id?: string | null
           pagina?: string | null
+          persona_id?: string | null
+          persona_socio_id?: string | null
           stato?: string
           stato_da?: string | null
           stato_il?: string | null
@@ -351,12 +426,60 @@ export type Database = {
           utm_user_number?: string | null
           vid?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "form_invita_amico_opportunita_id_fkey"
+            columns: ["opportunita_id"]
+            isOneToOne: false
+            referencedRelation: "opportunita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_invita_amico_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_invita_amico_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "form_invita_amico_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+          {
+            foreignKeyName: "form_invita_amico_persona_socio_id_fkey"
+            columns: ["persona_socio_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_invita_amico_persona_socio_id_fkey"
+            columns: ["persona_socio_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "form_invita_amico_persona_socio_id_fkey"
+            columns: ["persona_socio_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+        ]
       }
       form_scuola_tennis: {
         Row: {
-          persona_id: string | null
-          persona_minore_id: string | null
           caricato_pgm: boolean
           caricato_pgm_da: string | null
           caricato_pgm_il: string | null
@@ -364,6 +487,8 @@ export type Database = {
           consenso_privacy: boolean | null
           consenso_regolamento: boolean | null
           consenso_termini: boolean | null
+          contratto_firmato_il: string | null
+          contratto_pdf_path: string | null
           created_at: string
           fbclid: string | null
           frequenza: string | null
@@ -387,6 +512,9 @@ export type Database = {
           orari_preferiti: Json | null
           orario_preparazione: string | null
           pagina: string | null
+          persona_id: string | null
+          persona_minore_id: string | null
+          quota_totale: number | null
           referrer: string | null
           taglia_felpa: string | null
           taglia_maglietta: string | null
@@ -404,8 +532,6 @@ export type Database = {
           vid: string | null
         }
         Insert: {
-          persona_id?: string | null
-          persona_minore_id?: string | null
           caricato_pgm?: boolean
           caricato_pgm_da?: string | null
           caricato_pgm_il?: string | null
@@ -413,6 +539,8 @@ export type Database = {
           consenso_privacy?: boolean | null
           consenso_regolamento?: boolean | null
           consenso_termini?: boolean | null
+          contratto_firmato_il?: string | null
+          contratto_pdf_path?: string | null
           created_at?: string
           fbclid?: string | null
           frequenza?: string | null
@@ -436,6 +564,9 @@ export type Database = {
           orari_preferiti?: Json | null
           orario_preparazione?: string | null
           pagina?: string | null
+          persona_id?: string | null
+          persona_minore_id?: string | null
+          quota_totale?: number | null
           referrer?: string | null
           taglia_felpa?: string | null
           taglia_maglietta?: string | null
@@ -453,8 +584,6 @@ export type Database = {
           vid?: string | null
         }
         Update: {
-          persona_id?: string | null
-          persona_minore_id?: string | null
           caricato_pgm?: boolean
           caricato_pgm_da?: string | null
           caricato_pgm_il?: string | null
@@ -462,6 +591,8 @@ export type Database = {
           consenso_privacy?: boolean | null
           consenso_regolamento?: boolean | null
           consenso_termini?: boolean | null
+          contratto_firmato_il?: string | null
+          contratto_pdf_path?: string | null
           created_at?: string
           fbclid?: string | null
           frequenza?: string | null
@@ -485,6 +616,9 @@ export type Database = {
           orari_preferiti?: Json | null
           orario_preparazione?: string | null
           pagina?: string | null
+          persona_id?: string | null
+          persona_minore_id?: string | null
+          quota_totale?: number | null
           referrer?: string | null
           taglia_felpa?: string | null
           taglia_maglietta?: string | null
@@ -501,12 +635,53 @@ export type Database = {
           utm_user_number?: string | null
           vid?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "form_scuola_tennis_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_scuola_tennis_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "form_scuola_tennis_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+          {
+            foreignKeyName: "form_scuola_tennis_persona_minore_id_fkey"
+            columns: ["persona_minore_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_scuola_tennis_persona_minore_id_fkey"
+            columns: ["persona_minore_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "form_scuola_tennis_persona_minore_id_fkey"
+            columns: ["persona_minore_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+        ]
       }
       form_summer_camp: {
         Row: {
-          persona_id: string | null
-          persona_minore_id: string | null
           caricato_pgm: boolean
           caricato_pgm_da: string | null
           caricato_pgm_il: string | null
@@ -532,6 +707,8 @@ export type Database = {
           note_mediche: string | null
           pagina: string | null
           partecipato_anno_scorso: boolean | null
+          persona_id: string | null
+          persona_minore_id: string | null
           pre_camp_settimane: Json | null
           referrer: string | null
           settimane: Json | null
@@ -549,8 +726,6 @@ export type Database = {
           vid: string | null
         }
         Insert: {
-          persona_id?: string | null
-          persona_minore_id?: string | null
           caricato_pgm?: boolean
           caricato_pgm_da?: string | null
           caricato_pgm_il?: string | null
@@ -576,6 +751,8 @@ export type Database = {
           note_mediche?: string | null
           pagina?: string | null
           partecipato_anno_scorso?: boolean | null
+          persona_id?: string | null
+          persona_minore_id?: string | null
           pre_camp_settimane?: Json | null
           referrer?: string | null
           settimane?: Json | null
@@ -593,8 +770,6 @@ export type Database = {
           vid?: string | null
         }
         Update: {
-          persona_id?: string | null
-          persona_minore_id?: string | null
           caricato_pgm?: boolean
           caricato_pgm_da?: string | null
           caricato_pgm_il?: string | null
@@ -620,6 +795,8 @@ export type Database = {
           note_mediche?: string | null
           pagina?: string | null
           partecipato_anno_scorso?: boolean | null
+          persona_id?: string | null
+          persona_minore_id?: string | null
           pre_camp_settimane?: Json | null
           referrer?: string | null
           settimane?: Json | null
@@ -636,91 +813,156 @@ export type Database = {
           utm_user_number?: string | null
           vid?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "form_summer_camp_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_summer_camp_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "form_summer_camp_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+          {
+            foreignKeyName: "form_summer_camp_persona_minore_id_fkey"
+            columns: ["persona_minore_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_summer_camp_persona_minore_id_fkey"
+            columns: ["persona_minore_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "form_summer_camp_persona_minore_id_fkey"
+            columns: ["persona_minore_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+        ]
       }
       iscrizioni_eventi: {
         Row: {
           annullata_da: string | null
           annullata_il: string | null
-          evento_slug: string | null
-          lingua: string | null
-          note: string | null
-          pagamento_confermato_da: string | null
-          pagamento_confermato_il: string | null
-          quota: number | null
-          scadenza_pagamento: string | null
-          stato: string | null
-          persona_id: string | null
           cellulare: string | null
           cognome: string | null
           created_at: string | null
           data_compilazione_form: string | null
           data_di_nascita: string | null
           email: string | null
+          evento_slug: string | null
           id: number
           importo_pagato: number | null
+          lingua: string | null
           link_pgm: string | null
           nome: string | null
           nome_contratto_pgm: string | null
           nome_evento: string | null
+          note: string | null
+          pagamento_confermato_da: string | null
+          pagamento_confermato_il: string | null
+          persona_id: string | null
+          quota: number | null
+          scadenza_pagamento: string | null
           socio: boolean | null
+          stato: string | null
           stato_contratto_pgm: string | null
         }
         Insert: {
           annullata_da?: string | null
           annullata_il?: string | null
-          evento_slug?: string | null
-          lingua?: string | null
-          note?: string | null
-          pagamento_confermato_da?: string | null
-          pagamento_confermato_il?: string | null
-          quota?: number | null
-          scadenza_pagamento?: string | null
-          stato?: string | null
-          persona_id?: string | null
           cellulare?: string | null
           cognome?: string | null
           created_at?: string | null
           data_compilazione_form?: string | null
           data_di_nascita?: string | null
           email?: string | null
+          evento_slug?: string | null
           id?: number
           importo_pagato?: number | null
+          lingua?: string | null
           link_pgm?: string | null
           nome?: string | null
           nome_contratto_pgm?: string | null
           nome_evento?: string | null
+          note?: string | null
+          pagamento_confermato_da?: string | null
+          pagamento_confermato_il?: string | null
+          persona_id?: string | null
+          quota?: number | null
+          scadenza_pagamento?: string | null
           socio?: boolean | null
+          stato?: string | null
           stato_contratto_pgm?: string | null
         }
         Update: {
           annullata_da?: string | null
           annullata_il?: string | null
-          evento_slug?: string | null
-          lingua?: string | null
-          note?: string | null
-          pagamento_confermato_da?: string | null
-          pagamento_confermato_il?: string | null
-          quota?: number | null
-          scadenza_pagamento?: string | null
-          stato?: string | null
-          persona_id?: string | null
           cellulare?: string | null
           cognome?: string | null
           created_at?: string | null
           data_compilazione_form?: string | null
           data_di_nascita?: string | null
           email?: string | null
+          evento_slug?: string | null
           id?: number
           importo_pagato?: number | null
+          lingua?: string | null
           link_pgm?: string | null
           nome?: string | null
           nome_contratto_pgm?: string | null
           nome_evento?: string | null
+          note?: string | null
+          pagamento_confermato_da?: string | null
+          pagamento_confermato_il?: string | null
+          persona_id?: string | null
+          quota?: number | null
+          scadenza_pagamento?: string | null
           socio?: boolean | null
+          stato?: string | null
           stato_contratto_pgm?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "iscrizioni_eventi_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iscrizioni_eventi_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "iscrizioni_eventi_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+        ]
       }
       lead_hubspot_storico: {
         Row: {
@@ -856,51 +1098,73 @@ export type Database = {
       }
       opportunita: {
         Row: {
-          id: string
-          persona_id: string
-          stato: string
           assegnato_a: string | null
           assegnato_il: string | null
-          stato_da: string | null
-          stato_il: string | null
-          motivo_perso: string | null
           chiuso_il: string | null
+          creato_il: string
+          id: string
+          motivo_perso: string | null
+          note: string | null
           origine_entita: string | null
           origine_id: string | null
-          note: string | null
-          creato_il: string
+          persona_id: string
+          stato: string
+          stato_da: string | null
+          stato_il: string | null
         }
         Insert: {
+          assegnato_a?: string | null
+          assegnato_il?: string | null
+          chiuso_il?: string | null
+          creato_il?: string
           id?: string
+          motivo_perso?: string | null
+          note?: string | null
+          origine_entita?: string | null
+          origine_id?: string | null
           persona_id: string
           stato?: string
-          assegnato_a?: string | null
-          assegnato_il?: string | null
           stato_da?: string | null
           stato_il?: string | null
-          motivo_perso?: string | null
-          chiuso_il?: string | null
-          origine_entita?: string | null
-          origine_id?: string | null
-          note?: string | null
-          creato_il?: string
         }
         Update: {
-          id?: string
-          persona_id?: string
-          stato?: string
           assegnato_a?: string | null
           assegnato_il?: string | null
-          stato_da?: string | null
-          stato_il?: string | null
-          motivo_perso?: string | null
           chiuso_il?: string | null
+          creato_il?: string
+          id?: string
+          motivo_perso?: string | null
+          note?: string | null
           origine_entita?: string | null
           origine_id?: string | null
-          note?: string | null
-          creato_il?: string
+          persona_id?: string
+          stato?: string
+          stato_da?: string | null
+          stato_il?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "opportunita_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunita_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "opportunita_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+        ]
       }
       opportunita_storico: {
         Row: {
@@ -930,61 +1194,91 @@ export type Database = {
           stato?: string
           stato_precedente?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "opportunita_storico_opportunita_id_fkey"
+            columns: ["opportunita_id"]
+            isOneToOne: false
+            referencedRelation: "opportunita"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       persone: {
         Row: {
-          id: string
-          tipo: string
-          nome: string | null
-          cognome: string | null
-          email: string | null
+          aggiornato_il: string
           cellulare: string | null
           cellulare_norm: string | null
           codice_fiscale: string | null
-          data_nascita: string | null
-          pgm_member_id: string | null
-          genitore_id: string | null
-          fonte: string | null
-          storico: boolean
+          cognome: string | null
           creato_il: string
-          aggiornato_il: string
+          data_nascita: string | null
+          email: string | null
+          fonte: string | null
+          genitore_id: string | null
+          id: string
+          nome: string | null
+          pgm_member_id: string | null
+          storico: boolean
+          tipo: string
         }
         Insert: {
-          id?: string
-          tipo?: string
-          nome?: string | null
-          cognome?: string | null
-          email?: string | null
+          aggiornato_il?: string
           cellulare?: string | null
           cellulare_norm?: string | null
           codice_fiscale?: string | null
-          data_nascita?: string | null
-          pgm_member_id?: string | null
-          genitore_id?: string | null
-          fonte?: string | null
-          storico?: boolean
+          cognome?: string | null
           creato_il?: string
-          aggiornato_il?: string
+          data_nascita?: string | null
+          email?: string | null
+          fonte?: string | null
+          genitore_id?: string | null
+          id?: string
+          nome?: string | null
+          pgm_member_id?: string | null
+          storico?: boolean
+          tipo?: string
         }
         Update: {
-          id?: string
-          tipo?: string
-          nome?: string | null
-          cognome?: string | null
-          email?: string | null
+          aggiornato_il?: string
           cellulare?: string | null
           cellulare_norm?: string | null
           codice_fiscale?: string | null
-          data_nascita?: string | null
-          pgm_member_id?: string | null
-          genitore_id?: string | null
-          fonte?: string | null
-          storico?: boolean
+          cognome?: string | null
           creato_il?: string
-          aggiornato_il?: string
+          data_nascita?: string | null
+          email?: string | null
+          fonte?: string | null
+          genitore_id?: string | null
+          id?: string
+          nome?: string | null
+          pgm_member_id?: string | null
+          storico?: boolean
+          tipo?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "persone_genitore_id_fkey"
+            columns: ["genitore_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persone_genitore_id_fkey"
+            columns: ["genitore_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "persone_genitore_id_fkey"
+            columns: ["genitore_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -1015,41 +1309,39 @@ export type Database = {
       }
       staff_users: {
         Row: {
-          puo_riassegnare: boolean
           cognome: string | null
           created_at: string
           email: string
           nome: string | null
           puo_cancellare: boolean
           puo_invitare: boolean
+          puo_riassegnare: boolean
           sezioni_consentite: string[]
         }
         Insert: {
-          puo_riassegnare?: boolean
           cognome?: string | null
           created_at?: string
           email: string
           nome?: string | null
           puo_cancellare?: boolean
           puo_invitare?: boolean
+          puo_riassegnare?: boolean
           sezioni_consentite?: string[]
         }
         Update: {
-          puo_riassegnare?: boolean
           cognome?: string | null
           created_at?: string
           email?: string
           nome?: string | null
           puo_cancellare?: boolean
           puo_invitare?: boolean
+          puo_riassegnare?: boolean
           sezioni_consentite?: string[]
         }
         Relationships: []
       }
       task: {
         Row: {
-          persona_id: string | null
-          opportunita_id: string | null
           assegnato_a: string
           completato_il: string | null
           created_at: string
@@ -1061,14 +1353,14 @@ export type Database = {
           esito: string | null
           id: string
           note: string | null
+          opportunita_id: string | null
           ora: string | null
+          persona_id: string | null
           stato: string
           tipo: string
           titolo: string
         }
         Insert: {
-          persona_id?: string | null
-          opportunita_id?: string | null
           assegnato_a: string
           completato_il?: string | null
           created_at?: string
@@ -1080,14 +1372,14 @@ export type Database = {
           esito?: string | null
           id?: string
           note?: string | null
+          opportunita_id?: string | null
           ora?: string | null
+          persona_id?: string | null
           stato?: string
           tipo?: string
           titolo: string
         }
         Update: {
-          persona_id?: string | null
-          opportunita_id?: string | null
           assegnato_a?: string
           completato_il?: string | null
           created_at?: string
@@ -1099,12 +1391,43 @@ export type Database = {
           esito?: string | null
           id?: string
           note?: string | null
+          opportunita_id?: string | null
           ora?: string | null
+          persona_id?: string | null
           stato?: string
           tipo?: string
           titolo?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "task_opportunita_id_fkey"
+            columns: ["opportunita_id"]
+            isOneToOne: false
+            referencedRelation: "opportunita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "persone"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_a"]
+          },
+          {
+            foreignKeyName: "task_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "possibili_duplicati"
+            referencedColumns: ["id_b"]
+          },
+        ]
       }
       timbrature: {
         Row: {
@@ -1148,7 +1471,35 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      norm_cellulare: { Args: { v: string }; Returns: string }
+      norm_email: { Args: { v: string }; Returns: string }
+      trova_o_crea_minore: {
+        Args: {
+          p_codice_fiscale: string
+          p_cognome: string
+          p_data_nascita: string
+          p_fonte?: string
+          p_genitore_id: string
+          p_nome: string
+        }
+        Returns: string
+      }
+      trova_o_crea_opportunita: {
+        Args: { p_entita: string; p_id: string; p_persona_id: string }
+        Returns: string
+      }
+      trova_o_crea_persona: {
+        Args: {
+          p_cellulare: string
+          p_cognome: string
+          p_email: string
+          p_fonte?: string
+          p_nome: string
+          p_pgm_member_id: string
+          p_storico?: boolean
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
@@ -1167,12 +1518,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1196,11 +1547,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1221,11 +1572,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1246,11 +1597,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1263,11 +1614,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

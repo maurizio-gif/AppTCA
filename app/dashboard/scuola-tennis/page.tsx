@@ -11,7 +11,15 @@ import { formatDateOra, variantePillola } from '@/lib/format'
 import { utenteHaSezione } from '@/lib/auth/sezioni-server'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
 import { chiaveGiorno, dataValida, formatBreve } from '@/lib/analytics'
-import { ETICHETTA_TIPO, gestita, testoElenco, tipoRichiesta, type TipoRichiestaScuola } from '@/lib/scuola-tennis'
+import {
+  BUCKET_CONTRATTI,
+  DURATA_URL_CONTRATTO_SECONDI,
+  ETICHETTA_TIPO,
+  gestita,
+  testoElenco,
+  tipoRichiesta,
+  type TipoRichiestaScuola,
+} from '@/lib/scuola-tennis'
 import { VisiteContatto } from '@/components/VisiteContatto'
 import { CaricatoPgmToggle } from './CaricatoPgmToggle'
 
@@ -28,12 +36,13 @@ const COLONNE_VISIBILI = [
   'caricato_pgm',
   'caricato_pgm_da',
   'caricato_pgm_il',
+  'contratto_pdf_path',
 ]
 
 const FILTRI_VALIDI = ['da_caricare', 'caricato', 'tutti'] as const
 type Filtro = (typeof FILTRI_VALIDI)[number]
 
-const TIPI_VALIDI = ['tutti', 'preiscrizione', 'provino'] as const
+const TIPI_VALIDI = ['tutti', 'preiscrizione', 'provino', 'iscrizione'] as const
 type FiltroTipo = (typeof TIPI_VALIDI)[number]
 
 // Singola selezione: assente (es. dal link "Scuola tennis" nel menu) o non
@@ -41,6 +50,15 @@ type FiltroTipo = (typeof TIPI_VALIDI)[number]
 function parseFiltro(raw: string | undefined): Filtro {
   if (raw && (FILTRI_VALIDI as readonly string[]).includes(raw)) return raw as Filtro
   return 'da_caricare'
+}
+
+// Colore della pillola: l'iscrizione e' l'esito finale del percorso, quindi
+// si distingue a colpo d'occhio dal provino (appuntamento) e dalla
+// preiscrizione (il vecchio modulo).
+const COLORE_BADGE: Record<TipoRichiestaScuola, string> = {
+  preiscrizione: 'blu',
+  provino: 'verde',
+  iscrizione: 'viola',
 }
 
 function parseTipo(raw: string | undefined): FiltroTipo {
@@ -77,6 +95,24 @@ export default async function ScuolaTennisPage({
   const { data: accessi } = vids.length > 0 ? await supabase.from('accessi').select('*').in('vid', vids) : { data: [] }
   const accessiPerVid = raggruppaAccessiPerVid(accessi ?? [])
 
+  // Il bucket dei contratti e' privato: si firma un URL a scadenza per le
+  // sole righe che hanno davvero un PDF, cosi' il link nella scheda apre il
+  // contratto senza esporre il file a chiunque ne indovini il path.
+  const percorsiContratti = (righe ?? [])
+    .map((riga) => riga.contratto_pdf_path)
+    .filter((p): p is string => Boolean(p))
+
+  const urlContratti = new Map<string, string>()
+  if (percorsiContratti.length > 0) {
+    const { data: urlFirmati } = await supabase.storage
+      .from(BUCKET_CONTRATTI)
+      .createSignedUrls(percorsiContratti, DURATA_URL_CONTRATTO_SECONDI)
+
+    for (const u of urlFirmati ?? []) {
+      if (u.signedUrl) urlContratti.set(u.path ?? '', u.signedUrl)
+    }
+  }
+
   const filtro = parseFiltro(searchParams.filtro)
   const tipo = parseTipo(searchParams.tipo)
   const dal = dataValida(searchParams.dal) ? searchParams.dal : ''
@@ -106,6 +142,10 @@ export default async function ScuolaTennisPage({
     {
       valore: 'provino',
       etichetta: `Prenotazioni provino (${conta(nelPeriodo.filter((r) => tipoRichiesta(r) === 'provino'))})`,
+    },
+    {
+      valore: 'iscrizione',
+      etichetta: `Iscrizioni (${conta(nelPeriodo.filter((r) => tipoRichiesta(r) === 'iscrizione'))})`,
     },
   ]
   // Il conteggio nell'etichetta serve soprattutto qui: dal 15 agosto le
@@ -140,6 +180,8 @@ export default async function ScuolaTennisPage({
     'Frequenza',
     'Giorni',
     'Orari preferiti',
+    'Quota',
+    'Contratto firmato il',
     'Stato',
   ]
   const csvRighe = righeFiltrate.map((riga) => [
@@ -154,6 +196,8 @@ export default async function ScuolaTennisPage({
     riga.frequenza ?? '',
     testoElenco(riga.giorni),
     testoElenco(riga.orari_preferiti),
+    riga.quota_totale != null ? `€ ${riga.quota_totale}` : '',
+    riga.contratto_firmato_il ? formatDateOra(riga.contratto_firmato_il) : '',
     tipoRichiesta(riga) === 'provino' ? 'Provino (nessun caricamento)' : riga.caricato_pgm ? 'Caricato su PGM' : 'Da caricare',
   ])
 
@@ -176,6 +220,11 @@ export default async function ScuolaTennisPage({
           <li>
             Le <strong>prenotazioni provino nascono gia' gestite</strong>: sono appuntamenti, non iscrizioni, e
             non c'e' niente da caricare su PerfectGym. Restano quindi fuori dall'elenco «Da caricare».
+          </li>
+          <li>
+            Le <strong>iscrizioni</strong> arrivano dal modulo con firma del contratto, compilabile solo dopo il
+            provino e l'approvazione del Team Tecnico. Come le preiscrizioni <strong>vanno caricate su
+            PerfectGym</strong>, e nella scheda della riga trovi il contratto firmato in PDF.
           </li>
           <li>
             Filtra per tipo, per stato e per intervallo di date; i numeri nelle tendine si riferiscono sempre al
@@ -236,19 +285,38 @@ export default async function ScuolaTennisPage({
                           gestito.
                         </p>
                       ) : (
-                        <CaricatoPgmToggle
-                          id={riga.id}
-                          caricato={!!riga.caricato_pgm}
-                          caricatoDa={riga.caricato_pgm_da ?? null}
-                          caricatoIl={riga.caricato_pgm_il ?? null}
-                        />
+                        <>
+                          <CaricatoPgmToggle
+                            id={riga.id}
+                            caricato={!!riga.caricato_pgm}
+                            caricatoDa={riga.caricato_pgm_da ?? null}
+                            caricatoIl={riga.caricato_pgm_il ?? null}
+                          />
+                          {tipoRiga === 'iscrizione' && (
+                            <p className="muted" style={{ marginBottom: 0 }}>
+                              {riga.contratto_pdf_path && urlContratti.get(riga.contratto_pdf_path) ? (
+                                <a
+                                  href={urlContratti.get(riga.contratto_pdf_path)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  Contratto firmato (PDF)
+                                </a>
+                              ) : (
+                                'Contratto non ancora disponibile.'
+                              )}
+                              {riga.contratto_firmato_il && ` · firmato il ${formatDateOra(riga.contratto_firmato_il)}`}
+                              {riga.quota_totale != null && ` · quota € ${riga.quota_totale}`}
+                            </p>
+                          )}
+                        </>
                       )
                     }
                     cells={[
                       <>
                         {formatDateOra(riga.created_at)}
                         <br />
-                        <span className={`richiesta-badge richiesta-${tipoRiga === 'provino' ? 'verde' : 'blu'}`}>
+                        <span className={`richiesta-badge richiesta-${COLORE_BADGE[tipoRiga]}`}>
                           {ETICHETTA_TIPO[tipoRiga]}
                         </span>
                       </>,
