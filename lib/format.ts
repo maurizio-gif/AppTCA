@@ -1,7 +1,18 @@
+// Nomi colonna che, ripuliti a macchina, verrebbero storti ("Indirizzo
+// citta") o ridondanti dentro il loro gruppo ("Indirizzo via" sotto
+// "Residenza"): qui l'etichetta e' scritta a mano.
+const ETICHETTE_CHIAVE: Record<string, string> = {
+  indirizzo_via: 'Via',
+  indirizzo_citta: 'Città',
+  indirizzo_cap: 'CAP',
+  indirizzo_provincia: 'Provincia',
+}
+
 export function prettifyKey(key: string): string {
-  return key
-    .replace(/_/g, ' ')
-    .replace(/^./, (c) => c.toUpperCase())
+  return (
+    ETICHETTE_CHIAVE[key] ??
+    key.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())
+  )
 }
 
 type Operatore = { email: string; nome?: string | null; cognome?: string | null }
@@ -157,6 +168,10 @@ const CATEGORIE_DETTAGLIO: { titolo: string; test: (chiave: string) => boolean; 
   {
     titolo: 'Contatti',
     test: (k) => k === 'email' || k === 'cellulare',
+  },
+  {
+    titolo: 'Residenza',
+    test: (k) => k.startsWith('indirizzo_'),
   },
   {
     titolo: 'Consensi',

@@ -53,6 +53,22 @@ export function haContratto(riga: RigaScuola): boolean {
   return tipoRichiesta(riga) === 'iscrizione' && !!riga.contratto_pdf_path
 }
 
+// Residenza del genitore su una riga sola, per l'export e la stampa:
+// "Via Feltre 33, 20134 Milano". Il modulo chiede via, citta' e CAP; la
+// provincia sopravvive solo sulle preiscrizioni raccolte fino al 2026,
+// quindi si aggiunge se c'e' invece di lasciare una parentesi vuota.
+export function indirizzoCompleto(riga: RigaScuola): string {
+  const pulisci = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+  const via = pulisci(riga.indirizzo_via)
+  const citta = pulisci(riga.indirizzo_citta)
+  const cap = pulisci(riga.indirizzo_cap)
+  const provincia = pulisci(riga.indirizzo_provincia)
+
+  let localita = [cap, citta].filter(Boolean).join(' ')
+  if (localita && provincia) localita += ` (${provincia})`
+  return [via, localita].filter(Boolean).join(', ')
+}
+
 // I campi a scelta multipla del modulo (giorni, orari preferiti) arrivano
 // come array jsonb: in tabella e nell'export vanno letti come elenco, non
 // come "[object Object]".
