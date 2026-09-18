@@ -10,9 +10,13 @@ import { cercaPersone, type PersonaTrovata } from './ricerca-actions'
 export function PersonaPicker({
   persona,
   onScegli,
+  // Piu' campi "persona" possono convivere nella stessa pagina (una riga
+  // d'agenda in modifica per ogni voce aperta): l'id arriva da fuori.
+  idCampo = 'task-persona',
 }: {
   persona: PersonaTrovata | null
   onScegli: (persona: PersonaTrovata | null) => void
+  idCampo?: string
 }) {
   const [query, setQuery] = useState('')
   const [risultati, setRisultati] = useState<PersonaTrovata[]>([])
@@ -62,13 +66,13 @@ export function PersonaPicker({
 
   return (
     <div className="field">
-      <label htmlFor="task-persona">Persona</label>
+      <label htmlFor={idCampo}>Persona</label>
       <input
-        id="task-persona"
+        id={idCampo}
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Cerca per nome, email o cellulare, oppure lascia vuoto…"
+        placeholder="Cerca per nome, email o cellulare…"
         autoComplete="off"
       />
       {isPending && <p className="gestione-meta">Cerco…</p>}
@@ -89,9 +93,7 @@ export function PersonaPicker({
         </ul>
       )}
       {cercato && !isPending && risultati.length === 0 && (
-        <p className="gestione-meta">
-          Nessuna persona trovata: lascia il campo vuoto per un task interno, senza persona.
-        </p>
+        <p className="gestione-meta">Nessuna persona trovata: creala qui sotto.</p>
       )}
     </div>
   )

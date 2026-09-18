@@ -114,6 +114,7 @@ export function bloccoGestioneContatto(
         entita: 'form_contatti',
         entitaId: String(riga.id),
         etichetta: `Enquiry · ${nome}`,
+        personaId: riga.persona_id ?? null,
       }}
       titoloSuggerito={`Ricontattare ${nome}`}
       task={task}

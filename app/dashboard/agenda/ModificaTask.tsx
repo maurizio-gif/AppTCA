@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { DURATA_PREDEFINITA, OPZIONI_TIPO, eTipoValido, type TipoVoce } from '@/lib/agenda'
+import { CampoPersona, sceltaPersonaCompleta, type SceltaPersona } from './CampoPersona'
 import { modificaTask } from './actions'
 
 // Modifica di una voce d'agenda gia' esistente: spostarla di orario o di
@@ -25,7 +26,6 @@ export function ModificaTask({
   oraIniziale,
   durataIniziale,
   noteIniziali,
-  nomeContattoIniziale = null,
   personaCollegata = false,
   assegnatoAIniziale,
   staff,
@@ -40,10 +40,9 @@ export function ModificaTask({
   oraIniziale: string | null
   durataIniziale: number
   noteIniziali: string | null
-  nomeContattoIniziale?: string | null
-  // Il campo "nome contatto" si vede solo senza una persona collegata: con
-  // una persona il nome e' gia' il suo, riscriverlo qui creerebbe due fonti
-  // diverse per la stessa cosa.
+  // Le voci nate prima del vincolo dell'anagrafica non hanno una persona: qui
+  // gliela si da', ed e' l'unico posto dove il con-chi si puo' ancora toccare
+  // (una volta collegata, resta quella - spostarla sarebbe un altro evento).
   personaCollegata?: boolean
   assegnatoAIniziale: string | null
   // Assente quando chi mostra il pannello non ha l'elenco degli operatori: si
@@ -59,10 +58,12 @@ export function ModificaTask({
   const [ora, setOra] = useState(oraIniziale ?? '')
   const [durata, setDurata] = useState(durataIniziale)
   const [note, setNote] = useState(noteIniziali ?? '')
-  const [nomeContatto, setNomeContatto] = useState(nomeContattoIniziale ?? '')
+  const [scelta, setScelta] = useState<SceltaPersona | null>(null)
   const [assegnatoA, setAssegnatoA] = useState(assegnatoAIniziale ?? emailCorrente ?? '')
   const [errore, setErrore] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  const personaPronta = personaCollegata || sceltaPersonaCompleta(scelta)
 
   return (
     <div className="agenda-form" onClick={(e) => e.stopPropagation()}>
@@ -142,16 +143,13 @@ export function ModificaTask({
       </div>
 
       {!personaCollegata && (
-        <div className="field">
-          <label htmlFor={`modifica-nome-contatto-${id}`}>Nome contatto (se non è ancora in anagrafica)</label>
-          <input
-            id={`modifica-nome-contatto-${id}`}
-            type="text"
-            value={nomeContatto}
-            onChange={(e) => setNomeContatto(e.target.value)}
-            placeholder="Nome e cognome di chi è l'appuntamento"
-          />
-        </div>
+        <>
+          <p className="gestione-meta">
+            Questa voce non è collegata a nessuna persona: indicala per salvare. È così che le voci vecchie tornano
+            a mostrare un nome in agenda.
+          </p>
+          <CampoPersona idPrefisso={`modifica-${id}`} scelta={scelta} onCambia={setScelta} />
+        </>
       )}
 
       <div className="field">
@@ -181,7 +179,7 @@ export function ModificaTask({
         <button
           type="button"
           className="btn btn-small"
-          disabled={isPending || !titolo.trim()}
+          disabled={isPending || !titolo.trim() || !personaPronta}
           onClick={() => {
             setErrore(null)
             startTransition(async () => {
@@ -192,7 +190,8 @@ export function ModificaTask({
                 ora: ora || null,
                 durataMinuti: durata,
                 note,
-                nomeContatto: personaCollegata ? null : nomeContatto,
+                personaId: scelta?.tipo === 'esistente' ? scelta.persona.id : null,
+                nuovaPersona: scelta?.tipo === 'nuova' ? scelta.dati : null,
                 // Senza elenco operatori l'assegnatario non e' modificabile:
                 // non si manda niente e il server tiene quello di prima.
                 assegnatoA: staff && staff.length > 0 ? assegnatoA : null,

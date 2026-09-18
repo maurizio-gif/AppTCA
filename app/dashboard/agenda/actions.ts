@@ -23,11 +23,6 @@ export type DatiNuovoTask = {
   durataMinuti?: number | null
   note?: string | null
   assegnatoA?: string | null
-  // Nome di chi e' l'appuntamento quando non c'e' (ancora) una persona in
-  // anagrafica da collegare: senza questo, un walk-in in agenda si vede solo
-  // con il titolo del task (spesso una categoria, non un nome) - vedi
-  // voceCalendarioDaTask in VociTask.tsx.
-  nomeContatto?: string | null
   // Collegamento opzionale a un record di un'altra sezione (vedi la tabella
   // task): lo usa il blocco "In agenda" dentro la riga di un record, e la
   // tendina "collega a" del form.
@@ -37,6 +32,17 @@ export type DatiNuovoTask = {
   // si ricavano da quella (vedi sotto) - l'operatore non deve ridirli.
   personaId?: string | null
   opportunitaId?: string | null
+  // Chi e' l'appuntamento quando non e' ancora in anagrafica: si crea la
+  // persona e la si collega, perche' una voce senza anagrafica non si salva
+  // (vedi risolviPersona).
+  nuovaPersona?: DatiNuovaPersona | null
+}
+
+export type DatiNuovaPersona = {
+  nome: string
+  cognome: string
+  email?: string | null
+  cellulare?: string | null
 }
 
 // Richieste da cui si puo' ricavare persona e opportunita' di un task.
@@ -79,6 +85,68 @@ async function verificaPermesso(task: { assegnato_a: string; creato_da: string }
   if (task.assegnato_a.toLowerCase() === email) return true
   if (task.creato_da.toLowerCase() === email) return true
   return puoAmministrare(email)
+}
+
+const EMAIL_VALIDA = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+// I tipi generati da Supabase marcano i parametri di trova_o_crea_persona come
+// non nullable, ma la funzione accetta null - ed e' importante che riceva
+// null e non stringa vuota: '' sarebbe un valore come un altro, e due persone
+// senza email verrebbero deduplicate insieme.
+function oNull(valore: string | null | undefined): string {
+  return (valore?.trim() || null) as unknown as string
+}
+
+// Nessuna voce d'agenda senza anagrafica: e' la regola del CRM, non una
+// gentilezza del form. Chi e' l'appuntamento si sa sempre, altrimenti in
+// agenda restano righe che nessuno sa piu' a chi appartengano (era cosi' per
+// i walk-in, registrati con il tipo di visita al posto del nome).
+//
+// La persona arriva gia' scelta dall'anagrafica, oppure dalla richiesta
+// collegata, oppure si crea qui al volo: la creazione passa da
+// trova_o_crea_persona, la stessa funzione che i trigger dei moduli usano per
+// deduplicare (vedi README), cosi' chi e' gia' a sistema viene riconosciuto
+// invece di essere duplicato.
+async function risolviPersona(
+  supabase: ReturnType<typeof createSupabaseServiceClient>,
+  personaIdTrovata: string | null,
+  nuova: DatiNuovaPersona | null | undefined
+): Promise<{ ok: true; personaId: string; creata: boolean } | { ok: false; errore: string }> {
+  if (personaIdTrovata) return { ok: true, personaId: personaIdTrovata, creata: false }
+
+  if (!nuova) {
+    return {
+      ok: false,
+      errore: 'Ogni voce d’agenda deve essere collegata a una persona: cercala in anagrafica o creala qui.',
+    }
+  }
+
+  const nome = nuova.nome?.trim()
+  const cognome = nuova.cognome?.trim()
+  const email = nuova.email?.trim().toLowerCase() || null
+  const cellulare = nuova.cellulare?.trim() || null
+
+  if (!nome || !cognome) return { ok: false, errore: 'Nome e cognome della persona sono obbligatori.' }
+  if (!email && !cellulare) {
+    return { ok: false, errore: 'Serve almeno un recapito, email o cellulare: senza, la stessa persona finirebbe in anagrafica più volte.' }
+  }
+  if (email && !EMAIL_VALIDA.test(email)) return { ok: false, errore: 'Inserisci un’email valida.' }
+
+  const { data: personaId, error } = await supabase.rpc('trova_o_crea_persona', {
+    p_nome: nome,
+    p_cognome: cognome,
+    p_email: oNull(email),
+    p_cellulare: oNull(cellulare),
+    // Identita' PerfectGym: non la conosciamo, chi si presenta al banco non
+    // e' ancora un socio. Se lo e', la deduplicazione lo riconosce comunque
+    // dall'email.
+    p_pgm_member_id: oNull(null),
+  })
+
+  if (error) return { ok: false, errore: `Anagrafica non creata: ${error.message}` }
+  if (!personaId) return { ok: false, errore: 'Anagrafica non creata: riprova.' }
+
+  return { ok: true, personaId: String(personaId), creata: true }
 }
 
 export async function creaTask(dati: DatiNuovoTask): Promise<RisultatoTask> {
@@ -145,6 +213,12 @@ export async function creaTask(dati: DatiNuovoTask): Promise<RisultatoTask> {
     personaId = personaId ?? lead.persona_id
   }
 
+  // Ultimo passaggio prima di scrivere: o la persona c'e' (scelta, o ereditata
+  // dalla richiesta collegata), o si crea adesso. Non esiste il terzo caso.
+  const persona = await risolviPersona(supabase, personaId, dati.nuovaPersona)
+  if (!persona.ok) return persona
+  personaId = persona.personaId
+
   const completatoSubito = eEventoDaCompletareInAutomatico(dati.data, ora)
   const adesso = new Date().toISOString()
 
@@ -157,7 +231,6 @@ export async function creaTask(dati: DatiNuovoTask): Promise<RisultatoTask> {
       ora,
       durata_minuti: durata,
       note: dati.note?.trim() || null,
-      nome_contatto: dati.nomeContatto?.trim() || null,
       assegnato_a: assegnatoA,
       creato_da: email,
       entita,
@@ -185,9 +258,9 @@ export async function creaTask(dati: DatiNuovoTask): Promise<RisultatoTask> {
       ora,
       durata_minuti: durata,
       assegnato_a: assegnatoA,
-      nome_contatto: dati.nomeContatto?.trim() || null,
       collegato_a: entita ? `${entita}:${entitaId}` : null,
       persona_id: personaId,
+      persona_creata_adesso: persona.creata,
       completato_in_automatico: completatoSubito,
     },
   })
@@ -301,9 +374,11 @@ export type DatiModificaTask = {
   durataMinuti?: number | null
   note?: string | null
   assegnatoA?: string | null
-  // Si puo' aggiungere anche a un task gia' creato: e' spesso a modifica che
-  // ci si accorge che manca (vedi DatiNuovoTask.nomeContatto).
-  nomeContatto?: string | null
+  // Solo per le voci nate prima del vincolo, che una persona non ce l'hanno:
+  // e' l'unico modo per rimetterle in regola. Su una voce gia' collegata si
+  // ignorano - spostare il con-chi sarebbe un altro appuntamento.
+  personaId?: string | null
+  nuovaPersona?: DatiNuovaPersona | null
 }
 
 export async function modificaTask(id: string, dati: DatiModificaTask): Promise<Risultato> {
@@ -327,7 +402,7 @@ export async function modificaTask(id: string, dati: DatiModificaTask): Promise<
 
   const { data: task, error: fetchError } = await supabase
     .from('task')
-    .select('titolo, tipo, data, ora, durata_minuti, note, nome_contatto, assegnato_a, stato')
+    .select('titolo, tipo, data, ora, durata_minuti, note, persona_id, assegnato_a, stato')
     .eq('id', id)
     .maybeSingle()
 
@@ -340,6 +415,12 @@ export async function modificaTask(id: string, dati: DatiModificaTask): Promise<
     if (!staff) return { ok: false, errore: 'Quella persona non è fra gli operatori del CRM.' }
   }
 
+  // Una voce gia' collegata tiene la sua persona; una nata prima del vincolo
+  // la trova adesso, ed e' l'occasione per rimetterla in regola invece di
+  // lasciarla senza nome per sempre.
+  const persona = await risolviPersona(supabase, task.persona_id || dati.personaId?.trim() || null, dati.nuovaPersona)
+  if (!persona.ok) return persona
+
   const { error } = await supabase
     .from('task')
     .update({
@@ -349,7 +430,7 @@ export async function modificaTask(id: string, dati: DatiModificaTask): Promise<
       ora,
       durata_minuti: durata,
       note: dati.note?.trim() || null,
-      nome_contatto: dati.nomeContatto?.trim() || null,
+      persona_id: persona.personaId,
       assegnato_a: assegnatoA,
     })
     .eq('id', id)
@@ -370,7 +451,7 @@ export async function modificaTask(id: string, dati: DatiModificaTask): Promise<
         ora: normalizzaOra(task.ora),
         durata_minuti: task.durata_minuti,
         note: task.note,
-        nome_contatto: task.nome_contatto,
+        persona_id: task.persona_id,
         assegnato_a: task.assegnato_a,
       },
       dopo: {
@@ -380,9 +461,10 @@ export async function modificaTask(id: string, dati: DatiModificaTask): Promise<
         ora,
         durata_minuti: durata,
         note: dati.note?.trim() || null,
-        nome_contatto: dati.nomeContatto?.trim() || null,
+        persona_id: persona.personaId,
         assegnato_a: assegnatoA,
       },
+      persona_creata_adesso: persona.creata,
     },
   })
 

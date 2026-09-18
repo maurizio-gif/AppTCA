@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { DURATA_PREDEFINITA, OPZIONI_TIPO, eTipoValido, type TipoVoce } from '@/lib/agenda'
-import { PersonaPicker } from '../persone/PersonaPicker'
-import { richiestePersona, type PersonaTrovata, type RichiestaPersona } from '../persone/ricerca-actions'
+import { richiestePersona, type RichiestaPersona } from '../persone/ricerca-actions'
+import { CampoPersona, sceltaPersonaCompleta, type SceltaPersona } from './CampoPersona'
 import { creaTask } from './actions'
 
 // Form di creazione di una voce d'agenda, condiviso da chi lo apre dal
@@ -14,6 +14,9 @@ import { creaTask } from './actions'
 // (la persona), poi SU COSA (quale delle sue richieste, dalla piu' recente), e
 // solo dopo il quando e il cosa fare. Scegliendo la richiesta il task si
 // aggancia da solo anche all'opportunita' di quella richiesta.
+//
+// Il CON CHI e' obbligatorio: se la persona non e' ancora in anagrafica la si
+// crea da qui (vedi CampoPersona), non si salva niente senza.
 export function FormTask({
   staff,
   emailCorrente,
@@ -30,9 +33,11 @@ export function FormTask({
   // modificabile, e se cambia il form lo segue di nuovo.
   dataProposta: string
   // Collegamento gia' deciso da chi apre il form (task creato dalla riga di
-  // un invito, di un contatto…): in quel caso non si chiede niente, persona e
-  // opportunita' li ricava il server da quella richiesta.
-  collegamentoFisso?: { valore: string; etichetta: string }
+  // un invito, di un contatto…): persona e opportunita' le ricava il server da
+  // quella richiesta. personaId dice se quella richiesta una persona ce l'ha
+  // davvero: le enquiry senza email non ne hanno una, e allora la si chiede
+  // qui come altrove.
+  collegamentoFisso?: { valore: string; etichetta: string; personaId?: string | null }
   // Persona gia' decisa (form aperto dalla sua scheda): non si cerca, ma le
   // sue richieste si possono comunque collegare.
   personaFissa?: { id: string; nome: string; opportunitaId: string | null }
@@ -50,15 +55,19 @@ export function FormTask({
   const [durataManuale, setDurataManuale] = useState<number | null>(null)
   const [assegnatoA, setAssegnatoA] = useState(emailCorrente ?? staff[0]?.email ?? '')
   const [note, setNote] = useState('')
-  const [nomeContatto, setNomeContatto] = useState('')
-  const [persona, setPersona] = useState<PersonaTrovata | null>(null)
+  const [scelta, setScelta] = useState<SceltaPersona | null>(null)
   const [opportunitaId, setOpportunitaId] = useState('')
   const [richieste, setRichieste] = useState<RichiestaPersona[]>([])
   const [richiestaScelta, setRichiestaScelta] = useState('')
   const [errore, setErrore] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const personaId = personaFissa?.id ?? persona?.id ?? null
+  // La persona gia' a sistema: quella della scheda da cui si e' aperto il
+  // form, quella della richiesta collegata, o quella scelta in anagrafica. Una
+  // persona ancora da creare non ha un id, ce l'avra' dopo il salvataggio.
+  const personaId =
+    personaFissa?.id ?? collegamentoFisso?.personaId ?? (scelta?.tipo === 'esistente' ? scelta.persona.id : null)
+  const personaPronta = !!personaId || sceltaPersonaCompleta(scelta)
 
   // Cambiando giorno nel calendario il form torna a seguirlo: e' il gesto
   // piu' comune ("aggiungo qualcosa in quel giorno").
@@ -114,26 +123,34 @@ export function FormTask({
     <div className="login-card agenda-form">
       {errore && <p className="error-banner">{errore}</p>}
 
-      {collegamentoFisso ? (
+      {collegamentoFisso && (
         <p className="agenda-collegamento">
-          Collegato a: {collegamentoFisso.etichetta} — persona e opportunità vengono prese da questa richiesta.
+          Collegato a: {collegamentoFisso.etichetta}
+          {collegamentoFisso.personaId
+            ? ' — persona e opportunità vengono prese da questa richiesta.'
+            : ' — questa richiesta non è collegata a nessuna persona in anagrafica: indicala qui sotto.'}
         </p>
-      ) : (
-        <>
-          {personaFissa ? (
-            <p className="agenda-collegamento">Persona: {personaFissa.nome}</p>
-          ) : (
-            <PersonaPicker
-              persona={persona}
-              onScegli={(scelta) => {
-                setPersona(scelta)
-                // Una persona ha di norma una sola opportunita' aperta: se
-                // c'e' la scegliamo noi, l'operatore non deve fare nulla.
-                setOpportunitaId(scelta?.opportunita[0]?.id ?? '')
-              }}
-            />
-          )}
+      )}
 
+      {personaFissa ? (
+        <p className="agenda-collegamento">Persona: {personaFissa.nome}</p>
+      ) : (
+        !collegamentoFisso?.personaId && (
+          <CampoPersona
+            idPrefisso="task"
+            scelta={scelta}
+            onCambia={(nuova) => {
+              setScelta(nuova)
+              // Una persona ha di norma una sola opportunita' aperta: se c'e'
+              // la scegliamo noi, l'operatore non deve fare nulla.
+              setOpportunitaId(nuova?.tipo === 'esistente' ? nuova.persona.opportunita[0]?.id ?? '' : '')
+            }}
+          />
+        )
+      )}
+
+      {!collegamentoFisso && (
+        <>
           {personaId &&
             (richieste.length > 0 ? (
               <div className="field">
@@ -160,19 +177,6 @@ export function FormTask({
               )
             ))}
         </>
-      )}
-
-      {!personaId && (
-        <div className="field">
-          <label htmlFor="task-nome-contatto">Nome contatto (se non è ancora in anagrafica)</label>
-          <input
-            id="task-nome-contatto"
-            type="text"
-            value={nomeContatto}
-            onChange={(e) => setNomeContatto(e.target.value)}
-            placeholder="Nome e cognome di chi è l'appuntamento"
-          />
-        </div>
       )}
 
       <div className="agenda-form-griglia">
@@ -257,11 +261,17 @@ export function FormTask({
         />
       </div>
 
+      {!personaPronta && (
+        <p className="gestione-meta">
+          Manca la persona: cercala in anagrafica qui sopra, oppure creala. Nessuna voce d’agenda si salva senza.
+        </p>
+      )}
+
       <div className="pipeline-azioni">
         <button
           type="button"
           className="btn"
-          disabled={isPending || !titolo.trim()}
+          disabled={isPending || !titolo.trim() || !personaPronta}
           onClick={() => {
             setErrore(null)
             const collegamento = collegamentoFisso?.valore ?? richiestaScelta
@@ -274,17 +284,17 @@ export function FormTask({
                 ora: ora || null,
                 durataMinuti: durata,
                 note,
-                nomeContatto: personaId ? null : nomeContatto,
                 assegnatoA,
                 entita,
                 entitaId,
                 personaId,
+                nuovaPersona: scelta?.tipo === 'nuova' ? scelta.dati : null,
                 opportunitaId: leadDaCollegare(),
               })
               if (risultato.ok) {
                 setTitolo(titoloIniziale)
                 setNote('')
-                setNomeContatto('')
+                setScelta(null)
                 setOra('')
                 setRichiestaScelta('')
                 onFatto?.(risultato.completatoSubito)

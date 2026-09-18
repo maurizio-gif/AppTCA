@@ -1580,6 +1580,10 @@ table.data-table {
   .data-table tr.row-clickable td[data-label='Chi']:nth-of-type(4) {
     display: block;
     margin: 4px 0 2px;
+    /* Stessa dimensione dell'orario (la regola nth-of-type(2) qui sopra): il
+       nome e' l'altra meta' di "cosa devo fare adesso", non un dettaglio.
+       La nota che segue resta piccola, se la porta .muted. */
+    font-size: 15px;
   }
 
   .data-table tr.row-clickable td[data-label='Chi']:nth-of-type(4)::before {
