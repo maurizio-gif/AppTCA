@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { AccordionGroup, ExpandableRow } from '@/components/ExpandableRow'
 import {
   CLASSE_TIPO,
@@ -23,6 +24,9 @@ export type VoceCalendario = VoceAgenda & {
   assegnatoEtichetta: string | null
   // Seconda riga della cella "Chi": contatti, entita' collegata, ecc.
   sottotitolo?: React.ReactNode
+  // Se il titolo e' un nome cliccabile (persona in anagrafica, record
+  // collegato), il link a cui porta: senza, il titolo resta testo semplice.
+  chiHref?: string
   // Passati a ExpandableRow per il dettaglio della riga.
   record: Record<string, unknown>
   hiddenKeys?: string[]
@@ -93,7 +97,13 @@ export function TabellaAgenda({ voci }: { voci: VoceCalendario[] }) {
                         leggibile anche nella riga riassuntiva mobile, dove il
                         resto dei campi diventa piccolo e grigio (vedi regole
                         ".row-clickable td[data-label]" in globals.css). */}
-                    <span className="agenda-chi-titolo">{voce.titolo}</span>
+                    {voce.chiHref ? (
+                      <Link href={voce.chiHref} className="agenda-chi-titolo link">
+                        {voce.titolo}
+                      </Link>
+                    ) : (
+                      <span className="agenda-chi-titolo">{voce.titolo}</span>
+                    )}
                     {voce.sottotitolo && (
                       <>
                         <br />

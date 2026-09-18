@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import type { VoceCalendario } from '@/components/CalendarioAgenda'
 import { eStatoTaskValido, etichettaPersona, testoRicerca, voceDaTask, type RigaTask, type StatoTask } from '@/lib/agenda'
 import { AzioniTask } from './AzioniTask'
@@ -16,6 +15,7 @@ export const CAMPI_TASK_NASCOSTI = [
   'completato_il',
   'esito',
   'note',
+  'nome_contatto',
   'entita',
   'entita_id',
 ]
@@ -73,26 +73,41 @@ export function voceCalendarioDaTask(
   const creatoDaMe = !!emailCorrente && riga.creato_da?.toLowerCase() === emailCorrente
 
   const nomePersona = riga.persona_id ? nomiPersone[riga.persona_id] : null
+  const nomeContatto = typeof riga.nome_contatto === 'string' ? riga.nome_contatto.trim() || null : null
+
+  // Con chi e' l'appuntamento viene prima di tutto, ed e' quello che deve
+  // saltare all'occhio prima ancora di aprire la riga - non il titolo del
+  // task, che spesso e' solo una categoria ("Club Tour", "Walkin") scelta da
+  // chi ha creato il task, non un nome. Priorita': la persona in anagrafica
+  // se la conosciamo, altrimenti il nome scritto a mano, altrimenti la
+  // richiesta collegata. Solo se non sappiamo proprio chi e' resta il
+  // titolo del task com'era.
+  const identita = nomePersona ?? nomeContatto ?? etichettaCollegamento ?? null
+  const identitaHref = nomePersona
+    ? `/dashboard/persone/${riga.persona_id}`
+    : !nomeContatto && etichettaCollegamento && paginaCollegamento
+      ? paginaCollegamento
+      : undefined
 
   return {
     ...voce,
-    ricerca: ricercaPersona ? `${voce.ricerca} ${ricercaPersona}`.trim() : voce.ricerca,
+    ricerca: [voce.ricerca, ricercaPersona, nomeContatto?.toLowerCase()].filter(Boolean).join(' ').trim(),
     assegnatoEtichetta,
-    // Con chi e' l'appuntamento viene prima di tutto: se la persona la
-    // conosciamo, si mostra lei (cliccabile), altrimenti la richiesta
-    // collegata, altrimenti la nota.
-    sottotitolo: nomePersona ? (
-      <Link href={`/dashboard/persone/${riga.persona_id}`} className="link">
-        {nomePersona}
-      </Link>
-    ) : etichettaCollegamento ? (
-      paginaCollegamento ? (
-        <Link href={paginaCollegamento} className="link">
-          {etichettaCollegamento}
-        </Link>
-      ) : (
-        etichettaCollegamento
-      )
+    titolo: identita ?? voce.titolo,
+    chiHref: identitaHref,
+    // Quando il titolo in grassetto e' diventato il nome, il titolo del task
+    // (la categoria, es. "Club Tour") e la nota restano comunque utili come
+    // contesto sotto al nome, non solo dentro al pannello di gestione.
+    sottotitolo: identita ? (
+      <>
+        {voce.titolo}
+        {riga.note && (
+          <>
+            <br />
+            {riga.note}
+          </>
+        )}
+      </>
     ) : (
       riga.note || null
     ),
@@ -107,6 +122,8 @@ export function voceCalendarioDaTask(
         completatoIl={riga.completato_il ?? null}
         esito={riga.esito ?? null}
         note={riga.note ?? null}
+        nomeContatto={nomeContatto}
+        personaCollegata={!!riga.persona_id}
         puoEliminare={eAmministratore || suo || creatoDaMe}
         titolo={voce.titolo}
         tipo={voce.tipo}

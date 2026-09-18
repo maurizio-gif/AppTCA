@@ -50,6 +50,7 @@ export function FormTask({
   const [durataManuale, setDurataManuale] = useState<number | null>(null)
   const [assegnatoA, setAssegnatoA] = useState(emailCorrente ?? staff[0]?.email ?? '')
   const [note, setNote] = useState('')
+  const [nomeContatto, setNomeContatto] = useState('')
   const [persona, setPersona] = useState<PersonaTrovata | null>(null)
   const [opportunitaId, setOpportunitaId] = useState('')
   const [richieste, setRichieste] = useState<RichiestaPersona[]>([])
@@ -161,6 +162,19 @@ export function FormTask({
         </>
       )}
 
+      {!personaId && (
+        <div className="field">
+          <label htmlFor="task-nome-contatto">Nome contatto (se non è ancora in anagrafica)</label>
+          <input
+            id="task-nome-contatto"
+            type="text"
+            value={nomeContatto}
+            onChange={(e) => setNomeContatto(e.target.value)}
+            placeholder="Nome e cognome di chi è l'appuntamento"
+          />
+        </div>
+      )}
+
       <div className="agenda-form-griglia">
         <div className="field">
           <label htmlFor="task-tipo">Tipo</label>
@@ -260,6 +274,7 @@ export function FormTask({
                 ora: ora || null,
                 durataMinuti: durata,
                 note,
+                nomeContatto: personaId ? null : nomeContatto,
                 assegnatoA,
                 entita,
                 entitaId,
@@ -269,6 +284,7 @@ export function FormTask({
               if (risultato.ok) {
                 setTitolo(titoloIniziale)
                 setNote('')
+                setNomeContatto('')
                 setOra('')
                 setRichiestaScelta('')
                 onFatto?.(risultato.completatoSubito)

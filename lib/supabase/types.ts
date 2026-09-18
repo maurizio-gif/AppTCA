@@ -1353,6 +1353,7 @@ export type Database = {
           esito: string | null
           id: string
           note: string | null
+          nome_contatto: string | null
           opportunita_id: string | null
           ora: string | null
           persona_id: string | null
@@ -1372,6 +1373,7 @@ export type Database = {
           esito?: string | null
           id?: string
           note?: string | null
+          nome_contatto?: string | null
           opportunita_id?: string | null
           ora?: string | null
           persona_id?: string | null
@@ -1391,6 +1393,7 @@ export type Database = {
           esito?: string | null
           id?: string
           note?: string | null
+          nome_contatto?: string | null
           opportunita_id?: string | null
           ora?: string | null
           persona_id?: string | null

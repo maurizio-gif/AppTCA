@@ -230,6 +230,8 @@ function RigaTaskCollegato({
           oraIniziale={normalizzaOra(riga.ora)}
           durataIniziale={durata}
           noteIniziali={riga.note ?? null}
+          nomeContattoIniziale={riga.nome_contatto ?? null}
+          personaCollegata={!!riga.persona_id}
           assegnatoAIniziale={riga.assegnato_a ?? null}
           staff={staff}
           emailCorrente={emailCorrente}

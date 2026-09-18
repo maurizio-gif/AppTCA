@@ -25,6 +25,8 @@ export function ModificaTask({
   oraIniziale,
   durataIniziale,
   noteIniziali,
+  nomeContattoIniziale = null,
+  personaCollegata = false,
   assegnatoAIniziale,
   staff,
   emailCorrente,
@@ -38,6 +40,11 @@ export function ModificaTask({
   oraIniziale: string | null
   durataIniziale: number
   noteIniziali: string | null
+  nomeContattoIniziale?: string | null
+  // Il campo "nome contatto" si vede solo senza una persona collegata: con
+  // una persona il nome e' gia' il suo, riscriverlo qui creerebbe due fonti
+  // diverse per la stessa cosa.
+  personaCollegata?: boolean
   assegnatoAIniziale: string | null
   // Assente quando chi mostra il pannello non ha l'elenco degli operatori: si
   // puo' comunque spostare la voce, l'assegnatario resta quello di prima.
@@ -52,6 +59,7 @@ export function ModificaTask({
   const [ora, setOra] = useState(oraIniziale ?? '')
   const [durata, setDurata] = useState(durataIniziale)
   const [note, setNote] = useState(noteIniziali ?? '')
+  const [nomeContatto, setNomeContatto] = useState(nomeContattoIniziale ?? '')
   const [assegnatoA, setAssegnatoA] = useState(assegnatoAIniziale ?? emailCorrente ?? '')
   const [errore, setErrore] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -133,6 +141,19 @@ export function ModificaTask({
         )}
       </div>
 
+      {!personaCollegata && (
+        <div className="field">
+          <label htmlFor={`modifica-nome-contatto-${id}`}>Nome contatto (se non è ancora in anagrafica)</label>
+          <input
+            id={`modifica-nome-contatto-${id}`}
+            type="text"
+            value={nomeContatto}
+            onChange={(e) => setNomeContatto(e.target.value)}
+            placeholder="Nome e cognome di chi è l'appuntamento"
+          />
+        </div>
+      )}
+
       <div className="field">
         <label htmlFor={`modifica-titolo-${id}`}>Titolo</label>
         <input
@@ -171,6 +192,7 @@ export function ModificaTask({
                 ora: ora || null,
                 durataMinuti: durata,
                 note,
+                nomeContatto: personaCollegata ? null : nomeContatto,
                 // Senza elenco operatori l'assegnatario non e' modificabile:
                 // non si manda niente e il server tiene quello di prima.
                 assegnatoA: staff && staff.length > 0 ? assegnatoA : null,
