@@ -126,6 +126,7 @@ export function voceCalendarioDaTask(
         esito={riga.esito ?? null}
         note={riga.note ?? null}
         personaCollegata={!!riga.persona_id}
+        personaNome={nomePersona}
         puoEliminare={eAmministratore || suo || creatoDaMe}
         titolo={voce.titolo}
         tipo={voce.tipo}
