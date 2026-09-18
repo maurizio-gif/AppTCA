@@ -23,6 +23,11 @@ export type DatiNuovoTask = {
   durataMinuti?: number | null
   note?: string | null
   assegnatoA?: string | null
+  // Nome di chi e' l'appuntamento quando non c'e' (ancora) una persona in
+  // anagrafica da collegare: senza questo, un walk-in in agenda si vede solo
+  // con il titolo del task (spesso una categoria, non un nome) - vedi
+  // voceCalendarioDaTask in VociTask.tsx.
+  nomeContatto?: string | null
   // Collegamento opzionale a un record di un'altra sezione (vedi la tabella
   // task): lo usa il blocco "In agenda" dentro la riga di un record, e la
   // tendina "collega a" del form.
@@ -152,6 +157,7 @@ export async function creaTask(dati: DatiNuovoTask): Promise<RisultatoTask> {
       ora,
       durata_minuti: durata,
       note: dati.note?.trim() || null,
+      nome_contatto: dati.nomeContatto?.trim() || null,
       assegnato_a: assegnatoA,
       creato_da: email,
       entita,
@@ -179,6 +185,7 @@ export async function creaTask(dati: DatiNuovoTask): Promise<RisultatoTask> {
       ora,
       durata_minuti: durata,
       assegnato_a: assegnatoA,
+      nome_contatto: dati.nomeContatto?.trim() || null,
       collegato_a: entita ? `${entita}:${entitaId}` : null,
       persona_id: personaId,
       completato_in_automatico: completatoSubito,
@@ -294,6 +301,9 @@ export type DatiModificaTask = {
   durataMinuti?: number | null
   note?: string | null
   assegnatoA?: string | null
+  // Si puo' aggiungere anche a un task gia' creato: e' spesso a modifica che
+  // ci si accorge che manca (vedi DatiNuovoTask.nomeContatto).
+  nomeContatto?: string | null
 }
 
 export async function modificaTask(id: string, dati: DatiModificaTask): Promise<Risultato> {
@@ -317,7 +327,7 @@ export async function modificaTask(id: string, dati: DatiModificaTask): Promise<
 
   const { data: task, error: fetchError } = await supabase
     .from('task')
-    .select('titolo, tipo, data, ora, durata_minuti, note, assegnato_a, stato')
+    .select('titolo, tipo, data, ora, durata_minuti, note, nome_contatto, assegnato_a, stato')
     .eq('id', id)
     .maybeSingle()
 
@@ -339,6 +349,7 @@ export async function modificaTask(id: string, dati: DatiModificaTask): Promise<
       ora,
       durata_minuti: durata,
       note: dati.note?.trim() || null,
+      nome_contatto: dati.nomeContatto?.trim() || null,
       assegnato_a: assegnatoA,
     })
     .eq('id', id)
@@ -359,6 +370,7 @@ export async function modificaTask(id: string, dati: DatiModificaTask): Promise<
         ora: normalizzaOra(task.ora),
         durata_minuti: task.durata_minuti,
         note: task.note,
+        nome_contatto: task.nome_contatto,
         assegnato_a: task.assegnato_a,
       },
       dopo: {
@@ -368,6 +380,7 @@ export async function modificaTask(id: string, dati: DatiModificaTask): Promise<
         ora,
         durata_minuti: durata,
         note: dati.note?.trim() || null,
+        nome_contatto: dati.nomeContatto?.trim() || null,
         assegnato_a: assegnatoA,
       },
     },

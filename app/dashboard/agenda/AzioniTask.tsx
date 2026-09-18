@@ -20,6 +20,8 @@ export function AzioniTask({
   completatoIl,
   esito,
   note,
+  nomeContatto = null,
+  personaCollegata = false,
   puoEliminare,
   titolo,
   tipo,
@@ -36,6 +38,8 @@ export function AzioniTask({
   completatoIl: string | null
   esito: string | null
   note: string | null
+  nomeContatto?: string | null
+  personaCollegata?: boolean
   // Solo per il pulsante Elimina: tutto il resto e' aperto a chiunque.
   puoEliminare: boolean
   // Valori attuali della voce: servono a riempire il form di modifica (vedi
@@ -84,6 +88,8 @@ export function AzioniTask({
           oraIniziale={ora}
           durataIniziale={durataMinuti}
           noteIniziali={note}
+          nomeContattoIniziale={nomeContatto}
+          personaCollegata={personaCollegata}
           assegnatoAIniziale={assegnatoA}
           staff={staff}
           emailCorrente={emailCorrente}
