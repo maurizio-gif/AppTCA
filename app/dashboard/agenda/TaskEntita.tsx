@@ -37,8 +37,10 @@ export function TaskEntita({
   azioneInCima = false,
 }: {
   // Task agganciato a una singola richiesta: persona e opportunita' li ricava
-  // il server da quella richiesta (vedi creaTask).
-  collegamento?: { entita: string; entitaId: string; etichetta: string }
+  // il server da quella richiesta (vedi creaTask). personaId serve al form per
+  // sapere se quella richiesta una persona ce l'ha: se non ce l'ha (enquiry
+  // senza email) la chiede, perche' senza anagrafica non si salva.
+  collegamento?: { entita: string; entitaId: string; etichetta: string; personaId?: string | null }
   // Task agganciato direttamente a una persona (dalla sua scheda).
   persona?: { id: string; nome: string; opportunitaId: string | null }
   titoloSuggerito: string
@@ -106,7 +108,11 @@ export function TaskEntita({
         dataProposta={dataProposta}
         collegamentoFisso={
           collegamento
-            ? { valore: `${collegamento.entita}:${collegamento.entitaId}`, etichetta: collegamento.etichetta }
+            ? {
+                valore: `${collegamento.entita}:${collegamento.entitaId}`,
+                etichetta: collegamento.etichetta,
+                personaId: collegamento.personaId ?? null,
+              }
             : undefined
         }
         personaFissa={persona}
@@ -230,7 +236,6 @@ function RigaTaskCollegato({
           oraIniziale={normalizzaOra(riga.ora)}
           durataIniziale={durata}
           noteIniziali={riga.note ?? null}
-          nomeContattoIniziale={riga.nome_contatto ?? null}
           personaCollegata={!!riga.persona_id}
           assegnatoAIniziale={riga.assegnato_a ?? null}
           staff={staff}

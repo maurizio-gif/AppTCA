@@ -73,6 +73,9 @@ export function voceCalendarioDaTask(
   const creatoDaMe = !!emailCorrente && riga.creato_da?.toLowerCase() === emailCorrente
 
   const nomePersona = riga.persona_id ? nomiPersone[riga.persona_id] : null
+  // Voci create nell'ora in cui il nome si scriveva a mano, prima che
+  // l'anagrafica diventasse obbligatoria (vedi risolviPersona in actions.ts):
+  // nessuno lo scrive piu', ma quelle poche righe devono restare leggibili.
   const nomeContatto = typeof riga.nome_contatto === 'string' ? riga.nome_contatto.trim() || null : null
 
   // Con chi e' l'appuntamento viene prima di tutto, ed e' quello che deve
@@ -122,7 +125,6 @@ export function voceCalendarioDaTask(
         completatoIl={riga.completato_il ?? null}
         esito={riga.esito ?? null}
         note={riga.note ?? null}
-        nomeContatto={nomeContatto}
         personaCollegata={!!riga.persona_id}
         puoEliminare={eAmministratore || suo || creatoDaMe}
         titolo={voce.titolo}

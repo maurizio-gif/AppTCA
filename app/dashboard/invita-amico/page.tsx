@@ -292,6 +292,7 @@ export default async function InvitaAmicoPage({
                                     entita: 'form_invita_amico',
                                     entitaId: String(riga.id),
                                     etichetta: `Invita un amico · ${nomeAmico}`,
+                                    personaId: riga.persona_id ?? null,
                                   }}
                                   titoloSuggerito={`Ricontattare ${nomeAmico}`}
                                   task={taskPerInvito.get(String(riga.id)) ?? []}
