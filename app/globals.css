@@ -1353,6 +1353,15 @@ table.data-table {
   font-size: 13px;
 }
 
+/* Nome/titolo di chi e' l'appuntamento nella colonna "Chi" dell'agenda:
+   sempre in grassetto e ben leggibile, cosi' resta l'informazione con cui
+   si riconosce la voce a colpo d'occhio anche quando il resto della riga
+   (orario a parte) e' piccolo e grigio - vedi la card mobile piu' sotto. */
+.agenda-chi-titolo {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
 .contact-link {
   color: var(--color-accent);
   text-decoration: none;
@@ -1560,6 +1569,21 @@ table.data-table {
   .data-table tr.row-clickable td[data-label]:nth-of-type(n + 4)::before {
     content: ' · ';
     color: var(--color-text-light);
+  }
+
+  /* La colonna "Chi" (con chi e' l'appuntamento) non e' una meta-informazione
+     come assegnatario o stato: va sulla sua riga, senza il puntino che la
+     farebbe sembrare un dettaglio secondario in coda a "Tipo". Il nome vero
+     e proprio resta in grassetto grazie a .agenda-chi-titolo, che si applica
+     al testo e non risente di questo font-size/colore piccolo e grigio
+     pensato per il resto della cella (es. la nota, gia' attenuata da .muted). */
+  .data-table tr.row-clickable td[data-label='Chi']:nth-of-type(4) {
+    display: block;
+    margin: 4px 0 2px;
+  }
+
+  .data-table tr.row-clickable td[data-label='Chi']:nth-of-type(4)::before {
+    content: none;
   }
 
   /* Su mobile le celle di una riga espandibile finiscono in fila separate

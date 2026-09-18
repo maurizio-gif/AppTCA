@@ -88,7 +88,12 @@ export function TabellaAgenda({ voci }: { voci: VoceCalendario[] }) {
                     {ETICHETTE_TIPO_BREVI[voce.tipo]}
                   </span>,
                   <>
-                    {voce.titolo}
+                    {/* Chi e' l'appuntamento e' l'informazione con cui si
+                        riconosce la voce a colpo d'occhio: deve restare
+                        leggibile anche nella riga riassuntiva mobile, dove il
+                        resto dei campi diventa piccolo e grigio (vedi regole
+                        ".row-clickable td[data-label]" in globals.css). */}
+                    <span className="agenda-chi-titolo">{voce.titolo}</span>
                     {voce.sottotitolo && (
                       <>
                         <br />
