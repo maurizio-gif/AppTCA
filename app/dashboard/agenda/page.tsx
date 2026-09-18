@@ -26,6 +26,7 @@ const OPZIONI_FILTRO = [
   { valore: 'da_fare', etichetta: 'Solo da fare' },
   { valore: 'appuntamenti', etichetta: 'Solo appuntamenti' },
   { valore: 'task', etichetta: 'Solo task' },
+  { valore: 'senza_anagrafica', etichetta: 'Senza anagrafica' },
 ]
 
 // Agenda condivisa: un solo calendario per gli appuntamenti che i clienti
@@ -198,6 +199,12 @@ export default async function AgendaPage({
     // solo perche' non sono un task.
     if (filtro === 'task' && eAppuntamentoVero(voce.tipo)) return false
     if (filtro === 'appuntamenti' && !eAppuntamentoVero(voce.tipo)) return false
+    // Le voci create in agenda prima che l'anagrafica fosse obbligatoria:
+    // sono quelle da rimettere in regola una a una, aprendole e usando
+    // "Sposta o modifica". Solo quelle nate qui: per un appuntamento
+    // arrivato dal sito la persona si collega dalla sua richiesta, e da
+    // questo pannello non si potrebbe fare nulla.
+    if (filtro === 'senza_anagrafica' && !(voce.origine === 'task' && !voce.record.persona_id)) return false
     if (soloMiei) {
       // "I miei" tiene dentro anche gli appuntamenti dal sito ancora da
       // gestire: non hanno un titolare, ma sono lavoro di tutti.
@@ -217,7 +224,10 @@ export default async function AgendaPage({
   // troverebbe una visita del mese scorso gia' segnata come fatta (stessa
   // logica di ContattiSezione: la ricerca sostituisce lo scope predefinito,
   // non si aggiunge sopra).
-  const ricercaAttiva = !!query || !!dal || !!al
+  // "Senza anagrafica" vale come una ricerca: quelle voci sono quasi tutte
+  // vecchie e gia' chiuse, e con lo scope predefinito (futuro + arretrati
+  // aperti) la lista ne mostrerebbe due su cinquanta.
+  const ricercaAttiva = !!query || !!dal || !!al || filtro === 'senza_anagrafica'
   const vociListaBase = ricercaAttiva ? voci : voci.filter((voce) => !voce.data || voce.data >= oggi || voce.daFare)
   const vociLista = vociListaBase
     .filter((voce) => !query || voce.ricerca.includes(query))
