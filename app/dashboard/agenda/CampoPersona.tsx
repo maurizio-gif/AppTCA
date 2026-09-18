@@ -15,6 +15,17 @@ export type SceltaPersona =
 
 const NUOVA_VUOTA: DatiNuovaPersona = { nome: '', cognome: '', email: '', cellulare: '' }
 
+// Chi crea una persona ha appena finito di cercarla: quello che ha scritto per
+// cercarla e' gia' il dato da riportare nella scheda nuova, non c'e' motivo di
+// farglielo riscrivere. Si cerca per nome, ma anche per email o cellulare.
+function datiDaRicerca(cercato: string): DatiNuovaPersona {
+  const testo = cercato.trim()
+  if (testo.includes('@')) return { ...NUOVA_VUOTA, email: testo }
+  if (testo.replace(/\D/g, '').length >= 6) return { ...NUOVA_VUOTA, cellulare: testo }
+  const [nome, ...resto] = testo.split(/\s+/)
+  return { ...NUOVA_VUOTA, nome: nome ?? '', cognome: resto.join(' ') }
+}
+
 // Nome e cognome perche' e' quello che si legge in agenda; un recapito perche'
 // senza la deduplicazione dell'anagrafica non ha appigli e la stessa persona
 // tornerebbe dentro due volte (vedi trova_o_crea_persona).
@@ -54,23 +65,15 @@ export function CampoPersona({
 
   if (!creando) {
     return (
-      <>
-        <PersonaPicker
-          idCampo={`${idPrefisso}-persona`}
-          persona={null}
-          onScegli={(trovata) => onCambia(trovata ? { tipo: 'esistente', persona: trovata } : null)}
-        />
-        <button
-          type="button"
-          className="btn-ghost btn-small"
-          onClick={() => {
-            setCreando(true)
-            onCambia({ tipo: 'nuova', dati: NUOVA_VUOTA })
-          }}
-        >
-          + Non è in anagrafica: creala
-        </button>
-      </>
+      <PersonaPicker
+        idCampo={`${idPrefisso}-persona`}
+        persona={null}
+        onScegli={(trovata) => onCambia(trovata ? { tipo: 'esistente', persona: trovata } : null)}
+        onCrea={(cercato) => {
+          setCreando(true)
+          onCambia({ tipo: 'nuova', dati: datiDaRicerca(cercato) })
+        }}
+      />
     )
   }
 

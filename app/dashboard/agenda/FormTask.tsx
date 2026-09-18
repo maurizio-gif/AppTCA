@@ -136,16 +136,26 @@ export function FormTask({
         <p className="agenda-collegamento">Persona: {personaFissa.nome}</p>
       ) : (
         !collegamentoFisso?.personaId && (
-          <CampoPersona
-            idPrefisso="task"
-            scelta={scelta}
-            onCambia={(nuova) => {
-              setScelta(nuova)
-              // Una persona ha di norma una sola opportunita' aperta: se c'e'
-              // la scegliamo noi, l'operatore non deve fare nulla.
-              setOpportunitaId(nuova?.tipo === 'esistente' ? nuova.persona.opportunita[0]?.id ?? '' : '')
-            }}
-          />
+          <>
+            <CampoPersona
+              idPrefisso="task"
+              scelta={scelta}
+              onCambia={(nuova) => {
+                setScelta(nuova)
+                // Una persona ha di norma una sola opportunita' aperta: se c'e'
+                // la scegliamo noi, l'operatore non deve fare nulla.
+                setOpportunitaId(nuova?.tipo === 'esistente' ? nuova.persona.opportunita[0]?.id ?? '' : '')
+              }}
+            />
+            {/* Accanto al campo, non in fondo vicino al pulsante: chi non
+                capisce perche' non puo' salvare deve leggerlo dove deve
+                agire. */}
+            {!personaPronta && (
+              <p className="gestione-meta">
+                È il nome che si legge in agenda: senza, la voce non si salva.
+              </p>
+            )}
+          </>
         )
       )}
 
@@ -260,12 +270,6 @@ export function FormTask({
           placeholder="Dettagli utili a chi lo dovrà fare…"
         />
       </div>
-
-      {!personaPronta && (
-        <p className="gestione-meta">
-          Manca la persona: cercala in anagrafica qui sopra, oppure creala. Nessuna voce d’agenda si salva senza.
-        </p>
-      )}
 
       <div className="pipeline-azioni">
         <button

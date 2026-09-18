@@ -13,10 +13,15 @@ export function PersonaPicker({
   // Piu' campi "persona" possono convivere nella stessa pagina (una riga
   // d'agenda in modifica per ogni voce aperta): l'id arriva da fuori.
   idCampo = 'task-persona',
+  // Cosa fare quando in anagrafica non c'e': il pulsante per crearla sta qui
+  // dentro, dopo i risultati, e non altrove nel form - si crea una persona
+  // solo dopo aver visto che non c'era gia', altrimenti si duplica.
+  onCrea,
 }: {
   persona: PersonaTrovata | null
   onScegli: (persona: PersonaTrovata | null) => void
   idCampo?: string
+  onCrea?: (cercato: string) => void
 }) {
   const [query, setQuery] = useState('')
   const [risultati, setRisultati] = useState<PersonaTrovata[]>([])
@@ -92,8 +97,12 @@ export function PersonaPicker({
           ))}
         </ul>
       )}
-      {cercato && !isPending && risultati.length === 0 && (
-        <p className="gestione-meta">Nessuna persona trovata: creala qui sotto.</p>
+      {cercato && !isPending && risultati.length === 0 && <p className="gestione-meta">Nessuna persona trovata.</p>}
+
+      {onCrea && cercato && !isPending && (
+        <button type="button" className="btn-ghost btn-small" onClick={() => onCrea(query.trim())}>
+          {risultati.length > 0 ? 'Non è nessuna di queste: creala' : `Crea «${query.trim()}» in anagrafica`}
+        </button>
       )}
     </div>
   )
