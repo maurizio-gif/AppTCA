@@ -1,4 +1,5 @@
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { leggiABlocchi } from '@/lib/supabase/aBlocchi'
 import { apparteneAGruppo } from '@/lib/contatti'
 
 // Server-only (usa il client service role): importare solo da Server
@@ -19,14 +20,18 @@ export async function storicoOpportunita(ids: string[]): Promise<Record<string, 
   if (unici.length === 0) return {}
 
   const supabase = createSupabaseServiceClient()
-  const { data } = await supabase
-    .from('opportunita_storico')
-    .select('opportunita_id, stato, stato_precedente, cambiato_da, cambiato_il')
-    .in('opportunita_id', unici)
-    .order('cambiato_il', { ascending: false })
+  // A blocchi come le altre letture per id: una sola richiesta con centinaia
+  // di UUID non parte nemmeno (vedi leggiABlocchi).
+  const { righe } = await leggiABlocchi<Record<string, any>>(unici, (blocco) =>
+    supabase
+      .from('opportunita_storico')
+      .select('opportunita_id, stato, stato_precedente, cambiato_da, cambiato_il')
+      .in('opportunita_id', blocco)
+      .order('cambiato_il', { ascending: false })
+  )
 
   const perOpportunita: Record<string, VoceStorico[]> = {}
-  for (const riga of data ?? []) {
+  for (const riga of righe) {
     const voce: VoceStorico = {
       stato: riga.stato,
       statoPrecedente: riga.stato_precedente,
@@ -58,8 +63,10 @@ export async function conPresaInCarico<T extends { opportunita_id?: string | nul
   if (ids.length === 0) return righe
 
   const supabase = createSupabaseServiceClient()
-  const { data } = await supabase.from('opportunita').select('id, stato, assegnato_a, assegnato_il').in('id', ids)
-  const perId = new Map((data ?? []).map((o) => [o.id, o]))
+  const { righe: trovate } = await leggiABlocchi<Record<string, any>>(ids, (blocco) =>
+    supabase.from('opportunita').select('id, stato, assegnato_a, assegnato_il').in('id', blocco)
+  )
+  const perId = new Map(trovate.map((o) => [o.id, o]))
 
   return righe.map((riga) => {
     if (apparteneAGruppo(riga.gruppo_attivita, 'junior')) return riga

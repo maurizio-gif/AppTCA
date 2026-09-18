@@ -21,6 +21,7 @@ export function AzioniTask({
   esito,
   note,
   personaCollegata = false,
+  personaNome = null,
   puoEliminare,
   titolo,
   tipo,
@@ -40,6 +41,7 @@ export function AzioniTask({
   // Falso = voce nata prima del vincolo dell'anagrafica: il form di modifica
   // chiede la persona prima di lasciar salvare (vedi ModificaTask).
   personaCollegata?: boolean
+  personaNome?: string | null
   // Solo per il pulsante Elimina: tutto il resto e' aperto a chiunque.
   puoEliminare: boolean
   // Valori attuali della voce: servono a riempire il form di modifica (vedi
@@ -89,6 +91,7 @@ export function AzioniTask({
           durataIniziale={durataMinuti}
           noteIniziali={note}
           personaCollegata={personaCollegata}
+          personaNome={personaNome}
           assegnatoAIniziale={assegnatoA}
           staff={staff}
           emailCorrente={emailCorrente}

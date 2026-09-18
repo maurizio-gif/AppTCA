@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
+import { leggiABlocchi } from '@/lib/supabase/aBlocchi'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { FiltroCheckbox } from '@/components/FiltroCheckbox'
 import { FiltroData } from '@/components/FiltroData'
@@ -109,25 +110,29 @@ export default async function AgendaPage({
   const opportunitaIds = [...new Set((contatti ?? []).map((r) => r.opportunita_id).filter(Boolean))] as string[]
 
   // Tre query che dipendono solo da task/contatti (gia' arrivati), non l'una
-  // dall'altra: nello stesso giro invece di uno a testa.
-  const [{ data: persone }, { data: opportunita }, storicoPerOpportunita] = await Promise.all([
-    personaIds.length
-      ? supabase.from('persone').select('id, nome, cognome, email, cellulare').in('id', personaIds)
-      : Promise.resolve({ data: [] as Record<string, any>[] }),
-    opportunitaIds.length
-      ? supabase.from('opportunita').select('*').in('id', opportunitaIds)
-      : Promise.resolve({ data: [] as Record<string, any>[] }),
+  // dall'altra: nello stesso giro invece di uno a testa. A blocchi perche' gli
+  // id sono tanti quante le voci in agenda: in una richiesta sola non ci
+  // starebbero, e i nomi sparirebbero tutti in silenzio (vedi leggiABlocchi).
+  const [risultatoPersone, risultatoOpportunita, storicoPerOpportunita] = await Promise.all([
+    leggiABlocchi<Record<string, any>>(personaIds, (blocco) =>
+      supabase.from('persone').select('id, nome, cognome, email, cellulare').in('id', blocco)
+    ),
+    leggiABlocchi<Record<string, any>>(opportunitaIds, (blocco) =>
+      supabase.from('opportunita').select('*').in('id', blocco)
+    ),
     storicoOpportunita(opportunitaIds),
   ])
-  const opportunitaPerId = new Map((opportunita ?? []).map((o) => [o.id, o]))
+  const persone = risultatoPersone.righe
+  const opportunita = risultatoOpportunita.righe
+  const opportunitaPerId = new Map(opportunita.map((o) => [o.id, o]))
 
   const nomiPersone: Record<string, string> = Object.fromEntries(
-    (persone ?? []).map((persona) => [persona.id, nomePersona(persona)])
+    persone.map((persona) => [persona.id, nomePersona(persona)])
   )
   // Un task non ha nome/email/cellulare propri: li eredita dalla persona
   // collegata, se c'e' una (vedi voceCalendarioDaTask).
   const ricercaPersone: Record<string, string> = Object.fromEntries(
-    (persone ?? []).map((persona) => [
+    persone.map((persona) => [
       persona.id,
       testoRicerca({ nome: persona.nome, cognome: persona.cognome, email: persona.email, cellulare: persona.cellulare }),
     ])
@@ -228,6 +233,16 @@ export default async function AgendaPage({
       <div className="page-header">
         <h1>Agenda</h1>
       </div>
+
+      {/* Senza i nomi l'agenda e' una lista di orari: se la lettura fallisce
+          va detto, non lasciato indovinare (era il caso della richiesta
+          troppo grande, vedi leggiABlocchi). */}
+      {risultatoPersone.errore && (
+        <p className="error-banner">
+          Non ho potuto caricare i nomi delle persone ({risultatoPersone.errore}): le voci qui sotto mostrano il
+          titolo al posto del nome. Ricarica la pagina.
+        </p>
+      )}
 
       <BoxIstruzioni titolo="Come funziona">
         <ol>

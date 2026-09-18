@@ -27,6 +27,7 @@ export function ModificaTask({
   durataIniziale,
   noteIniziali,
   personaCollegata = false,
+  personaNome = null,
   assegnatoAIniziale,
   staff,
   emailCorrente,
@@ -44,6 +45,10 @@ export function ModificaTask({
   // gliela si da', ed e' l'unico posto dove il con-chi si puo' ancora toccare
   // (una volta collegata, resta quella - spostarla sarebbe un altro evento).
   personaCollegata?: boolean
+  // Il nome della persona collegata: si mostra sempre, anche quando non c'e'
+  // niente da fare. Chi apre la modifica deve poter leggere a chi e'
+  // intestata la voce senza fidarsi del titolo, che e' testo libero.
+  personaNome?: string | null
   assegnatoAIniziale: string | null
   // Assente quando chi mostra il pannello non ha l'elenco degli operatori: si
   // puo' comunque spostare la voce, l'assegnatario resta quello di prima.
@@ -142,7 +147,15 @@ export function ModificaTask({
         )}
       </div>
 
-      {!personaCollegata && (
+      {personaCollegata ? (
+        <div className="field">
+          <label>Persona</label>
+          <p className="agenda-collegamento">
+            {personaNome ?? 'Collegata in anagrafica'} — resta questa: spostare la voce su un’altra persona sarebbe
+            un altro appuntamento.
+          </p>
+        </div>
+      ) : (
         <>
           <p className="gestione-meta">
             Questa voce non è collegata a nessuna persona: indicala per salvare. È così che le voci vecchie tornano
