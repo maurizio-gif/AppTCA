@@ -16,6 +16,7 @@ import { etichettaFonte, nomePersona } from '@/lib/persone'
 import { ETICHETTE_STATO, normalizzaStato } from '@/lib/pipeline'
 import { raggruppaAccessiPerVid } from '@/lib/visite'
 import { TaskEntita } from '../../agenda/TaskEntita'
+import { ModificaContattiPersona } from '../ModificaContattiPersona'
 
 export const dynamic = 'force-dynamic'
 
@@ -224,12 +225,15 @@ export default async function SchedaPersonaPage({ params }: { params: { id: stri
 
       <div className="detail-group">
         <div className="detail-group-title">Anagrafica</div>
+        <ModificaContattiPersona
+          personaId={persona.id}
+          emailIniziale={persona.email}
+          cellulareIniziale={persona.cellulare}
+        />
         <GrigliaDettagli
           voci={[
             ['nome', persona.nome],
             ['cognome', persona.cognome],
-            ['email', persona.email],
-            ['cellulare', persona.cellulare],
             ['codice_fiscale', persona.codice_fiscale],
             ['data_nascita', persona.data_nascita],
             ['pgm_member_id', persona.pgm_member_id],

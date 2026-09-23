@@ -187,3 +187,65 @@ export async function ignoraDuplicato(idA: string, idB: string): Promise<Risulta
 
   return { ok: true }
 }
+
+const EMAIL_VALIDA = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+// Email e cellulare sono i dati piu' spesso sbagliati in fase di
+// registrazione (refuso in un modulo, un numero vecchio): chi risponde al
+// telefono se ne accorge subito, e aspettare un amministratore per
+// correggerli vorrebbe dire lasciare la scheda sbagliata per giorni. Puo'
+// farlo chiunque - resta comunque tutto nel registro operatori, con il
+// prima e il dopo (vedi registraLog).
+export async function modificaContattiPersona(
+  id: string,
+  dati: { email: string | null; cellulare: string | null }
+): Promise<Risultato> {
+  const email = emailCorrente()
+  if (!email) return { ok: false, errore: 'Sessione scaduta: ricarica la pagina e rientra.' }
+
+  const nuovaEmail = dati.email?.trim().toLowerCase() || null
+  if (nuovaEmail && !EMAIL_VALIDA.test(nuovaEmail)) return { ok: false, errore: 'Inserisci un’email valida.' }
+  const nuovoCellulare = dati.cellulare?.trim() || null
+
+  const supabase = createSupabaseServiceClient()
+
+  const { data: prima } = await supabase.from('persone').select('email, cellulare').eq('id', id).maybeSingle()
+  if (!prima) return { ok: false, errore: 'Scheda non trovata: ricarica la pagina.' }
+
+  // cellulare_norm e' quello su cui si cerca e si deduplica (vedi
+  // trova_o_crea_persona): va ricalcolato con la stessa funzione del
+  // database, non a mano, altrimenti la ricerca per telefono smette di
+  // trovare questa scheda.
+  let cellulareNorm: string | null = null
+  if (nuovoCellulare) {
+    const { data, error } = await supabase.rpc('norm_cellulare', { v: nuovoCellulare })
+    if (error) return { ok: false, errore: error.message }
+    cellulareNorm = data
+  }
+
+  const { error } = await supabase
+    .from('persone')
+    .update({
+      email: nuovaEmail,
+      cellulare: nuovoCellulare,
+      cellulare_norm: cellulareNorm,
+      aggiornato_il: new Date().toISOString(),
+    })
+    .eq('id', id)
+
+  if (error) return { ok: false, errore: error.message }
+
+  await registraLog(email, 'persona_contatti_modificati', {
+    entita: 'persone',
+    entitaId: id,
+    dettagli: {
+      prima: { email: prima.email, cellulare: prima.cellulare },
+      dopo: { email: nuovaEmail, cellulare: nuovoCellulare },
+    },
+  })
+
+  revalidatePath(`/dashboard/persone/${id}`)
+  revalidatePath('/dashboard/persone')
+
+  return { ok: true }
+}
