@@ -32,3 +32,33 @@ export async function leggiABlocchi<T>(
     errore: errore ? errore.message || 'richiesta rifiutata dal database' : null,
   }
 }
+
+// Letture di una tabella intera (.select('*') senza filtro sugli id).
+//
+// PostgREST tronca ogni risposta a 1000 righe (db_max_rows): oltre quella
+// soglia una .select('*') senza .range() non da' errore, restituisce solo le
+// prime 1000 righe e basta - in silenzio, come nel caso di leggiABlocchi qui
+// sopra. Per una tabella senza colonna d'ordine naturale (id uuid) le righe
+// che restano fuori non sono nemmeno "le piu' vecchie": un update sposta la
+// riga nello heap, quindi quello che manca cambia ad ogni giro. E' cosi' che
+// una voce nata stamattina in agenda spariva dalla lista pur essendo stata
+// salvata: il task c'era, ma non era fra le prime 1000 che la richiesta
+// senza .range() restituiva.
+//
+// Si legge a pagine da 1000, ordinate per una colonna stabile, finche' una
+// pagina torna piu' corta della dimensione richiesta.
+const RIGHE_PER_PAGINA = 1000
+
+export async function leggiTutteLeRighe<T>(
+  leggiPagina: (da: number, a: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<{ righe: T[]; errore: string | null }> {
+  const righe: T[] = []
+  for (let pagina = 0; ; pagina++) {
+    const da = pagina * RIGHE_PER_PAGINA
+    const { data, error } = await leggiPagina(da, da + RIGHE_PER_PAGINA - 1)
+    if (error) return { righe, errore: error.message || 'richiesta rifiutata dal database' }
+    righe.push(...(data ?? []))
+    if (!data || data.length < RIGHE_PER_PAGINA) break
+  }
+  return { righe, errore: null }
+}

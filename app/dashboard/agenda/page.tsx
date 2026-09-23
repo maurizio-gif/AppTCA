@@ -1,6 +1,6 @@
 import { headers } from 'next/headers'
 import { createSupabaseServiceClient } from '@/lib/supabase/serviceClient'
-import { leggiABlocchi } from '@/lib/supabase/aBlocchi'
+import { leggiABlocchi, leggiTutteLeRighe } from '@/lib/supabase/aBlocchi'
 import { BoxIstruzioni } from '@/components/BoxIstruzioni'
 import { FiltroCheckbox } from '@/components/FiltroCheckbox'
 import { FiltroData } from '@/components/FiltroData'
@@ -55,8 +55,8 @@ export default async function AgendaPage({
   // lib/auth/staff-server.ts), quindi entrano qui senza costare una query in
   // piu'.
   const [
-    { data: task, error },
-    { data: contatti },
+    risultatoTask,
+    risultatoContatti,
     { data: staff },
     { data: inviti },
     sezioni,
@@ -64,8 +64,16 @@ export default async function AgendaPage({
     puoRiassegnareLead,
     puoCancellare,
   ] = await Promise.all([
-      supabase.from('task').select('*'),
-      supabase.from('form_contatti').select('*'),
+      // A pagine da 1000: oltre quella soglia .select('*') senza .range()
+      // tronca in silenzio (vedi leggiTutteLeRighe) - qui la tabella l'ha gia'
+      // superata, ed era proprio il motivo per cui una voce nata stamattina
+      // non compariva in agenda pur essendo stata salvata.
+      leggiTutteLeRighe<Record<string, any>>((da, a) =>
+        supabase.from('task').select('*').order('id', { ascending: true }).range(da, a)
+      ),
+      leggiTutteLeRighe<Record<string, any>>((da, a) =>
+        supabase.from('form_contatti').select('*').order('id', { ascending: true }).range(da, a)
+      ),
       supabase.from('staff_users').select('email, nome, cognome').order('cognome', { ascending: true }),
       supabase.from('form_invita_amico').select('id, amico_nome, amico_cognome, amico_email'),
       getSezioniConsentite(emailCorrente),
@@ -74,9 +82,11 @@ export default async function AgendaPage({
       puoCancellareRecord(emailCorrente),
     ])
 
-  if (error) {
-    return <p className="error-banner">Errore nel caricamento: {error.message}</p>
+  if (risultatoTask.errore) {
+    return <p className="error-banner">Errore nel caricamento: {risultatoTask.errore}</p>
   }
+  const task = risultatoTask.righe
+  const contatti = risultatoContatti.righe
 
   // Gli appuntamenti dal sito si vedono in agenda solo se si vedono anche
   // nella loro sezione: l'agenda non e' una scorciatoia per aggirare i
