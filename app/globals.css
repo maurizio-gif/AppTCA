@@ -1247,6 +1247,13 @@ table.data-table {
   color: var(--color-accent);
 }
 
+/* Contatti (email/cellulare) sopra al resto dell'anagrafica, in un
+   .detail-grid separato (vedi ModificaContattiPersona): serve lo stacco
+   dal resto dei campi, che il grid da solo non da'. */
+.persona-contatti {
+  margin-bottom: 8px;
+}
+
 .detail-value a:hover {
   color: var(--color-accent-dark);
 }

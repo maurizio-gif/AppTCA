@@ -41,6 +41,7 @@ export const AZIONI_LOG: Record<string, string> = {
   opportunita_nota_salvata: 'Opportunità: nota salvata',
   persone_unite: 'Anagrafica: due schede unite',
   duplicato_ignorato: 'Anagrafica: coppia segnata come persone diverse',
+  persona_contatti_modificati: 'Anagrafica: email o cellulare corretti',
   task_creato: 'Agenda: task creato',
   task_creato_completato: 'Agenda: task creato già completato (evento passato)',
   task_completato: 'Agenda: task completato',
